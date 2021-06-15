@@ -1,0 +1,87 @@
+version: '3'
+
+services:
+  gateway:
+    # The official v2 Traefik docker image
+    image: traefik:v2.4.8
+    # Enables the web UI and tells Traefik to listen to docker
+    command: --api.insecure=true --providers.docker --entryPoints.http.address=:80
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+  db:
+    build: ../../utilities/tools.descartes.teastore.database
+    # image: tvsjsdock/teastore-db:v2
+    expose:
+      - "3306"
+    labels:
+      - "traefik.http.routers.db.rule=Host(`localhost`) && PathPrefix(`/db`)"
+      - "traefik.port=3306"
+      - "traefik.protocol=http"
+  persistence:
+    build: ../../services/tools.descartes.teastore.persistence
+    # image: tvsjsdock/teastore-persistence:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "persistence"
+      GATEWAY_HOST: "gateway"
+      DB_HOST: "gateway/db"
+      DB_PORT: "3306"
+    labels:
+      - "traefik.http.routers.persistence.rule=Host(`localhost`) && PathPrefix(`/persistence`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  auth:
+    build: ../../services/tools.descartes.teastore.auth
+    # image: tvsjsdock/teastore-auth:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "auth"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.auth.rule=Host(`localhost`) && PathPrefix(`/auth`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  image:
+    build: ../../services/tools.descartes.teastore.image
+    # image: tvsjsdock/teastore-image:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "image"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/image`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  recommender:
+    build: ../../services/tools.descartes.teastore.recommender
+    # image: tvsjsdock/teastore-recommender:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "recommender"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.recommender.rule=Host(`localhost`) && PathPrefix(`/recommender`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  webui:
+    build: ../../services/tools.descartes.teastore.webui
+    # image: tvsjsdock/teastore-web:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "webui"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.webui.rule=Host(`localhost`) && PathPrefix(`/webui`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
