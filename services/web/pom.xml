@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>web</artifactId>
+  	<version>2.0</version>
+	<packaging>jar</packaging>
+
+	<properties>
+		<maven.compiler.source>16</maven.compiler.source>
+		<maven.compiler.target>16</maven.compiler.target>
+		<netty.version>4.1.65.Final</netty.version>
+		<teastore.version>2.0</teastore.version>
+  	</properties>
+
+	<dependencies>
+	
+		<!-- Internal Dependencies -->
+<!-- 		<dependency>
+			<groupId>tools.descartes.teastore</groupId>
+			<artifactId>kieker.probes</artifactId>
+			<version>${teastore.version}</version>
+		</dependency> -->
+
+		<!-- Server Dependencies -->
+		<!-- Test Dependencies -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.8.0-M1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- Dependencies -->
+		<dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+		<dependency>
+			<groupId>org.fusesource</groupId>
+			<artifactId>sigar</artifactId>
+			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.rabbitmq</groupId>
+			<artifactId>amqp-client</artifactId>
+			<version>5.12.0</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<finalName>web</finalName>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M5</version>
+				<configuration>
+					 <release>16</release>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	
+	<parent>
+		<groupId>teastore</groupId>
+		<artifactId>parent</artifactId>
+		<version>${teastore.version}</version>
+		<relativePath>../..</relativePath>
+	</parent>
+</project>

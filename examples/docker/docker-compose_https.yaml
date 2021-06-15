@@ -17,7 +17,7 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
   db:
-    build: ../../utilities/tools.descartes.teastore.database
+    build: ../../database
     # image: tvsjsdock/teastore-db:v2
     expose:
       - "3306"
@@ -26,7 +26,7 @@ services:
       - "traefik.http.routers.db.entrypoints=http"
       - "traefik.port=3306"
   persistence:
-    build: ../../services/tools.descartes.teastore.persistence
+    build: ../../services/persistence
     # image: tvsjsdock/teastore-persistence:v2
     expose:
       - "443"
@@ -42,7 +42,7 @@ services:
       - "traefik.http.persistence.tls=true"
       - "traefik.protocol=https"
   auth:
-    build: ../../services/tools.descartes.teastore.auth
+    build: ../../services/auth
     # image: tvsjsdock/teastore-auth:v2
     expose:
       - "443"
@@ -56,7 +56,7 @@ services:
       - "traefik.http.auth.tls=true"
       - "traefik.protocol=https"
   image:
-    build: ../../services/tools.descartes.teastore.image
+    build: ../../services/image
     # image: tvsjsdock/teastore-image:v2
     expose:
       - "443"
@@ -70,7 +70,7 @@ services:
       - "traefik.http.image.tls=true"
       - "traefik.protocol=https"
   recommender:
-    build: ../../services/tools.descartes.teastore.recommender
+    build: ../../services/recommender
     # image: tvsjsdock/teastore-recommender:v2
     expose:
       - "443"
@@ -83,17 +83,17 @@ services:
       - "traefik.port=443"
       - "traefik.http.recommender.tls=true"
       - "traefik.protocol=https"
-  webui:
-    build: ../../services/tools.descartes.teastore.webui
+  web:
+    build: ../../services/web
     # image: tvsjsdock/teastore-web:v2
     expose:
       - "443"
     environment:
-      HOST_NAME: "webui"
+      HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.webui.rule=Host(`localhost`) && PathPrefix(`/webui`)"
-      - "traefik.http.routers.webui.entrypoints=https"
+      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/web`)"
+      - "traefik.http.routers.web.entrypoints=https"
       - "traefik.port=443"
-      - "traefik.http.webui.tls=true"
+      - "traefik.http.web.tls=true"
       - "traefik.protocol=https"

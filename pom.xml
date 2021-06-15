@@ -3,32 +3,31 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<properties>
-		<teastoreversion>1.3.8</teastoreversion>
+		<teastore.version>2.0</teastore.version>
 	</properties>
 
 	<prerequisites>
-		<maven>3.0</maven>
+		<maven>3.8.1</maven>
 	</prerequisites>
 
-	<groupId>tools.descartes.teastore</groupId>
+	<groupId>teastore</groupId>
 	<artifactId>parent</artifactId>
 	<packaging>pom</packaging>
-	<version>${teastoreversion}</version>
+	<version>${teastore.version}</version>
 	
 	<modules>
 		<module>interfaces/tools.descartes.teastore.entities</module>
 		<module>./utilities/tools.descartes.teastore.kieker.probes</module>
 		<module>./utilities/tools.descartes.teastore.kieker.rabbitmq</module>
-		<module>utilities/tools.descartes.teastore.registryclient</module>
 		<module>utilities/tools.descartes.teastore.dockermemoryconfigurator</module>
 		<module>./utilities/tools.descartes.teastore.dockerbase</module>
-		<module>services/tools.descartes.teastore.image</module>
-		<module>services/tools.descartes.teastore.persistence</module>
-		<module>services/tools.descartes.teastore.recommender</module>
-		<module>services/tools.descartes.teastore.registry</module>
-		<module>services/tools.descartes.teastore.auth</module>
-		<module>services/tools.descartes.teastore.webui</module>
 		<module>./utilities/tools.descartes.teastore.docker.all</module>
+		<module>services/image</module>
+		<module>services/persistence</module>
+		<module>services/recommender</module>
+		<module>services/registry</module>
+		<module>services/auth</module>
+		<module>services/web</module>
 	</modules>
 
 	<build>
@@ -36,24 +35,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>3.0.0</version>
-				<executions>
-					<execution>
-						<id>validate</id>
-						<phase>validate</phase>
-						<configuration>
-							<configLocation>limbo_checkstyle.xml</configLocation>
-							<encoding>UTF-8</encoding>
-							<consoleOutput>true</consoleOutput>
-							<failsOnError>true</failsOnError>
-							<linkXRef>false</linkXRef>
-							<violationSeverity>warning</violationSeverity>
-						</configuration>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
+				<version>3.1.2</version>
+				<configuration>
+          			<configLocation>limbo_checkstyle.xml</configLocation>
+        		</configuration>
 			</plugin>
 		</plugins>
 	</build>

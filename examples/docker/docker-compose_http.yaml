@@ -15,7 +15,7 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
   db:
-    build: ../../utilities/tools.descartes.teastore.database
+    build: ../../utilities/database
     # image: tvsjsdock/teastore-db:v2
     expose:
       - "3306"
@@ -24,7 +24,7 @@ services:
       - "traefik.port=3306"
       - "traefik.protocol=http"
   persistence:
-    build: ../../services/tools.descartes.teastore.persistence
+    build: ../../services/persistence
     # image: tvsjsdock/teastore-persistence:v2
     expose:
       - "80"
@@ -38,7 +38,7 @@ services:
       - "traefik.port=80"
       - "traefik.protocol=http"
   auth:
-    build: ../../services/tools.descartes.teastore.auth
+    build: ../../services/auth
     # image: tvsjsdock/teastore-auth:v2
     expose:
       - "80"
@@ -50,7 +50,7 @@ services:
       - "traefik.port=80"
       - "traefik.protocol=http"
   image:
-    build: ../../services/tools.descartes.teastore.image
+    build: ../../services/image
     # image: tvsjsdock/teastore-image:v2
     expose:
       - "80"
@@ -62,7 +62,7 @@ services:
       - "traefik.port=80"
       - "traefik.protocol=http"
   recommender:
-    build: ../../services/tools.descartes.teastore.recommender
+    build: ../../services/recommender
     # image: tvsjsdock/teastore-recommender:v2
     expose:
       - "80"
@@ -73,15 +73,15 @@ services:
       - "traefik.http.routers.recommender.rule=Host(`localhost`) && PathPrefix(`/recommender`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
-  webui:
-    build: ../../services/tools.descartes.teastore.webui
+  web:
+    build: ../../services/web
     # image: tvsjsdock/teastore-web:v2
     expose:
       - "80"
     environment:
-      HOST_NAME: "webui"
+      HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.webui.rule=Host(`localhost`) && PathPrefix(`/webui`)"
+      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/web`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
