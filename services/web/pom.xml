@@ -10,7 +10,7 @@
 		<maven.compiler.source>16</maven.compiler.source>
 		<maven.compiler.target>16</maven.compiler.target>
 		<netty.version>4.1.65.Final</netty.version>
-		<teastore.version>2.0</teastore.version>
+		<slf4j.version>1.7.30</slf4j.version>
   	</properties>
 
 	<dependencies>
@@ -21,6 +21,21 @@
 			<artifactId>kieker.probes</artifactId>
 			<version>${teastore.version}</version>
 		</dependency> -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>2.14.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.14.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j-impl</artifactId>
+			<version>2.14.1</version>
+		</dependency>
 
 		<!-- Server Dependencies -->
 		<!-- Test Dependencies -->
@@ -55,9 +70,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.0.0-M5</version>
-				<configuration>
-					 <release>16</release>
-				</configuration>
 			</plugin>
 		</plugins>
 	</build>
@@ -65,7 +77,7 @@
 	<parent>
 		<groupId>teastore</groupId>
 		<artifactId>parent</artifactId>
-		<version>${teastore.version}</version>
+		<version>2.0</version>
 		<relativePath>../..</relativePath>
 	</parent>
 </project>

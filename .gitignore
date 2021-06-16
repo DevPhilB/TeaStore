@@ -2,8 +2,10 @@
 .classpath
 .metadata
 .settings
-RemoteSystemsTempFiles/
-Servers/
-/.recommenders
+.recommenders
 services/tools.descartes.petstore.image/test/
 limbo_checkstyle.out.xml
+.idea
+*.iml
+build
+target

@@ -2,10 +2,6 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<properties>
-		<teastore.version>2.0</teastore.version>
-	</properties>
-
 	<prerequisites>
 		<maven>3.8.1</maven>
 	</prerequisites>
@@ -13,7 +9,7 @@
 	<groupId>teastore</groupId>
 	<artifactId>parent</artifactId>
 	<packaging>pom</packaging>
-	<version>${teastore.version}</version>
+	<version>2.0</version>
 	
 	<modules>
 		<module>interfaces/tools.descartes.teastore.entities</module>
