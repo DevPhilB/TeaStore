@@ -1,0 +1,47 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>utilities</artifactId>
+	<version>2.0</version>
+	<packaging>jar</packaging>
+
+	<properties>
+		<maven.compiler.source>16</maven.compiler.source>
+		<maven.compiler.target>16</maven.compiler.target>
+		<netty.version>4.1.65.Final</netty.version>
+	</properties>
+
+	<dependencies>
+		<!-- Test Dependencies -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.8.0-M1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- Netty Dependencies -->
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-all</artifactId>
+			<version>${netty.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<finalName>utilities</finalName>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M5</version>
+			</plugin>
+		</plugins>
+	</build>
+
+	<parent>
+		<groupId>teastore</groupId>
+		<artifactId>parent</artifactId>
+		<version>2.0</version>
+	</parent>
+</project>

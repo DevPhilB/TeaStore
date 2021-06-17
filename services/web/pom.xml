@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>web</artifactId>
@@ -14,13 +14,46 @@
   	</properties>
 
 	<dependencies>
-	
 		<!-- Internal Dependencies -->
 <!-- 		<dependency>
 			<groupId>tools.descartes.teastore</groupId>
 			<artifactId>kieker.probes</artifactId>
 			<version>${teastore.version}</version>
 		</dependency> -->
+		<dependency>
+			<groupId>teastore</groupId>
+			<artifactId>utilities</artifactId>
+			<version>2.0</version>
+		</dependency>
+		<!-- Server Dependencies -->
+		<!-- Test Dependencies -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.8.0-M1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- Dependencies -->
+		<dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.12.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>2.12.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.12.3</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
@@ -36,21 +69,6 @@
 			<artifactId>log4j-slf4j-impl</artifactId>
 			<version>2.14.1</version>
 		</dependency>
-
-		<!-- Server Dependencies -->
-		<!-- Test Dependencies -->
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.8.0-M1</version>
-			<scope>test</scope>
-		</dependency>
-		<!-- Dependencies -->
-		<dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>${netty.version}</version>
-        </dependency>
 		<dependency>
 			<groupId>org.fusesource</groupId>
 			<artifactId>sigar</artifactId>
@@ -78,6 +96,6 @@
 		<groupId>teastore</groupId>
 		<artifactId>parent</artifactId>
 		<version>2.0</version>
-		<relativePath>../..</relativePath>
+		<relativePath>../../pom.xml</relativePath>
 	</parent>
 </project>

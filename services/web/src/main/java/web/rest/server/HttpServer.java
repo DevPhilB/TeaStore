@@ -25,33 +25,42 @@ public class HttpServer {
     }
 
     public static void main(String[] args) throws Exception {
-        int port = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
+        int port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
         new HttpServer(port).run();
     }
 
     public void run() throws Exception {
+        // Accept incoming connections
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        // Handle the traffic of the accepted connection
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.INFO))
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) throws Exception {
-                            ChannelPipeline p = ch.pipeline();
-                            p.addLast(new HttpRequestDecoder());
-                            p.addLast(new HttpResponseEncoder());
-                            p.addLast(new CustomHttpServerHandler());
-                        }
-                    });
+            // Set up the server
+            ServerBootstrap bootstrap = new ServerBootstrap();
+            // Configure server
+            bootstrap.group(bossGroup, workerGroup)
+                // Instantiate new channels to accept incoming connections
+                .channel(NioServerSocketChannel.class)
+                // Instantiate new handler for logging
+                .handler(new LoggingHandler(LogLevel.INFO))
+                // Instantiate new handler for newly accepted channels
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        // Configure new handlers for the channel pipeline of new channels
+                        ChannelPipeline channelPipeline = ch.pipeline();
+                        channelPipeline.addLast(new HttpRequestDecoder());
+                        channelPipeline.addLast(new HttpResponseEncoder());
+                        channelPipeline.addLast(new HttpWebServiceHandler());
+                    }
+                });
 
-            ChannelFuture f = b.bind(port)
-                    .sync();
-            f.channel()
-                    .closeFuture()
-                    .sync();
+            ChannelFuture future = bootstrap.bind(port).sync();
+
+            System.err.println("Web service is available on " +
+                    "http://127.0.0.1:" + port + "/api/web");
+
+            future.channel().closeFuture().sync();
 
         } finally {
             bossGroup.shutdownGracefully();

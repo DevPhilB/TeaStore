@@ -1,4 +1,4 @@
-package web.rest.server;
+package utilities.netty;
 
 import java.util.List;
 import java.util.Map;
@@ -13,17 +13,24 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.CharsetUtil;
 
-class RequestUtils {
+/**
+ * From baeldung course HTTP Server with Netty
+ *
+ * @author Sampada Wagde
+ *
+ */
+public class RequestUtils {
 
-    static StringBuilder formatParams(HttpRequest request) {
+    public static StringBuilder formatParams(HttpRequest request) {
         StringBuilder responseData = new StringBuilder();
         QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.uri());
         Map<String, List<String>> params = queryStringDecoder.parameters();
+        String path = queryStringDecoder.path();
         if (!params.isEmpty()) {
             for (Entry<String, List<String>> p : params.entrySet()) {
                 String key = p.getKey();
-                List<String> vals = p.getValue();
-                for (String val : vals) {
+                List<String> values = p.getValue();
+                for (String val : values) {
                     responseData.append("Parameter: ")
                             .append(key.toUpperCase())
                             .append(" = ")
@@ -36,7 +43,7 @@ class RequestUtils {
         return responseData;
     }
 
-    static StringBuilder formatBody(HttpContent httpContent) {
+    public static StringBuilder formatBody(HttpContent httpContent) {
         StringBuilder responseData = new StringBuilder();
         ByteBuf content = httpContent.content();
         if (content.isReadable()) {
@@ -47,9 +54,9 @@ class RequestUtils {
         return responseData;
     }
 
-    static StringBuilder evaluateDecoderResult(HttpObject o) {
+    public static StringBuilder evaluateDecoderResult(HttpObject object) {
         StringBuilder responseData = new StringBuilder();
-        DecoderResult result = o.decoderResult();
+        DecoderResult result = object.decoderResult();
 
         if (!result.isSuccess()) {
             responseData.append("..Decoder Failure: ");
@@ -60,7 +67,7 @@ class RequestUtils {
         return responseData;
     }
 
-    static StringBuilder prepareLastResponse(HttpRequest request, LastHttpContent trailer) {
+    public static StringBuilder prepareLastResponse(HttpRequest request, LastHttpContent trailer) {
         StringBuilder responseData = new StringBuilder();
         responseData.append("Good Bye!\r\n");
 

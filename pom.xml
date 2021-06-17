@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<prerequisites>
@@ -12,17 +12,17 @@
 	<version>2.0</version>
 	
 	<modules>
-		<module>interfaces/tools.descartes.teastore.entities</module>
-		<module>./utilities/tools.descartes.teastore.kieker.probes</module>
-		<module>./utilities/tools.descartes.teastore.kieker.rabbitmq</module>
-		<module>utilities/tools.descartes.teastore.dockermemoryconfigurator</module>
-		<module>./utilities/tools.descartes.teastore.dockerbase</module>
-		<module>./utilities/tools.descartes.teastore.docker.all</module>
-		<module>services/image</module>
-		<module>services/persistence</module>
-		<module>services/recommender</module>
-		<module>services/registry</module>
-		<module>services/auth</module>
+		<!--
+			<module>interfaces/tools.descartes.teastore.entities</module>
+			<module>utilities/tools.descartes.teastore.kieker.probes</module>
+			<module>utilities/tools.descartes.teastore.kieker.rabbitmq</module>
+			<module>services/image</module>
+			<module>services/persistence</module>
+			<module>services/recommender</module>
+			<module>services/registry</module>
+			<module>services/auth</module>
+		-->
+		<module>utilities</module>
 		<module>services/web</module>
 	</modules>
 
