@@ -22,7 +22,7 @@
 		</dependency> -->
 		<dependency>
 			<groupId>teastore</groupId>
-			<artifactId>utilities</artifactId>
+			<artifactId>utilities-api</artifactId>
 			<version>2.0</version>
 		</dependency>
 		<!-- Server Dependencies -->

@@ -22,7 +22,7 @@
 			<module>services/registry</module>
 			<module>services/auth</module>
 		-->
-		<module>utilities</module>
+		<module>utilities/api</module>
 		<module>services/web</module>
 	</modules>
 
