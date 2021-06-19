@@ -16,8 +16,6 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-import java.net.InetAddress;
-
 public class HttpServer {
 
     private final String httpVersion;
