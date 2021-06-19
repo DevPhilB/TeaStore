@@ -5,17 +5,20 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpContentDecompressor;
+import io.netty.handler.codec.http.HttpRequest;
 
 public class HttpClient {
 
-    private final String httpVersion;
     private final String host;
     private final int port;
+    private final HttpRequest httpRequest;
 
-    public HttpClient(String httpVersion, String host, int port) {
-        this.httpVersion = httpVersion;
+    public HttpClient(String host, int port, HttpRequest httpRequest) {
         this.host = host;
         this.port = port;
+        this.httpRequest = httpRequest;
     }
 
     public void sendRequest(HttpClientHandler handler) {
@@ -28,25 +31,22 @@ public class HttpClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel channel) throws Exception {
+                    channel.pipeline().addLast(new HttpClientCodec());
+                    channel.pipeline().addLast(new HttpContentDecompressor());
                     channel.pipeline().addLast(handler);
                 }
             });
 
-            // Start the client
-            ChannelFuture future = bootstrap.connect(host, port).sync();
+            // Make the connection attempt
+            Channel channel = bootstrap.connect(host, port).sync().channel();
+            // Send the HTTP request
+            channel.writeAndFlush(httpRequest);
             // Wait until the connection is closed
-            future.channel().closeFuture().sync();
+            channel.closeFuture().sync();
         } catch(InterruptedException e) {
             e.printStackTrace();
         } finally {
             workerGroup.shutdownGracefully();
         }
-    }
-
-    public static void main(String[] args) {
-        String host = "http:///api/web/isready";
-        HttpClient client = new HttpClient("HTTP/1.1", host, 80);
-        HttpClientHandler handler = new HttpClientHandler();
-        client.sendRequest(handler);
     }
 }

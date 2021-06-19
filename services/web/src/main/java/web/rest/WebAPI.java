@@ -6,12 +6,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
-import io.netty.util.NetUtil;
 import utilities.rest.API;
 import web.rest.client.HttpClient;
 import web.rest.client.HttpClientHandler;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,7 @@ public class WebAPI implements API {
         String json = "{}";
         Map<String,String> map = new HashMap<>();
         map.put("name","TeaStore v2");
-        map.put("url","http://127.0.0.1/teastore/");
+        map.put("url","http://localhost:80/teastore/");
         try {
             json = new ObjectMapper().writeValueAsString(map);
         } catch (JsonProcessingException e) {
@@ -142,14 +143,22 @@ public class WebAPI implements API {
      */
     private FullHttpResponse aboutView() {
         // POST image/getWebImages
-        int imagePort = 81;
+        String host = "127.0.0.1";
+        int imagePort = 80;
         String imageEndpoint = "/api/web/isready"; // TODO: Replace with "/api/image/getWebImages"
-        String host = "http://" + NetUtil.LOCALHOST4 + ":" + imagePort +  imageEndpoint;
-        httpClient = new HttpClient(
-                httpVersion.text(),
-                host,
-                imagePort
-        );
+        URI uri = null;
+        try {
+            uri = new URI("http://" + host + ":" + imagePort + imageEndpoint);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        HttpRequest request = new DefaultFullHttpRequest(
+            httpVersion, HttpMethod.GET, uri.getRawPath(), Unpooled.EMPTY_BUFFER);
+        request.headers().set(HttpHeaderNames.HOST, host);
+        request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+        // Create client and send request
+        httpClient = new HttpClient(host, imagePort, request);
         HttpClientHandler handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
         if(handler.response instanceof HttpContent httpContent) {
