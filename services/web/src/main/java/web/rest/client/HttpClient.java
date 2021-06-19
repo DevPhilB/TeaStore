@@ -1,39 +1,52 @@
 package web.rest.client;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 public class HttpClient {
-    public static void main(String[] args) throws Exception {
-        String host = args.length > 0 ? args[0] : "127.0.0.1";
-        int port =  args.length > 1 ? Integer.parseInt(args[1]) : 80;
+
+    private final String httpVersion;
+    private final String host;
+    private final int port;
+
+    public HttpClient(String httpVersion, String host, int port) {
+        this.httpVersion = httpVersion;
+        this.host = host;
+        this.port = port;
+    }
+
+    public void sendRequest(HttpClientHandler handler) {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
-            Bootstrap b = new Bootstrap(); // (1)
-            b.group(workerGroup); // (2)
-            b.channel(NioSocketChannel.class); // (3)
-            b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
-            b.handler(new ChannelInitializer<SocketChannel>() {
+            Bootstrap bootstrap = new Bootstrap()
+                .group(workerGroup)
+                .channel(NioSocketChannel.class)
+                .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(new HttpClientHandler());
+                public void initChannel(SocketChannel channel) throws Exception {
+                    channel.pipeline().addLast(handler);
                 }
             });
 
-            // Start the client.
-            ChannelFuture f = b.connect(host, port).sync(); // (5)
-
-            // Wait until the connection is closed.
-            f.channel().closeFuture().sync();
+            // Start the client
+            ChannelFuture future = bootstrap.connect(host, port).sync();
+            // Wait until the connection is closed
+            future.channel().closeFuture().sync();
+        } catch(InterruptedException e) {
+            e.printStackTrace();
         } finally {
             workerGroup.shutdownGracefully();
         }
+    }
+
+    public static void main(String[] args) {
+        String host = "http:///api/web/isready";
+        HttpClient client = new HttpClient("HTTP/1.1", host, 80);
+        HttpClientHandler handler = new HttpClientHandler();
+        client.sendRequest(handler);
     }
 }

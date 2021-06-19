@@ -16,17 +16,26 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.net.InetAddress;
+
 public class HttpServer {
-    private int port;
+
+    private final String httpVersion;
+    private final int port;
     private static final Logger logger = LogManager.getLogger(HttpServer.class);
 
-    public HttpServer(int port) {
+    public HttpServer(String httpVersion, int port) {
+        this.httpVersion = httpVersion;
         this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
-        new HttpServer(port).run();
+        if(args.length > 1) {
+            new HttpServer(args[1], port).run();
+        } else {
+            new HttpServer("HTTP/1.1", port).run();
+        }
     }
 
     public void run() throws Exception {
@@ -34,6 +43,7 @@ public class HttpServer {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         // Handle the traffic of the accepted connection
         EventLoopGroup workerGroup = new NioEventLoopGroup();
+
         try {
             // Set up the server
             ServerBootstrap bootstrap = new ServerBootstrap();
@@ -56,8 +66,7 @@ public class HttpServer {
                 });
 
             ChannelFuture future = bootstrap.bind(port).sync();
-
-            System.err.println("Web service is available on " +
+            System.err.println(httpVersion + " web service is available on " +
                     "http://127.0.0.1:" + port + "/api/web");
 
             future.channel().closeFuture().sync();

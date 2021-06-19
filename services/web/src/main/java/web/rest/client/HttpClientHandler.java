@@ -1,27 +1,29 @@
 package web.rest.client;
 
-import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.HttpObject;
 
-import java.util.Date;
 
-public class HttpClientHandler extends ChannelInboundHandlerAdapter {
+public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
+    public HttpObject response;
+
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ByteBuf m = (ByteBuf) msg; // (1)
-        try {
-            long currentTimeMillis = (m.readUnsignedInt() - 2208988800L) * 1000L;
-            System.out.println(new Date(currentTimeMillis));
-            ctx.close();
-        } finally {
-            m.release();
-        }
+    public void channelReadComplete(ChannelHandlerContext channelHandlerContext) {
+        channelHandlerContext.flush();
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         cause.printStackTrace();
-        ctx.close();
+        context.close();
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext context, HttpObject response) {
+        this.response = response;
+        context.flush();
     }
 }

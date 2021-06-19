@@ -1,7 +1,6 @@
 package web.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -13,7 +12,13 @@ import web.rest.WebAPI;
 public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private WebAPI api = new WebAPI();
+    private final HttpVersion httpVersion;
+    private final WebAPI api;
+
+    public HttpWebServiceHandler() {
+        httpVersion = HttpVersion.HTTP_1_1;
+        api = new WebAPI(httpVersion);
+    }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext channelHandlerContext) {
@@ -40,15 +45,14 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
             if (HttpUtil.is100ContinueExpected(request)) {
                 writeContinueResponse(context);
             }
-
         }
 
-        if(!evaluateDecoderResult(request)) {
+        if(evaluateDecoderResult(request)) {
             writeStatusResponse(context, BAD_REQUEST);
         }
 
         if (message instanceof HttpContent httpContent) {
-            if(!evaluateDecoderResult(request)) {
+            if(evaluateDecoderResult(request)) {
                 writeStatusResponse(context, BAD_REQUEST);
             }
             // Trailer response header gets ignored in handler
@@ -59,12 +63,12 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
     }
 
     private void writeStatusResponse(ChannelHandlerContext context, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
+        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
         context.write(response);
     }
 
     private void writeContinueResponse(ChannelHandlerContext context) {
-        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, CONTINUE, Unpooled.EMPTY_BUFFER);
+        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, CONTINUE, Unpooled.EMPTY_BUFFER);
         context.write(response);
     }
 
@@ -86,6 +90,6 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
     }
 
     private boolean evaluateDecoderResult(HttpObject object) {
-        return object.decoderResult().isSuccess();
+        return !object.decoderResult().isSuccess();
     }
 }

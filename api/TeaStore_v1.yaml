@@ -1,0 +1,833 @@
+openapi: "3.0.3"
+info:
+  title: "TeaStore v1 API"
+  description: "Original TeaStore API"
+  version: "1.0.0"
+servers:
+  - url: "http://localhost:8080"
+paths:
+  /tools.descartes.teastore.webui/ready/isready:
+    get:
+      summary: "This methods checks, if the service is ready."
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - WebUI
+  /tools.descartes.teastore.webui/about:
+    get:
+      summary: "Servlet implementation for the web view of 'About us'."
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - WebUI
+  /tools.descartes.teastore.image/rest/image/finished:
+    get:
+      summary: "GET image/finished"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /tools.descartes.teastore.image/rest/image/getProductImages:
+    post:
+      summary: "POST image/getProductImages"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /tools.descartes.teastore.image/rest/image/getWebImages:
+    post:
+      summary: "POST image/getWebImages"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /tools.descartes.teastore.image/rest/image/regenerateImages:
+    get:
+      summary: "GET image/regenerateImages"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /tools.descartes.teastore.image/rest/image/setCacheSize:
+    post:
+      summary: "POST image/setCacheSize"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /tools.descartes.teastore.image/rest/image/state:
+    get:
+      summary: "GET image/state"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /tools.descartes.teastore.registry/rest/services/{name}:
+    get:
+      summary: "GET services/{name}"
+      parameters:
+        - name: "name"
+          in: "path"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Registry
+  /tools.descartes.teastore.registry/rest/services/{name}/{location}:
+    delete:
+      summary: "DELETE services/{name}/{location}"
+      parameters:
+        - name: "name"
+          in: "path"
+          schema:
+            type: string
+          required: true
+        - name: "location"
+          in: "path"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Registry
+  /tools.descartes.teastore.auth/rest/cart/add/{pid}:
+    post:
+      summary: "POST cart/add/{pid}"
+      parameters:
+        - name: "pid"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.auth/rest/cart/remove/{pid}:
+    post:
+      summary: "POST cart/remove/{pid}"
+      parameters:
+        - name: "pid"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.auth/rest/cart/{pid}:
+    put:
+      summary: "PUT cart/{pid}"
+      parameters:
+        - name: "pid"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+        - name: "quantity"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.auth/rest/ready/isready:
+    get:
+      summary: "GET ready/isready"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.recommender/rest/ready/isready:
+    get:
+      summary: "GET ready/isready"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Recommender
+  /tools.descartes.teastore.auth/rest/useractions/isloggedin:
+    post:
+      summary: "POST useractions/isloggedin"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.auth/rest/useractions/login:
+    post:
+      summary: "POST useractions/login"
+      parameters:
+        - name: "name"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "password"
+          in: "query"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.auth/rest/useractions/logout:
+    post:
+      summary: "POST useractions/logout"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.auth/rest/useractions/placeorder:
+    post:
+      summary: "POST useractions/placeorder"
+      parameters:
+        - name: "totalPriceInCents"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "addressName"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "address1"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "address2"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "creditCardCompany"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "creditCardNumber"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "creditCardExpiryDate"
+          in: "query"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
+  /tools.descartes.teastore.recommender/rest/recommend:
+    post:
+      summary: "POST recommend"
+      parameters:
+        - name: "uid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Recommender
+  /tools.descartes.teastore.recommender/rest/recommendsingle:
+    post:
+      summary: "POST recommendsingle"
+      parameters:
+        - name: "uid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Recommender
+  /tools.descartes.teastore.recommender/rest/train:
+    get:
+      summary: "GET train"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Recommender
+  /tools.descartes.teastore.recommender/rest/train/isready:
+    get:
+      summary: "GET train/isready"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Recommender
+  /tools.descartes.teastore.recommender/rest/train/timestamp:
+    get:
+      summary: "GET train/timestamp"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Recommender
+  /tools.descartes.teastore.persistence/abstract:
+    post:
+      summary: "POST abstract"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/abstract/{id}:
+    delete:
+      summary: "DELETE abstract/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/categories:
+    get:
+      summary: "GET categories"
+      parameters:
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    post:
+      summary: "POST categories"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/categories/{id}:
+    get:
+      summary: "GET categories/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    put:
+      summary: "PUT categories/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    delete:
+      summary: "DELETE categories/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /cache/cache:
+    delete:
+      summary: "DELETE cache/cache"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /cache/class/{class}:
+    delete:
+      summary: "DELETE cache/class/{class}"
+      parameters:
+        - name: "class"
+          in: "path"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /cache/emf:
+    delete:
+      summary: "DELETE cache/emf"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/generatedb:
+    get:
+      summary: "GET generatedb"
+      parameters:
+        - name: "categories"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "products"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "users"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "orders"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/generatedb/finished:
+    get:
+      summary: "GET generatedb/finished"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/generatedb/maintenance:
+    get:
+      summary: "GET generatedb/maintenance"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    post:
+      summary: "POST generatedb/maintenance"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/orderitems:
+    get:
+      summary: "GET orderitems"
+      parameters:
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    post:
+      summary: "POST orderitems"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/orderitems/order/{order}:
+    get:
+      summary: "GET orderitems/order/{order}"
+      parameters:
+        - name: "order"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/orderitems/{id}:
+    get:
+      summary: "GET orderitems/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    put:
+      summary: "PUT orderitems/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    delete:
+      summary: "DELETE orderitems/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/orders:
+    get:
+      summary: "GET orders"
+      parameters:
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    post:
+      summary: "POST orders"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/orders/user/{user}:
+    get:
+      summary: "GET orders/user/{user}"
+      parameters:
+        - name: "user"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/orders/{id}:
+    get:
+      summary: "GET orders/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    put:
+      summary: "PUT orders/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    delete:
+      summary: "DELETE orders/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/products:
+    get:
+      summary: "GET products"
+      parameters:
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    post:
+      summary: "POST products"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/products/category/{category}:
+    get:
+      summary: "GET products/category/{category}"
+      parameters:
+        - name: "category"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/products/count/{category}:
+    get:
+      summary: "GET products/count/{category}"
+      parameters:
+        - name: "category"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/products/{id}:
+    get:
+      summary: "GET products/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    put:
+      summary: "PUT products/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    delete:
+      summary: "DELETE products/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/users:
+    get:
+      summary: "GET users"
+      parameters:
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    post:
+      summary: "POST users"
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/users/name/{name}:
+    get:
+      summary: "GET users/name/{name}"
+      parameters:
+        - name: "name"
+          in: "path"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /tools.descartes.teastore.persistence/rest/users/{id}:
+    get:
+      summary: "GET users/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    put:
+      summary: "PUT users/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+    delete:
+      summary: "DELETE users/{id}"
+      parameters:
+        - name: "id"
+          in: "path"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
