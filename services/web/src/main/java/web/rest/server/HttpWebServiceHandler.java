@@ -13,11 +13,13 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
 
     private HttpRequest request;
     private final HttpVersion httpVersion;
+    private final String schema;
     private final WebAPI api;
 
     public HttpWebServiceHandler() {
         httpVersion = HttpVersion.HTTP_1_1;
-        api = new WebAPI(httpVersion);
+        schema = "http://";
+        api = new WebAPI(httpVersion, schema);
     }
 
     @Override

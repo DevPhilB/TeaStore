@@ -13,5 +13,10 @@ import io.netty.handler.codec.http.LastHttpContent;
  *
  */
 public interface API {
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer);
+    String WEB_ENDPOINT = "/api/web";
+    String IMAGE_ENDPOINT = "/api/image";
+    String AUTH_ENDPOINT = "/api/auth";
+    String RECOMMENDER_ENDPOINT = "/api/recommender";
+    String PERSISTENCE_ENDPOINT = "/api/persistence";
+    FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer);
 }
