@@ -7,7 +7,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import web.rest.WebAPI;
+import web.rest.api.WebAPI;
 
 public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 

@@ -1,4 +1,4 @@
-package web.rest;
+package web.rest.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -10,15 +10,15 @@ import io.netty.util.CharsetUtil;
 import utilities.rest.API;
 import web.rest.client.HttpClient;
 import web.rest.client.HttpClientHandler;
+import web.rest.datamodel.*;
 
-import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpMethod.*;
 
 /**
  * API for web service
@@ -27,23 +27,36 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
 public class WebAPI implements API {
     private final HttpVersion httpVersion;
     private HttpClient httpClient;
+    private HttpClientHandler handler;
     private final String scheme;
     private final ObjectMapper mapper;
+    private final String gatewayHost;
     private final int webPort;
     private final int imagePort;
     private final int authPort;
     private final int recommenderPort;
     private final int persistencePort;
+    private final HttpRequest request;
 
     public WebAPI(HttpVersion httpVersion, String scheme) {
         this.httpVersion = httpVersion;
         this.scheme = scheme;
-        mapper = new ObjectMapper();
+        this.mapper = new ObjectMapper();
+        this.gatewayHost = "127.0.0.1";
         this.webPort = 80;
         this.imagePort = 80;
         this.authPort = 80;
         this.recommenderPort = 80;
         this.persistencePort = 80;
+        this.request = new DefaultFullHttpRequest(
+                this.httpVersion,
+                HttpMethod.GET,
+                "",
+                Unpooled.EMPTY_BUFFER
+        );
+        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
@@ -108,17 +121,20 @@ public class WebAPI implements API {
      */
     public String getWebImages() {
         String json = "{}";
-        AboutView view = new AboutView();
         Map<String, String> portraits = new HashMap<>();
         portraits.put("portraitAndre", "PORTRAIT1");
         portraits.put("portraitJohannes", "PORTRAIT2");
         portraits.put("portraitSimon", "PORTRAIT3");
         portraits.put("portraitNorbert", "PORTRAIT4");
         portraits.put("portraitKounev", "PORTRAIT5");
-        view.portraits = portraits;
-        view.descartesLogo = "LOGO";
-        view.storeIcon = "STOREICON";
-        view.isLoggedIn = false;
+        String title = "TeaStore About Us";
+        AboutView view = new AboutView(
+                portraits,
+                "LOGO",
+                "STOREICON",
+                title,
+                false
+        );
         try {
             json = mapper.writeValueAsString(view);
         } catch (JsonProcessingException e) {
@@ -133,12 +149,13 @@ public class WebAPI implements API {
     public String getPersistenceProducts() {
         String json = "{}";
         Map<Long, Product> products = new HashMap<>();
-        Product product = new Product();
-        product.id = 1;
-        product.categoryId = 1;
-        product.name = "Product 1";
-        product.description = "Product 1 description";
-        product.listPriceInCents = 100;
+        Product product = new Product(
+                1,
+                1,
+                "Product 1",
+                "Product 1 description",
+                100
+        );
         products.put(1L, product);
         products.put(2L, product);
         products.put(3L, product);
@@ -156,10 +173,11 @@ public class WebAPI implements API {
     public String getPersistenceCategories() {
         String json = "{}";
         List<Category> categoryList = new ArrayList<>();
-        Category category = new Category();
-        category.id = 1;
-        category.name = "Category 1";
-        category.description = "Category 1 description";
+        Category category = new Category(
+                1,
+                "Category 1",
+                "Category 1 description"
+        );
         categoryList.add(category);
         categoryList.add(category);
         categoryList.add(category);
@@ -176,18 +194,19 @@ public class WebAPI implements API {
      */
     public String getRecommendations() {
         String json = "{}";
-        List<Product> advertisments = new ArrayList<>();
-        Product product = new Product();
-        product.id = 2;
-        product.categoryId = 1;
-        product.name = "Ad: Product 1";
-        product.description = "Ad: Product 1 description";
-        product.listPriceInCents = 100;
-        advertisments.add(product);
-        advertisments.add(product);
-        advertisments.add(product);
+        List<Product> advertisements = new ArrayList<>();
+        Product product = new Product(
+                2,
+                1,
+                "Ad: Product 1",
+                "Ad: Product 1 description",
+                100
+        );
+        advertisements.add(product);
+        advertisements.add(product);
+        advertisements.add(product);
         try {
-            json = mapper.writeValueAsString(advertisments);
+            json = mapper.writeValueAsString(advertisements);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -213,38 +232,29 @@ public class WebAPI implements API {
      */
     private FullHttpResponse aboutView() {
         // POST image/getWebImages
-        String host = "127.0.0.1";
-        // TODO: Replace with "/api/image/getWebImages"
-        String imageEndpoint = WEB_ENDPOINT + "/isready";
-        // TODO: Replace with "/api/auth/useractions/isloggedin"
-        String authEndpoint = WEB_ENDPOINT + "/isready";
-        URI imageURI = null;
-        URI authURI = null;
+        String imageEndpoint = IMAGE_ENDPOINT + "/getWebImages";
+        String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
         try {
-            imageURI = new URI(scheme + host + ":" + imagePort + imageEndpoint);
-            authURI = new URI(scheme + host + ":" + authPort + authEndpoint);
-            // TODO: POST
-            HttpRequest request = new DefaultFullHttpRequest(
-                httpVersion, HttpMethod.GET, imageURI.getRawPath(), Unpooled.EMPTY_BUFFER);
-            request.headers().set(HttpHeaderNames.HOST, host);
-            request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-            request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+            request.setUri(imageEndpoint);
+            request.setMethod(POST);
             // Create client and send request
-            httpClient = new HttpClient(host, imagePort, request);
-            HttpClientHandler handler = new HttpClientHandler();
+            httpClient = new HttpClient(gatewayHost, imagePort, request);
+            handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
             if(handler.response instanceof HttpContent httpContent) {
                 // TODO: ByteBuf imageData = httpContent.content();
-                AboutView view = view = mapper.readValue(getWebImages(), AboutView.class);
-                request.setUri(authURI.getRawPath());
-                httpClient = new HttpClient(host, authPort, request);
+                AboutView view = mapper.readValue(getWebImages(), AboutView.class);
+                request.setUri(authEndpoint);
+                request.setMethod(GET);
+                httpClient = new HttpClient(gatewayHost, authPort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
                 String json = "{}";
-                if(handler.response instanceof HttpResponse response) {
+                // TODO: Use response status?
+                //if(handler.response instanceof HttpResponse response) {
                     // Check if user is logged in
-                    view.isLoggedIn = response.status() == OK;
-                }
+                    // view.isLoggedIn = response.status() == OK;
+                //}
                 json = mapper.writeValueAsString(view);
                 return new DefaultFullHttpResponse(
                         httpVersion,
@@ -272,105 +282,103 @@ public class WebAPI implements API {
         CartAction action = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
-        String jsonString = "";
+        //
+        String authEndpointAdd = AUTH_ENDPOINT + "/cart/add"; // POST
+        String authEndpointRemove = AUTH_ENDPOINT + "/cart/remove"; // POST
+        String authEndpointUpdate = AUTH_ENDPOINT + "/cart"; // PUT
         try {
             action = mapper.readValue(jsonByte, CartAction.class);
-            String jsonResponse = "{}";
-            System.out.println("Action: " + action.name);
-            switch(action.name) {
-                case "addToCart": // Call auth/store service and redirect to /cart
-                    break;
-                case "removeProduct": // Call auth/store service and redirect to /cart
-                    break;
-                case "updateCartQuantities": // Call auth/store service for all items and redirect to /cart
-                    break;
+            System.out.println("Action: " + action.name());
+            switch(action.name()) {
+                case "addToCart":
+                    request.setMethod(HttpMethod.POST);
+                    request.setUri(authEndpointAdd);
+                    handler = new HttpClientHandler();
+                    httpClient.sendRequest(handler);
+                    // Call auth/store service
+                case "removeProduct":
+                    request.setMethod(HttpMethod.POST);
+                    request.setUri(authEndpointRemove);
+                    handler = new HttpClientHandler();
+                    httpClient.sendRequest(handler);
+                    // Call auth/store service
+                case "updateCartQuantities":
+                    request.setMethod(HttpMethod.PUT);
+                    request.setUri(authEndpointUpdate);
+                    handler = new HttpClientHandler();
+                    httpClient.sendRequest(handler);
+                    // Call auth/store service for all items
             }
-            jsonString = mapper.writeValueAsString(jsonResponse);
-
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(jsonString, CharsetUtil.UTF_8)
-            );
-        } catch (IOException e) {
+            // And return cart view
+            return cartView(); // TODO: Session or body?
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
     }
 
     private FullHttpResponse cartView() {
+        // GET 2x products & advertisments
+        String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // products
         // POST image/getWebImages
-        String host = "127.0.0.1";
-        // TODO: Replace with "/api/persistence/products"
-        String persistenceEndpointProducts = WEB_ENDPOINT + "/isready"; // 2x products & advertisments
-        URI productsURI = null;
-        // TODO: Replace with "/api/image/getWebImage"
-        String imageEndpoint = WEB_ENDPOINT + "/isready"; // 2x storeIcon & productImages for ads
-        URI imageURI = null;
-        // TODO: Replace with "/api/persistence/categories"
-        String persistenceEndpointCategories = WEB_ENDPOINT + "/isready"; // categoryList
-        URI categoriesURI = null;
-        // TODO: Replace with "/api/auth/useractions/isloggedin"
-        String authEndpoint = WEB_ENDPOINT + "/isready"; // isLoggedIn
-        URI authURI = null;
-        // TODO: Replace with POST ""/api/recommender/recommend
-        String recommenderEndpoint = WEB_ENDPOINT + "/isready"; // productIds for advertisments
-        URI recommenderURI = null;
+        String imageEndpoint = IMAGE_ENDPOINT + "/getWebImages";; // storeIcon & productImages for ads
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories"; // categoryList
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin"; // isLoggedIn
+        // POST /api/recommender/recommend
+        String recommenderEndpoint = RECOMMENDER_ENDPOINT + "/recommend"; // productIds for advertisments
         try {
-            productsURI = new URI(scheme + host + ":" + persistencePort + persistenceEndpointProducts);
-            categoriesURI = new URI(scheme + host + ":" + persistencePort + persistenceEndpointCategories);
-            authURI = new URI(scheme + host + ":" + authPort + authEndpoint);
-            recommenderURI = new URI(scheme + host + ":" + recommenderPort + recommenderEndpoint);
-            imageURI = new URI(scheme + host + ":" + imagePort + imageEndpoint);
             // TODO: IMPLEMENT
-            HttpRequest request = new DefaultFullHttpRequest(
-                    httpVersion, HttpMethod.GET, productsURI.getRawPath(), Unpooled.EMPTY_BUFFER);
-            request.headers().set(HttpHeaderNames.HOST, host);
-            request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-            request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+            request.setUri(persistenceEndpointProducts);
             // Create client and send request
-            httpClient = new HttpClient(host, persistencePort, request);
-            HttpClientHandler handler = new HttpClientHandler();
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
             if(handler.response instanceof HttpContent httpContent) {
-                CartView view = new CartView();
-                // TODO: other requests
-                view.storeIcon = "";
-                // TODO: ByteBuf imageData = httpContent.content();
-                view.products = mapper.readValue(
-                        getPersistenceProducts(),
-                        new TypeReference<Map<Long, Product>>(){}
-                );
-                view.categoryList = mapper.readValue(
-                        getPersistenceCategories(),
-                        new TypeReference<List<Category>>(){}
-                );
                 // TODO: Replace with service calls
                 List<OrderItem> orderItems = new ArrayList<>();
-                OrderItem item = new OrderItem();
-                item.id = 1;
-                item.productId = 1;
-                item.orderId = 1;
-                item.quantity = 1;
-                item.unitPriceInCents = 100;
-                orderItems.add(new OrderItem());
-                view.orderItems = orderItems;
-                view.storeIcon = "";
-                // TODO: Filter products with recommendations
-                view.advertisments = mapper.readValue(
-                        getRecommendations(),
-                        new TypeReference<List<Product>>(){}
+                OrderItem item = new OrderItem(
+                        1,
+                        1,
+                        1,
+                        1,
+                        100
                 );
-                view.productImages = new ArrayList<String>();
-                request.setUri(authURI.getRawPath());
-                httpClient = new HttpClient(host, authPort, request);
+                orderItems.add(item);
+                // TODO: Filter products with recommendations
+                List<String> productImages = new ArrayList<String>();
+                // TODO: other requests
+                request.setUri(authEndpoint);
+                httpClient = new HttpClient(gatewayHost, authPort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
                 String json = "{}";
+                boolean isLoggedIn = false;
                 if(handler.response instanceof HttpResponse response) {
                     // Check if user is logged in
-                    view.isLoggedIn = response.status() == OK;
+                    isLoggedIn = response.status() == OK;
                 }
+                CartView view = new CartView(
+                        // TODO: ByteBuf imageData = httpContent.content();
+                        "",
+                        "TeaStore Cart",
+                        mapper.readValue(
+                                getPersistenceCategories(),
+                                new TypeReference<List<Category>>(){}
+                        ),
+                        orderItems,
+                        mapper.readValue(
+                                getPersistenceProducts(),
+                                new TypeReference<Map<Long, Product>>(){}
+                        ),
+                        isLoggedIn,
+                        mapper.readValue(
+                                getRecommendations(),
+                                new TypeReference<List<Product>>(){}
+                        ),
+                        productImages
+                );
                 json = mapper.writeValueAsString(view);
                 return new DefaultFullHttpResponse(
                         httpVersion,
@@ -387,7 +395,8 @@ public class WebAPI implements API {
     }
 
     private FullHttpResponse categoryView() {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     private FullHttpResponse databaseAction(ByteBuf body) {
