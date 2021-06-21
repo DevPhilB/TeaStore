@@ -76,9 +76,22 @@ public class WebAPI implements API {
                         case "/about":
                             return aboutView();
                         case "/cart":
-                            return cartView();
+                            return cartView(); // TODO: Session or body
                         case "/category":
-                            return categoryView();
+                            if(params.containsKey("category")) {
+                                long categoryId = Long.parseLong(params.get("category").get(0));
+                                int productQuantity = 20;
+                                int page = 1;
+                                if(params.containsKey("productNumber")) {
+                                    productQuantity = Integer.parseInt(params.get("productNumber").get(0));
+                                }
+                                if(params.containsKey("page")) {
+                                    page = Integer.parseInt(params.get("page").get(0));
+                                }
+                                return categoryView(categoryId, productQuantity, page);
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
                         case "/database":
                             return databaseView();
                         case "/error":
@@ -88,11 +101,13 @@ public class WebAPI implements API {
                         case "/login":
                             return loginView();
                         case "/product":
-                            return productView();
+                            if(params.containsKey("id")) {
+                                return productView(params.get("id").get(0));
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
                         case "/profile":
-                            return profileView();
-                        case "/status":
-                            return statusView();
+                            return profileView();  // TODO: Session or body
                     }
                 case "POST":
                     switch (subPath) {
@@ -213,6 +228,44 @@ public class WebAPI implements API {
         return json;
     }
 
+    /**
+     * Required for testing as long as persistence service is not implemented
+     */
+    public String getCategoryView() {
+        String json = "{}";
+        Map<String, String> productImages = new HashMap<>();
+        productImages.put("product1", "PRODUCT1");
+        productImages.put("product2", "PRODUCT2");
+        productImages.put("product3", "PRODUCT3");
+        productImages.put("product4", "PRODUCT4");
+        productImages.put("product5", "PRODUCT5");
+        long categoryId = 1;
+        String category = "Tea";
+        String title = "TeaStore Category " + category;
+        int productQuantity = 20;
+        int page = 1;
+        try {
+            CategoryView view = new CategoryView(
+                    productImages,
+                    "STOREICON",
+                    mapper.readValue(
+                        getPersistenceCategories(),
+                        new TypeReference<List<Category>>(){}
+                    ),
+                    title,
+                    category,
+                    false,
+                    categoryId,
+                    productQuantity,
+                    page
+            );
+            json = mapper.writeValueAsString(view);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return json;
+    }
+
 
     /**
      * GET /ready
@@ -321,7 +374,8 @@ public class WebAPI implements API {
         // GET 2x products & advertisments
         String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // products
         // POST image/getWebImages
-        String imageEndpoint = IMAGE_ENDPOINT + "/getWebImages";; // storeIcon & productImages for ads
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/getWebImages"; // storeIcon
+        String imageEndpointProduct = IMAGE_ENDPOINT + "/getProductImages"; // productImages for ads
         // GET api/persistence/categories
         String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories"; // categoryList
         // GET /api/auth/useractions/isloggedin
@@ -394,12 +448,53 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse categoryView() {
-
+    private FullHttpResponse categoryView(long categoryId, int productQuantity, int page) {
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories"; // categoryList
+        // GET api/persistence/products
+        String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // 2x products
+        // GET api/image/getProductImages
+        String imageEndpointProduct = IMAGE_ENDPOINT + "/getProductImages"; // productImages
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/getWebImages"; // storeIcon
+        try {
+            // TODO: IMPLEMENT
+            request.setUri(persistenceEndpointCategories);
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if(handler.response instanceof HttpContent httpContent) {
+                // TODO: Replace with service calls
+                String json = getCategoryView();
+                // TODO: other requests
+                request.setUri(persistenceEndpointProducts);
+                httpClient = new HttpClient(gatewayHost, authPort, request);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                // String json = "{}";
+                boolean isLoggedIn = false;
+                if(handler.response instanceof HttpResponse response) {
+                    // Check if user is logged in
+                    isLoggedIn = response.status() == OK;
+                }
+                // json = mapper.writeValueAsString(view);
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     private FullHttpResponse databaseAction(ByteBuf body) {
+        // TODO: Continue
         return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
     }
 
@@ -427,7 +522,7 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
     }
 
-    private FullHttpResponse productView() {
+    private FullHttpResponse productView(String productId) {
         return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
     }
 
@@ -435,7 +530,5 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
     }
 
-    private FullHttpResponse statusView() {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
-    }
+    // Status view is part of the API gateway
 }
