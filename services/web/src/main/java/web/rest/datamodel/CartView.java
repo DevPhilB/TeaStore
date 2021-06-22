@@ -7,9 +7,10 @@ public record CartView (
     String storeIcon,
     String title,
     List<Category> categoryList,
-    List<OrderItem> orderItems,
-    Map<Long, Product> products,
-    boolean isLoggedIn,
+    List<CartItem> cartItems,
     List<Product> advertisements,
-    List<String> productImages
+    List<String> productImages,
+    String updateCart,
+    String proceedToCheckout,
+    boolean isLoggedIn
 ) {}

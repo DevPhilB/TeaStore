@@ -3,10 +3,10 @@ package web.rest.datamodel;
 import java.util.List;
 
 public record ProfileView(
-    String storeIcon,
-    List<Category> categoryList,
-    String title,
-    User user,
-    List<Order> orders,
-    boolean isLoggedIn
+        String storeIcon,
+        String title,
+        List<Category> categoryList,
+        User user,
+        List<OrderHistory> orders,
+        boolean isLoggedIn
 ) {}

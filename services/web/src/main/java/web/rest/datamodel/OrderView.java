@@ -3,8 +3,9 @@ package web.rest.datamodel;
 import java.util.List;
 
 public record OrderView(
-    List<Category> categoryList,
-    String storeIcon,
-    String title,
-    boolean isLoggedIn
+        String storeIcon,
+        String title,
+        List<Category> categoryList,
+        Order order,
+        boolean isLoggedIn
 ) {}
