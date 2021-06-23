@@ -7,5 +7,5 @@ public record OrderView(
         String title,
         List<Category> categoryList,
         Order order,
-        boolean isLoggedIn
+        String confirm
 ) {}

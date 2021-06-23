@@ -8,6 +8,5 @@ public record AboutView (
         Map<String, String> portraits,
         String descartesDescription,
         String descartesLogo,
-        String description,
-        boolean isLoggedIn
+        String description
 ) {}

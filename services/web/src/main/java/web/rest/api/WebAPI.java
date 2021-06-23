@@ -85,7 +85,6 @@ public class WebAPI implements API {
                         case "/cartAction/addToCart":
                         case "/cartAction/removeProduct":
                         case "/cartAction/updateCartQuantities":
-                        case "/cartAction/proceedToCheckout":
                             if(params.containsKey("productId")) {
                                 String action = subPath.substring("/cartAction/".length());
                                 long productId = Long.parseLong(params.get("productId").get(0));
@@ -93,11 +92,14 @@ public class WebAPI implements API {
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
+                        case "/cartAction/proceedToCheckout":
+                            String action = subPath.substring("/cartAction/".length());
+                            return cartAction(action, 0L);
                         case "/cart":
                             return cartView(); // TODO: Session or body
                         case "/category":
-                            if(params.containsKey("category")) {
-                                long categoryId = Long.parseLong(params.get("category").get(0));
+                            if(params.containsKey("categoryId")) {
+                                long categoryId = Long.parseLong(params.get("categoryId").get(0));
                                 int productQuantity = 20;
                                 int page = 1;
                                 if(params.containsKey("productNumber")) {
@@ -132,6 +134,8 @@ public class WebAPI implements API {
                             return indexView();
                         case "/login":
                             return loginView();
+                        case "/order":
+                            return orderView();
                         case "/product":
                             if(params.containsKey("id")) {
                                 return productView(params.get("id").get(0));
@@ -142,11 +146,8 @@ public class WebAPI implements API {
                             return profileView();  // TODO: Session or body
                     }
                 case "POST":
-                    switch (subPath) {
-                        case "/loginAction":
-                            return loginAction(body);
-                        case "/order":
-                            return orderView(body);
+                    if (subPath.equals("/loginAction")) {
+                        return loginAction(body);
                     }
                 case "PUT":
                     return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
@@ -179,8 +180,7 @@ public class WebAPI implements API {
                 portraits,
                 descartesDescription,
                 "DESCARTESLOGO",
-                description,
-                false
+                description
         );
         try {
             json = mapper.writeValueAsString(view);
@@ -239,6 +239,30 @@ public class WebAPI implements API {
     }
 
     /**
+     * Required for testing as long as persistence service is not implemented
+     */
+    public String getPersistenceOrderHistory() {
+        String json = "{}";
+        List<OrderHistory> orderHistoryList = new ArrayList<>();
+        OrderHistory orderHistory = new OrderHistory(
+                1,
+                "2021-06-23",
+                163,
+                "John Snow",
+                "1111 The North, Westeros, Winterfell"
+        );
+        orderHistoryList.add(orderHistory);
+        orderHistoryList.add(orderHistory);
+        orderHistoryList.add(orderHistory);
+        try {
+            json = mapper.writeValueAsString(orderHistoryList);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return json;
+    }
+
+    /**
      * Required for testing as long as recommender service is not implemented
      */
     public String getRecommendations() {
@@ -275,7 +299,7 @@ public class WebAPI implements API {
         long id = 3;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
         products.add(new Product(
-                3,
+                id,
                 1,
                 "PRODUCTTHREE",
                 "Ad: Product 3",
@@ -297,8 +321,7 @@ public class WebAPI implements API {
                     ),
                     products,
                     page,
-                    productQuantity,
-                    false
+                    productQuantity
             );
             json = mapper.writeValueAsString(view);
         } catch (JsonProcessingException e) {
@@ -313,7 +336,7 @@ public class WebAPI implements API {
      *
      * @return Service status
      */
-    public FullHttpResponse isReady() {
+    private FullHttpResponse isReady() {
         return new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK);
     }
 
@@ -372,10 +395,14 @@ public class WebAPI implements API {
      * @return FullHttpResponse
      */
     private FullHttpResponse cartAction(String name, long productId) {
-        //
-        String authEndpointAdd = AUTH_ENDPOINT + "/cart/add"; // POST
-        String authEndpointRemove = AUTH_ENDPOINT + "/cart/remove"; // POST
-        String authEndpointUpdate = AUTH_ENDPOINT + "/cart"; // PUT
+        // POST /api/auth/cart/add
+        String authEndpointAdd = AUTH_ENDPOINT + "/cart/add";
+        // POST /api/auth/cart/remove
+        String authEndpointRemove = AUTH_ENDPOINT + "/cart/remove";
+        // PUT /api/auth/cart
+        String authEndpointUpdate = AUTH_ENDPOINT + "/cart";
+        // GET /api/auth/useractions/isloggedin
+        String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             System.out.println("Action: " + name);
             switch(name) {
@@ -407,6 +434,18 @@ public class WebAPI implements API {
                     if(handler.response instanceof HttpResponse response) {
                         if(response.status() == UNAUTHORIZED) {
                             return loginView();
+                        }
+                    }
+                case "proceedToCheckout":
+                    request.setMethod(HttpMethod.GET);
+                    request.setUri(authEndpointCheck);
+                    handler = new HttpClientHandler();
+                    httpClient.sendRequest(handler);
+                    if(handler.response instanceof HttpResponse response) {
+                        if(response.status() == UNAUTHORIZED) {
+                            return loginView();
+                        } else {
+                            return orderView();
                         }
                     }
             }
@@ -482,8 +521,7 @@ public class WebAPI implements API {
                         ),
                         productImages,
                         updateCart,
-                        proceedToCheckout,
-                        false
+                        proceedToCheckout
                 );
                 json = mapper.writeValueAsString(view);
                 return new DefaultFullHttpResponse(
@@ -597,8 +635,7 @@ public class WebAPI implements API {
                 "STOREICON",
                 "Oops, something went wrong!",
                 "ERRORIMAGE",
-                "/api/web/index",
-                false
+                "/api/web/index"
         );
         try {
             String json = mapper.writeValueAsString(view);
@@ -623,8 +660,7 @@ public class WebAPI implements API {
                             getPersistenceCategories(),
                             new TypeReference<List<Category>>(){}
                     ),
-                    "LARGESTOREICON",
-                    false
+                    "LARGESTOREICON"
             );
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(
@@ -700,7 +736,6 @@ public class WebAPI implements API {
                     "",
                     "",
                     "/api/web/loginAction/login",
-                    false,
                     "referer"
             );
             String json = mapper.writeValueAsString(view);
@@ -715,17 +750,116 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse orderView(ByteBuf body) {
-        // TODO: Continue
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+    private FullHttpResponse orderView() {
+        // TODO: Persistence, image and auth service calls
+        try {
+            long id = 1;
+            Order order = new Order(
+                    id,
+                    "John",
+                    "Snow",
+                    "Winterfell",
+                    "1111 The North, Westeros",
+                    "Visa",
+                    "31459265359",
+                    "12/2025"
+            );
+            OrderView view = new OrderView(
+                    "STOREICON",
+                    "Order",
+                    mapper.readValue(
+                            getPersistenceCategories(),
+                            new TypeReference<List<Category>>(){}
+                    ),
+                    order,
+                    "/api/web/loginAction/login"
+            );
+            String json = mapper.writeValueAsString(view);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     private FullHttpResponse productView(String productId) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        // TODO: Persistence, image and auth service calls
+        try {
+            long id = 4;
+            String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
+            Product product = new Product(
+                    id,
+                    1,
+                    "PRODUCTFOUR",
+                    "Product 4",
+                    150,
+                    "Product 4 description",
+                    addToCart
+            );
+            ProductView view = new ProductView(
+                    "STOREICON",
+                    "Order",
+                    mapper.readValue(
+                            getPersistenceCategories(),
+                            new TypeReference<List<Category>>(){}
+                    ),
+                    product,
+                    mapper.readValue(
+                            getRecommendations(),
+                            new TypeReference<List<Product>>(){}
+                    )
+            );
+            String json = mapper.writeValueAsString(view);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     private FullHttpResponse profileView() {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        // TODO: Persistence, image and auth service calls
+        try {
+            long id = 1;
+            String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
+            User user = new User(
+                    id,
+                    "jsnow",
+                    "secret",
+                    "John Snow",
+                    "jsnow@teastorev2.com"
+            );
+            ProfileView view = new ProfileView(
+                    "STOREICON",
+                    "Order",
+                    mapper.readValue(
+                            getPersistenceCategories(),
+                            new TypeReference<List<Category>>(){}
+                    ),
+                    user,
+                    mapper.readValue(
+                            getPersistenceOrderHistory(),
+                            new TypeReference<List<OrderHistory>>(){}
+                    )
+            );
+            String json = mapper.writeValueAsString(view);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     // Status view is part of the API gateway

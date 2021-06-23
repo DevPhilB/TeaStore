@@ -7,6 +7,5 @@ public record ProfileView(
         String title,
         List<Category> categoryList,
         User user,
-        List<OrderHistory> orders,
-        boolean isLoggedIn
+        List<OrderHistory> orders
 ) {}

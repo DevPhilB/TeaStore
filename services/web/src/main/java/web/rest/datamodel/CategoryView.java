@@ -8,6 +8,5 @@ public record CategoryView(
         List<Category> categoryList,
         List<Product> products,
         int page,
-        int productQuantity,
-        boolean isLoggedIn
+        int productQuantity
 ) {}

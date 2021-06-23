@@ -10,6 +10,5 @@ public record LoginView(
         String username,
         String password,
         String signIn,
-        boolean isLoggedIn,
         String referer
 ) {}

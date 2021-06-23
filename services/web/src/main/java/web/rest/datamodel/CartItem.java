@@ -1,7 +1,7 @@
 package web.rest.datamodel;
 
 public record CartItem (
-        long itemId,
+        long id,
         String productName,
         String productDescription,
         int quantity,

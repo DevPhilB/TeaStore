@@ -7,6 +7,5 @@ public record ProductView(
         String title,
         List<Category> categoryList,
         Product product,
-        List<Product> advertisements,
-        boolean isLoggedIn
+        List<Product> advertisements
 ) {}

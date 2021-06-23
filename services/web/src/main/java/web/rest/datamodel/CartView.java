@@ -11,6 +11,5 @@ public record CartView (
     List<Product> advertisements,
     List<String> productImages,
     String updateCart,
-    String proceedToCheckout,
-    boolean isLoggedIn
+    String proceedToCheckout
 ) {}
