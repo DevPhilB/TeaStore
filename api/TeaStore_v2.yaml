@@ -4,7 +4,7 @@ info:
   description: "Netty TeaStore API"
   version: "2.0.0"
 servers:
-  - url: "http://localhost:8080"
+  - url: "http://localhost:80"
   - url: "https://localhost:443"
 paths:
   /api/web/isready:
@@ -13,5 +13,251 @@ paths:
       responses:
         "200":
           description: "OK"
+      tags:
+        - Web
+  /api/web/about:
+    get:
+      summary: "Return view 'About us'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/cartAction/addToCart:
+    get:
+      summary: "Add product to cart."
+      parameters:
+        - name: "productId"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+      tags:
+        - Web
+  /api/web/cartAction/removeProduct:
+    get:
+      summary: "Remove product from cart, return view 'Cart'."
+      parameters:
+        - name: "productId"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+      tags:
+        - Web
+  /api/web/cartAction/updateCartQuantities:
+    get:
+      summary: "Update cart quantity, return view 'Cart'."
+      parameters:
+        - name: "productId"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+      tags:
+        - Web
+  /api/web/cartAction/proceedToCheckout:
+    get:
+      summary: "Proceed to checkout, return view 'Login' or 'Order'."
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+      tags:
+        - Web
+  /api/web/cart:
+    get:
+      summary: "Return view 'Cart'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/category:
+    get:
+      summary: "Return view 'Category'."
+      parameters:
+        - name: "categoryId"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "productNumber"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "page"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/databaseAction:
+    get:
+      summary: "Generate content for database and return view 'Index'."
+      parameters:
+        - name: "categories"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "products"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "users"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "orders"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/database:
+    get:
+      summary: "Return view 'Database'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/error:
+    get:
+      summary: "Return view 'Error'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/index:
+    get:
+      summary: "Return view 'Index'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/loginAction:
+    post:
+      summary: "Log in or out and return view 'Index'."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - name
+                - username
+                - password
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/login:
+    get:
+      summary: "Return view 'Login'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/order:
+    get:
+      summary: "Return view 'Order'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/product:
+    get:
+      summary: "Return view 'Product'."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Web
+  /api/web/profile:
+    get:
+      summary: "Return view 'Profile'."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
       tags:
         - Web
