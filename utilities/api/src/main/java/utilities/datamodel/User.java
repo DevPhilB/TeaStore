@@ -1,4 +1,4 @@
-package web.rest.datamodel;
+package utilities.datamodel;
 
 public record User (
         Long id,

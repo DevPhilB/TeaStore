@@ -9,10 +9,10 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
+import utilities.datamodel.*;
 import utilities.rest.API;
 import web.rest.client.HttpClient;
 import web.rest.client.HttpClientHandler;
-import web.rest.datamodel.*;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;

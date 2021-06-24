@@ -1,4 +1,4 @@
-package web.rest.datamodel;
+package utilities.datamodel;
 
 import java.util.Map;
 

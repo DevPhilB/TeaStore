@@ -1,4 +1,4 @@
-package web.rest.datamodel;
+package utilities.datamodel;
 
 public record OrderHistory(
         Long id,

@@ -1,7 +1,6 @@
-package web.rest.datamodel;
+package utilities.datamodel;
 
 import java.util.List;
-import java.util.Map;
 
 public record CartView (
     String storeIcon,

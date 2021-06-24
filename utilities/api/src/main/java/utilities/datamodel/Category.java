@@ -1,4 +1,4 @@
-package web.rest.datamodel;
+package utilities.datamodel;
 
 public record Category (
         Long id,
