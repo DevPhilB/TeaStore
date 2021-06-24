@@ -12,10 +12,10 @@ import io.netty.handler.codec.http.HttpRequest;
 public class HttpClient {
 
     private final String host;
-    private final int port;
+    private final Integer port;
     private final HttpRequest httpRequest;
 
-    public HttpClient(String host, int port, HttpRequest httpRequest) {
+    public HttpClient(String host, Integer port, HttpRequest httpRequest) {
         this.host = host;
         this.port = port;
         this.httpRequest = httpRequest;

@@ -7,6 +7,6 @@ public record CategoryView(
         String title,
         List<Category> categoryList,
         List<Product> products,
-        int page,
-        int productQuantity
+        Integer page,
+        Integer productQuantity
 ) {}

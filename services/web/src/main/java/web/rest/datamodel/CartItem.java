@@ -1,11 +1,11 @@
 package web.rest.datamodel;
 
 public record CartItem (
-        long id,
+        Long id,
         String productName,
         String productDescription,
-        int quantity,
-        long listPrice,
-        long totalCost,
+        Integer quantity,
+        Long listPrice,
+        Long totalCost,
         String removeProduct
 ) {}

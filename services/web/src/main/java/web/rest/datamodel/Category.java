@@ -1,7 +1,7 @@
 package web.rest.datamodel;
 
 public record Category (
-        long id,
+        Long id,
         String name,
         String description
 ) {}

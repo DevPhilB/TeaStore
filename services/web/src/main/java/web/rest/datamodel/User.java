@@ -1,7 +1,7 @@
 package web.rest.datamodel;
 
 public record User (
-        long id,
+        Long id,
         String userName,
         String password,
         String realName,

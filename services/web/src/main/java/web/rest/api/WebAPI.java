@@ -6,12 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
 import utilities.rest.API;
 import web.rest.client.HttpClient;
 import web.rest.client.HttpClientHandler;
 import web.rest.datamodel.*;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,11 +35,11 @@ public class WebAPI implements API {
     private final String scheme;
     private final ObjectMapper mapper;
     private final String gatewayHost;
-    private final int webPort;
-    private final int imagePort;
-    private final int authPort;
-    private final int recommenderPort;
-    private final int persistencePort;
+    private final Integer webPort;
+    private final Integer imagePort;
+    private final Integer authPort;
+    private final Integer recommenderPort;
+    private final Integer persistencePort;
     private final HttpRequest request;
 
     public WebAPI(HttpVersion httpVersion, String scheme) {
@@ -65,50 +69,46 @@ public class WebAPI implements API {
         Map<String, List<String>> params = queryStringDecoder.parameters();
         String method = header.method().name();
         String path = queryStringDecoder.path();
+        String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
+        SessionData sessionData = decodeCookie(cookieValue);
+
         // Select endpoint
         if (path.startsWith("/api/web")) {
-            //String[] subPaths = path.substring("/api/web".length()).split("/");
-            //String subPath = "";
-            //String
-            //if(subPaths.length > 2) {
-
-            //}
             String subPath = path.substring("/api/web".length());
-            //String action = if(subPath.startsWith("/cartAction"))
             switch (method) {
                 case "GET":
                     switch (subPath) {
                         case "/isready":
                             return isReady();
                         case "/about":
-                            return aboutView();
+                            return aboutView(sessionData);
                         case "/cartAction/addToCart":
                         case "/cartAction/removeProduct":
                         case "/cartAction/updateCartQuantities":
                             if(params.containsKey("productId")) {
                                 String action = subPath.substring("/cartAction/".length());
-                                long productId = Long.parseLong(params.get("productId").get(0));
-                                return cartAction(action, productId);
+                                Long productId = Long.parseLong(params.get("productId").get(0));
+                                return cartAction(sessionData, action, productId);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
                         case "/cartAction/proceedToCheckout":
                             String action = subPath.substring("/cartAction/".length());
-                            return cartAction(action, 0L);
+                            return cartAction(sessionData, action, 0L);
                         case "/cart":
-                            return cartView(); // TODO: Session or body
+                            return cartView(sessionData);
                         case "/category":
                             if(params.containsKey("categoryId")) {
-                                long categoryId = Long.parseLong(params.get("categoryId").get(0));
-                                int productQuantity = 20;
-                                int page = 1;
+                                Long categoryId = Long.parseLong(params.get("categoryId").get(0));
+                                Integer productQuantity = 20;
+                                Integer page = 1;
                                 if(params.containsKey("productNumber")) {
                                     productQuantity = Integer.parseInt(params.get("productNumber").get(0));
                                 }
                                 if(params.containsKey("page")) {
                                     page = Integer.parseInt(params.get("page").get(0));
                                 }
-                                return categoryView(categoryId, productQuantity, page);
+                                return categoryView(sessionData, categoryId, productQuantity, page);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
@@ -118,10 +118,10 @@ public class WebAPI implements API {
                                     && params.containsKey("users")
                                     && params.containsKey("orders")
                             ) {
-                                int categories = Integer.parseInt(params.get("categories").get(0));
-                                int products = Integer.parseInt(params.get("products").get(0));
-                                int users = Integer.parseInt(params.get("users").get(0));
-                                int orders = Integer.parseInt(params.get("orders").get(0));
+                                Integer categories = Integer.parseInt(params.get("categories").get(0));
+                                Integer products = Integer.parseInt(params.get("products").get(0));
+                                Integer users = Integer.parseInt(params.get("users").get(0));
+                                Integer orders = Integer.parseInt(params.get("orders").get(0));
                                 return databaseAction(categories, products, users, orders);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
@@ -135,19 +135,19 @@ public class WebAPI implements API {
                         case "/login":
                             return loginView();
                         case "/order":
-                            return orderView();
+                            return orderView(sessionData);
                         case "/product":
                             if(params.containsKey("id")) {
-                                return productView(params.get("id").get(0));
+                                return productView(sessionData, params.get("id").get(0));
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
                         case "/profile":
-                            return profileView();  // TODO: Session or body
+                            return profileView(sessionData);
                     }
                 case "POST":
                     if (subPath.equals("/loginAction")) {
-                        return loginAction(body);
+                        return loginAction(sessionData, body);
                     }
                 case "PUT":
                     return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
@@ -161,7 +161,7 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as long as image service is not implemented
+     * Required for testing as Long as image service is not implemented
      */
     public String getWebImages() {
         String json = "{}";
@@ -191,19 +191,19 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as long as persistence service is not implemented
+     * Required for testing as Long as persistence service is not implemented
      */
     public String getPersistenceProducts() {
         String json = "{}";
         List<Product> products = new ArrayList<>();
-        long id = 1;
+        Long id = 1L;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
         Product product = new Product(
                 id,
-                1,
+                1L,
                 "PRODUCTONE",
                 "Product 1",
-                100,
+                100L,
                 "Product 1 description",
                 addToCart
         );
@@ -217,13 +217,13 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as long as persistence service is not implemented
+     * Required for testing as Long as persistence service is not implemented
      */
     public String getPersistenceCategories() {
         String json = "{}";
         List<Category> categoryList = new ArrayList<>();
         Category category = new Category(
-                1,
+                1L,
                 "Category 1",
                 "Category 1 description"
         );
@@ -239,15 +239,15 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as long as persistence service is not implemented
+     * Required for testing as Long as persistence service is not implemented
      */
     public String getPersistenceOrderHistory() {
         String json = "{}";
         List<OrderHistory> orderHistoryList = new ArrayList<>();
         OrderHistory orderHistory = new OrderHistory(
-                1,
+                1L,
                 "2021-06-23",
-                163,
+                163L,
                 "John Snow",
                 "1111 The North, Westeros, Winterfell"
         );
@@ -263,19 +263,19 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as long as recommender service is not implemented
+     * Required for testing as Long as recommender service is not implemented
      */
     public String getRecommendations() {
         String json = "{}";
         List<Product> advertisements = new ArrayList<>();
-        long id = 2;
+        Long id = 2L;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
         Product product = new Product(
-                2,
-                1,
+                id,
+                1L,
                 "PRODUCTTWO",
                 "Ad: Product 2",
-                100,
+                100L,
                 "Ad: Product 2 description",
                 addToCart
         );
@@ -291,26 +291,26 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as long as persistence service is not implemented
+     * Required for testing as Long as persistence service is not implemented
      */
     public String getCategoryView() {
         String json = "{}";
         List<Product> products = new ArrayList<>();
-        long id = 3;
+        Long id = 3L;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
         products.add(new Product(
                 id,
-                1,
+                1L,
                 "PRODUCTTHREE",
                 "Ad: Product 3",
-                100,
+                100L,
                 "Ad: Product 3 description",
                 addToCart
         ));
-        long categoryId = 1;
+        Long categoryId = 1L;
         String title = "Tea";
-        int productQuantity = 20;
-        int page = 1;
+        Integer productQuantity = 20;
+        Integer page = 1;
         try {
             CategoryView view = new CategoryView(
                     "STOREICON",
@@ -330,6 +330,58 @@ public class WebAPI implements API {
         return json;
     }
 
+    /**
+     * Decode cookie to session data
+     *
+     * @param cookieValue Cookie value as String
+     * @return SessionData
+     */
+    private SessionData decodeCookie(String cookieValue) {
+        SessionData cookie = null;
+        if(cookieValue != null) {
+            try {
+                cookie = mapper.readValue(
+                        URLDecoder.decode(
+                                cookieValue.substring("SessionData=".length()),
+                                CharsetUtil.UTF_8
+                        ),
+                        SessionData.class
+                );
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            cookie = new SessionData(
+                    null,
+                    null,
+                    null,
+                    null,
+                    new ArrayList<>(),
+                    null
+            );
+        }
+        return cookie;
+    }
+
+    /**
+     * Encode session data as cookie
+     *
+     * @param sessionData Session data
+     * @return Cookie
+     */
+    private Cookie encodeSessionData(SessionData sessionData) {
+        try {
+            String encodedCookie = URLEncoder.encode(
+                    mapper.writeValueAsString(sessionData),
+                    CharsetUtil.UTF_8
+            );
+            return new DefaultCookie("SessionData", encodedCookie);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
     /**
      * GET /ready
@@ -347,7 +399,7 @@ public class WebAPI implements API {
      *
      * @return Web view as JSON
      */
-    private FullHttpResponse aboutView() {
+    private FullHttpResponse aboutView(SessionData sessionData) {
         // POST api/image/getWebImages
         String imageEndpoint = IMAGE_ENDPOINT + "/getWebImages";
         String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
@@ -394,7 +446,7 @@ public class WebAPI implements API {
      *
      * @return FullHttpResponse
      */
-    private FullHttpResponse cartAction(String name, long productId) {
+    private FullHttpResponse cartAction(SessionData sessionData, String name, Long productId) {
         // POST /api/auth/cart/add
         String authEndpointAdd = AUTH_ENDPOINT + "/cart/add";
         // POST /api/auth/cart/remove
@@ -445,19 +497,19 @@ public class WebAPI implements API {
                         if(response.status() == UNAUTHORIZED) {
                             return loginView();
                         } else {
-                            return orderView();
+                            return orderView(sessionData);
                         }
                     }
             }
             // And return cart view
-             return cartView(); // TODO: Session or body?
+             return cartView(sessionData);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
     }
 
-    private FullHttpResponse cartView() {
+    private FullHttpResponse cartView(SessionData sessionData) {
         // GET 2x products & advertisements
         String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // products
         // POST api/image/getWebImages
@@ -478,16 +530,16 @@ public class WebAPI implements API {
             httpClient.sendRequest(handler);
             if(handler.response instanceof HttpContent httpContent) {
                 // TODO: Replace with service calls
-                long id = 1;
+                Long id = 1L;
                 String removeProduct = "/api/web/cartAction/removeProduct?productId=" + id;
                 List<CartItem> cartItems = new ArrayList<>();
                 CartItem item = new CartItem(
-                        1,
+                        id,
                         "Product 1",
                         "Product 1 description",
                         2,
-                        100,
-                        200,
+                        100L,
+                        200L,
                         removeProduct
                 );
                 cartItems.add(item);
@@ -538,7 +590,11 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse categoryView(long categoryId, int productQuantity, int page) {
+    private FullHttpResponse categoryView(SessionData sessionData,
+                                          Long categoryId,
+                                          Integer productQuantity,
+                                          Integer page)
+    {
         // GET api/persistence/categories
         String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories"; // categoryList
         // GET api/persistence/products
@@ -584,7 +640,7 @@ public class WebAPI implements API {
     }
 
     // Only if implemented in persistence
-    private FullHttpResponse databaseAction(int categories, int products, int users, int orders) {
+    private FullHttpResponse databaseAction(int categories, Integer products, Integer users, Integer orders) {
         // GET api/persistence/categories
         String authEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
                 "?categories=" + categories + "&products=" + products +
@@ -674,7 +730,7 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse loginAction(ByteBuf body) {
+    private FullHttpResponse loginAction(SessionData sessionData, ByteBuf body) {
         LoginAction action = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
@@ -750,10 +806,10 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse orderView() {
+    private FullHttpResponse orderView(SessionData sessionData) {
         // TODO: Persistence, image and auth service calls
         try {
-            long id = 1;
+            Long id = 1L;
             Order order = new Order(
                     id,
                     "John",
@@ -786,17 +842,17 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse productView(String productId) {
+    private FullHttpResponse productView(SessionData sessionData, String productId) {
         // TODO: Persistence, image and auth service calls
         try {
-            long id = 4;
+            Long id = 4L;
             String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
             Product product = new Product(
                     id,
-                    1,
+                    1L,
                     "PRODUCTFOUR",
                     "Product 4",
-                    150,
+                    150L,
                     "Product 4 description",
                     addToCart
             );
@@ -825,10 +881,10 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    private FullHttpResponse profileView() {
+    private FullHttpResponse profileView(SessionData sessionData) {
         // TODO: Persistence, image and auth service calls
         try {
-            long id = 1;
+            Long id = 1L;
             String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
             User user = new User(
                     id,

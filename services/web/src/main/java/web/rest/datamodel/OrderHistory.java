@@ -1,9 +1,9 @@
 package web.rest.datamodel;
 
 public record OrderHistory(
-        long id,
+        Long id,
         String time,
-        long price,
+        Long price,
         String addressName,
         String address
 ) {}

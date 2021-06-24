@@ -1,7 +1,7 @@
 package web.rest.datamodel;
 
 public record Order(
-        long id,
+        Long id,
         String firstName,
         String lastName,
         String address1,

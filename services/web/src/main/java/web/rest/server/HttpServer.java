@@ -19,16 +19,16 @@ import io.netty.handler.logging.LoggingHandler;
 public class HttpServer {
 
     private final String httpVersion;
-    private final int port;
+    private final Integer port;
     private static final Logger logger = LogManager.getLogger(HttpServer.class);
 
-    public HttpServer(String httpVersion, int port) {
+    public HttpServer(String httpVersion, Integer port) {
         this.httpVersion = httpVersion;
         this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
-        int port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
+        Integer port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
         if(args.length > 1) {
             new HttpServer(args[1], port).run();
         } else {
