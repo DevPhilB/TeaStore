@@ -83,6 +83,45 @@ paths:
           description: "Bad Request"
       tags:
         - Web
+  /api/web/cartAction/confirm:
+    post:
+      summary: "Confirm order, return view 'Profile'."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                totalPriceInCents:
+                  type: integer
+                addressName:
+                  type: string
+                address1:
+                  type: string
+                address2:
+                  type: string
+                creditCardCompany:
+                  type: string
+                creditCardNumber:
+                  type: string
+                creditCardExpiryDate:
+                  type: string
+              required:
+                - totalPriceInCents
+                - addressName
+                - address1
+                - address2
+                - creditCardCompany
+                - creditCardNumber
+                - creditCardExpiryDate
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+      tags:
+        - Web
   /api/web/cart:
     get:
       summary: "Return view 'Cart'."

@@ -17,6 +17,7 @@ services:
   db:
     build: ../database
     # image: tvsjsdock/teastore-db:v2
+    # TODO: Ports and traefik configuration for dbs, testing
     expose:
       - "3306"
     labels:

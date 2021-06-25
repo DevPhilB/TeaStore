@@ -1,3 +1,16 @@
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package web.rest.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,6 +40,8 @@ import static io.netty.handler.codec.http.HttpMethod.*;
 /**
  * API for web service
  * /api/web
+ *
+ * @author Philipp Backes
  */
 public class WebAPI implements API {
     private final HttpVersion httpVersion;
@@ -146,8 +161,15 @@ public class WebAPI implements API {
                             return profileView(sessionData);
                     }
                 case "POST":
-                    if (subPath.equals("/loginAction")) {
-                        return loginAction(sessionData, body);
+                    switch (subPath) {
+                        case "/loginAction":
+                            return loginAction(sessionData, body);
+                        case "/cartAction/confirm":
+                            if(params.containsKey("totalPriceInCents")) {
+                                return confirmOrder(sessionData, body);
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
                     }
                 case "PUT":
                     return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
@@ -241,21 +263,21 @@ public class WebAPI implements API {
     /**
      * Required for testing as Long as persistence service is not implemented
      */
-    public String getPersistenceOrderHistory() {
+    public String getPersistencePreviousOrder() {
         String json = "{}";
-        List<OrderHistory> orderHistoryList = new ArrayList<>();
-        OrderHistory orderHistory = new OrderHistory(
+        List<PreviousOrder> PreviousOrderList = new ArrayList<>();
+        PreviousOrder PreviousOrder = new PreviousOrder(
                 1L,
                 "2021-06-23",
                 163L,
                 "John Snow",
                 "1111 The North, Westeros, Winterfell"
         );
-        orderHistoryList.add(orderHistory);
-        orderHistoryList.add(orderHistory);
-        orderHistoryList.add(orderHistory);
+        PreviousOrderList.add(PreviousOrder);
+        PreviousOrderList.add(PreviousOrder);
+        PreviousOrderList.add(PreviousOrder);
         try {
-            json = mapper.writeValueAsString(orderHistoryList);
+            json = mapper.writeValueAsString(PreviousOrderList);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -507,6 +529,39 @@ public class WebAPI implements API {
             e.printStackTrace();
         }
         return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+    }
+
+    private FullHttpResponse confirmOrder(SessionData sessionData, ByteBuf body) {
+        Order orderData = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        // POST /api/auth/useractions/placeorder
+        String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
+        try {
+            orderData = mapper.readValue(jsonByte, Order.class);
+            request.setMethod(HttpMethod.POST);
+            // Create client and send request
+            FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    request.method(),
+                    authEndpointPlaceOrder,
+                    body
+            );
+            httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
+            handler = new HttpClientHandler();
+            // TODO: Check auth endpoint
+            if(handler.response instanceof HttpResponse response) {
+                if(response.status() != OK) {
+                    return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                } else {
+                    return profileView(sessionData);
+                }
+            }
+            return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     private FullHttpResponse cartView(SessionData sessionData) {
@@ -812,8 +867,10 @@ public class WebAPI implements API {
             Long id = 1L;
             Order order = new Order(
                     id,
-                    "John",
-                    "Snow",
+                    id + 1L,
+                    "2021-03-23 13:17:00",
+                    100000L,
+                    "John Snow",
                     "Winterfell",
                     "1111 The North, Westeros",
                     "Visa",
@@ -827,13 +884,19 @@ public class WebAPI implements API {
                             getPersistenceCategories(),
                             new TypeReference<List<Category>>(){}
                     ),
-                    order,
-                    "/api/web/loginAction/login"
+                    order.addressName().split("")[0],
+                    order.addressName().split("")[1],
+                    order.address1(),
+                    order.address2(),
+                    order.creditCardCompany(),
+                    order.creditCardNumber(),
+                    order.creditCardExpiryDate(),
+                    "/api/web/cartAction/proceedToCheckout"
             );
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(
                     httpVersion,
-                    HttpResponseStatus.OK,
+                    OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -872,7 +935,7 @@ public class WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(
                     httpVersion,
-                    HttpResponseStatus.OK,
+                    OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -902,14 +965,14 @@ public class WebAPI implements API {
                     ),
                     user,
                     mapper.readValue(
-                            getPersistenceOrderHistory(),
-                            new TypeReference<List<OrderHistory>>(){}
+                            getPersistencePreviousOrder(),
+                            new TypeReference<List<PreviousOrder>>(){}
                     )
             );
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(
                     httpVersion,
-                    HttpResponseStatus.OK,
+                    OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {

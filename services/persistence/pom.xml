@@ -18,7 +18,7 @@
 		<!-- Internal Dependencies -->
 		<!--
 			<dependency>
-				<groupId>tools.descartes.teastore</groupId>
+				<groupId></groupId>
 				<artifactId>kieker.probes</artifactId>
 				<version>${teastore.version}</version>
 			</dependency>
@@ -36,14 +36,27 @@
 			<version>5.8.0-M1</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- Test Dependencies -->
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.8.0-M1</version>
-			<scope>test</scope>
-		</dependency>
 		<!-- Dependencies -->
+		<dependency>
+			<groupId>jakarta.platform</groupId>
+			<artifactId>jakarta.jakartaee-api</artifactId>
+			<version>9.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.persistence</groupId>
+			<artifactId>eclipselink</artifactId>
+			<version>3.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.25</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mindrot</groupId>
+			<artifactId>jbcrypt</artifactId>
+			<version>0.4</version>
+		</dependency>
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
@@ -88,16 +101,6 @@
 			<groupId>com.rabbitmq</groupId>
 			<artifactId>amqp-client</artifactId>
 			<version>5.12.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.persistence</groupId>
-			<artifactId>eclipselink</artifactId>
-			<version>3.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mindrot</groupId>
-			<artifactId>jbcrypt</artifactId>
-			<version>0.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hsqldb</groupId>

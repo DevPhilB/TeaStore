@@ -13,10 +13,10 @@
  */
 package utilities.datamodel;
 
-public record User (
+public record OrderItem(
         Long id,
-        String userName,
-        String password,
-        String realName,
-        String email
+        Long productId,
+        Long orderId,
+        Integer quantity,
+        Long unitPriceInCents
 ) {}

@@ -1,7 +1,18 @@
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package persistence.rest.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -9,13 +20,14 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
+import persistence.database.OrderRepository;
+import persistence.database.PersistenceOrder;
 import utilities.datamodel.*;
 import utilities.rest.API;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +37,8 @@ import static io.netty.handler.codec.http.HttpMethod.*;
 /**
  * API for web service
  * /api/web
+ *
+ * @author Philipp Backes
  */
 public class PersistenceAPI implements API {
     private final HttpVersion httpVersion;
@@ -74,8 +88,8 @@ public class PersistenceAPI implements API {
             switch (method) {
                 case "GET":
                     switch (subPath) {
-                        case "/test":
-                            return isReady();
+                        case "/orders":
+                            return orders();
                     }
                 case "POST":
                     return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
@@ -144,12 +158,26 @@ public class PersistenceAPI implements API {
 
 
     /**
-     * GET /ready
+     * GET /order
      *
-     * @return Service status
+     * @return All orders
      */
-    private FullHttpResponse isReady() {
-        return new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK);
+    private FullHttpResponse orders() {
+        List<Order> order = new ArrayList<Order>();
+        for (PersistenceOrder persistenceOrder : OrderRepository.REPOSITORY.getAllEntities()) {
+            order.add(persistenceOrder.toOrder());
+        }
+        try {
+            String json = mapper.writeValueAsString(order);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
 }
