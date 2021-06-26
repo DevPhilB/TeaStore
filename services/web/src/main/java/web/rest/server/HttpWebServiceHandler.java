@@ -55,7 +55,7 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
         if (message instanceof HttpRequest request) {
             this.request = request;
             // Check HTTP method
-            if(request.method() != HttpMethod.GET
+            if (request.method() != HttpMethod.GET
                 && request.method() != HttpMethod.POST
                 && request.method() != HttpMethod.PUT
                 && request.method() != HttpMethod.DELETE) {
@@ -66,12 +66,12 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
             }
         }
 
-        if(evaluateDecoderResult(request)) {
+        if (evaluateDecoderResult(request)) {
             writeStatusResponse(context, BAD_REQUEST);
         }
 
         if (message instanceof HttpContent httpContent) {
-            if(evaluateDecoderResult(request)) {
+            if (evaluateDecoderResult(request)) {
                 writeStatusResponse(context, BAD_REQUEST);
             }
             // Trailer response header gets ignored in handler

@@ -46,7 +46,7 @@ public class HttpServer {
 
     public static void main(String[] args) throws Exception {
         Integer port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
-        if(args.length > 1) {
+        if (args.length > 1) {
             new HttpServer(args[1], port).run();
         } else {
             new HttpServer("HTTP/1.1", port).run();

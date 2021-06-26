@@ -300,3 +300,104 @@ paths:
           description: "Internal Server Error"
       tags:
         - Web
+  /api/persistence/cache:
+    delete:
+      summary: "Clears the cache for the/all class(es)."
+      parameters:
+        - name: "className"
+          in: "query"
+          schema:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "404":
+          description: "Not Found"
+      tags:
+        - Persistence
+  /api/persistence/emf:
+    delete:
+      summary: "Return view 'Profile'."
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Persistence
+  /api/persistence/categories:
+    get:
+      summary: "Return a single or all categories (start = startIndex, max = maxResultCount)."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    put:
+      summary: "Update category and return updated category."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                description:
+                  type: string
+              required:
+                - id
+                - name
+                - description
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    delete:
+      summary: "Delete a category."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+      tags:
+        - Persistence

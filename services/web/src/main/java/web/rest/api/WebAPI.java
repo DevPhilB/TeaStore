@@ -100,7 +100,7 @@ public class WebAPI implements API {
                         case "/cartAction/addToCart":
                         case "/cartAction/removeProduct":
                         case "/cartAction/updateCartQuantities":
-                            if(params.containsKey("productId")) {
+                            if (params.containsKey("productId")) {
                                 String action = subPath.substring("/cartAction/".length());
                                 Long productId = Long.parseLong(params.get("productId").get(0));
                                 return cartAction(sessionData, action, productId);
@@ -113,14 +113,14 @@ public class WebAPI implements API {
                         case "/cart":
                             return cartView(sessionData);
                         case "/category":
-                            if(params.containsKey("categoryId")) {
+                            if (params.containsKey("categoryId")) {
                                 Long categoryId = Long.parseLong(params.get("categoryId").get(0));
                                 Integer productQuantity = 20;
                                 Integer page = 1;
-                                if(params.containsKey("productNumber")) {
+                                if (params.containsKey("productNumber")) {
                                     productQuantity = Integer.parseInt(params.get("productNumber").get(0));
                                 }
-                                if(params.containsKey("page")) {
+                                if (params.containsKey("page")) {
                                     page = Integer.parseInt(params.get("page").get(0));
                                 }
                                 return categoryView(sessionData, categoryId, productQuantity, page);
@@ -128,7 +128,7 @@ public class WebAPI implements API {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
                         case "/databaseAction":
-                            if(params.containsKey("categories")
+                            if (params.containsKey("categories")
                                     && params.containsKey("products")
                                     && params.containsKey("users")
                                     && params.containsKey("orders")
@@ -152,7 +152,7 @@ public class WebAPI implements API {
                         case "/order":
                             return orderView(sessionData);
                         case "/product":
-                            if(params.containsKey("id")) {
+                            if (params.containsKey("id")) {
                                 return productView(sessionData, params.get("id").get(0));
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
@@ -165,7 +165,7 @@ public class WebAPI implements API {
                         case "/loginAction":
                             return loginAction(sessionData, body);
                         case "/cartAction/confirm":
-                            if(params.containsKey("totalPriceInCents")) {
+                            if (params.containsKey("totalPriceInCents")) {
                                 return confirmOrder(sessionData, body);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
@@ -360,7 +360,7 @@ public class WebAPI implements API {
      */
     private SessionData decodeCookie(String cookieValue) {
         SessionData cookie = null;
-        if(cookieValue != null) {
+        if (cookieValue != null) {
             try {
                 cookie = mapper.readValue(
                         URLDecoder.decode(
@@ -432,7 +432,7 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, imagePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if(handler.response instanceof HttpContent httpContent) {
+            if (handler.response instanceof HttpContent httpContent) {
                 // TODO: ByteBuf imageData = httpContent.content();
                 AboutPageView view = mapper.readValue(getWebImages(), AboutPageView.class);
                 request.setUri(authEndpoint);
@@ -442,7 +442,7 @@ public class WebAPI implements API {
                 httpClient.sendRequest(handler);
                 String json = "{}";
                 // TODO: Use response status?
-                //if(handler.response instanceof HttpResponse response) {
+                //if (handler.response instanceof HttpResponse response) {
                     // Check if user is logged in
                     // view.isLoggedIn = response.status() == OK;
                 //}
@@ -485,8 +485,8 @@ public class WebAPI implements API {
                     request.setUri(authEndpointAdd);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if(handler.response instanceof HttpResponse response) {
-                        if(response.status() != OK) {
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() != OK) {
                             return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                         }
                     }
@@ -495,8 +495,8 @@ public class WebAPI implements API {
                     request.setUri(authEndpointRemove);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if(handler.response instanceof HttpResponse response) {
-                        if(response.status() != OK) {
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() != OK) {
                             return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                         }
                     }
@@ -505,8 +505,8 @@ public class WebAPI implements API {
                     request.setUri(authEndpointUpdate);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if(handler.response instanceof HttpResponse response) {
-                        if(response.status() == UNAUTHORIZED) {
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() == UNAUTHORIZED) {
                             return loginView();
                         }
                     }
@@ -515,8 +515,8 @@ public class WebAPI implements API {
                     request.setUri(authEndpointCheck);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if(handler.response instanceof HttpResponse response) {
-                        if(response.status() == UNAUTHORIZED) {
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() == UNAUTHORIZED) {
                             return loginView();
                         } else {
                             return orderView(sessionData);
@@ -550,8 +550,8 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
             handler = new HttpClientHandler();
             // TODO: Check auth endpoint
-            if(handler.response instanceof HttpResponse response) {
-                if(response.status() != OK) {
+            if (handler.response instanceof HttpResponse response) {
+                if (response.status() != OK) {
                     return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                 } else {
                     return profileView(sessionData);
@@ -583,7 +583,7 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if(handler.response instanceof HttpContent httpContent) {
+            if (handler.response instanceof HttpContent httpContent) {
                 // TODO: Replace with service calls
                 Long id = 1L;
                 String removeProduct = "/api/web/cartAction/removeProduct?productId=" + id;
@@ -607,7 +607,7 @@ public class WebAPI implements API {
                 httpClient.sendRequest(handler);
                 String json = "{}";
                 boolean isLoggedIn = false;
-                if(handler.response instanceof HttpResponse response) {
+                if (handler.response instanceof HttpResponse response) {
                     // Check if user is logged in
                     isLoggedIn = response.status() == OK;
                 }
@@ -665,7 +665,7 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if(handler.response instanceof HttpContent httpContent) {
+            if (handler.response instanceof HttpContent httpContent) {
                 // TODO: Replace with service calls
                 String json = getCategoryView();
                 // TODO: other requests
@@ -675,7 +675,7 @@ public class WebAPI implements API {
                 httpClient.sendRequest(handler);
                 // String json = "{}";
                 boolean isLoggedIn = false;
-                if(handler.response instanceof HttpResponse response) {
+                if (handler.response instanceof HttpResponse response) {
                     // Check if user is logged in
                     isLoggedIn = response.status() == OK;
                 }
@@ -706,7 +706,7 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if(handler.response instanceof HttpResponse response) {
+            if (handler.response instanceof HttpResponse response) {
                 // And return to index view
                 return indexView();
             } else {
@@ -807,8 +807,8 @@ public class WebAPI implements API {
                     httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if(handler.response instanceof HttpResponse response) {
-                        if(response.status() != OK) {
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() != OK) {
                             return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                         }
                         // TODO: Save login state?
@@ -819,8 +819,8 @@ public class WebAPI implements API {
                     httpClient = new HttpClient(gatewayHost, persistencePort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if(handler.response instanceof HttpResponse response) {
-                        if(response.status() != OK) {
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() != OK) {
                             return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                         }
                     }
