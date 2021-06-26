@@ -244,11 +244,9 @@ public final class DataGenerator {
 				Product product = new Product(
 						(long) i,
 						categoryId,
-						null,
 						name,
-						listPriceInCents,
 						description,
-						"/api/web/cartAction/addToCart?productId=" + i
+						listPriceInCents
 				);
 				ProductRepository.REPOSITORY.createEntity(product);
 			}

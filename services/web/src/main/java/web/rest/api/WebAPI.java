@@ -696,7 +696,7 @@ public class WebAPI implements API {
 
     // Only if implemented in persistence
     private FullHttpResponse databaseAction(int categories, Integer products, Integer users, Integer orders) {
-        // GET api/persistence/categories
+        // GET api/persistence/generatedb
         String authEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
                 "?categories=" + categories + "&products=" + products +
                 "&users=" + users + "&orders=" + orders;
