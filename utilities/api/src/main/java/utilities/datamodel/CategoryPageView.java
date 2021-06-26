@@ -15,16 +15,11 @@ package utilities.datamodel;
 
 import java.util.List;
 
-public record OrderView(
+public record CategoryPageView (
         String storeIcon,
         String title,
         List<Category> categoryList,
-        String firstName,
-        String lastName,
-        String address1,
-        String address2,
-        String creditCardCompany,
-        String creditCardNumber,
-        String creditCardExpiryDate,
-        String confirm
+        List<ProductView> productViewList,
+        Integer page,
+        Integer productQuantity
 ) {}

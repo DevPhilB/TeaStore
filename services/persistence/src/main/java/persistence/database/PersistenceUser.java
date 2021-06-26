@@ -24,6 +24,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PostRemove;
 import jakarta.persistence.PreRemove;
+import utilities.datamodel.User;
 
 /**
  * Persistence entity for user.
@@ -126,5 +127,19 @@ public class PersistenceUser {
 	 */
 	public List<PersistenceOrder> getOrders() {
 		return orders;
-	}	
+	}
+
+	/**
+	 * Convert entity to record.
+	 * @return New record object.
+	 */
+	public User toRecord() {
+		return new User(
+				this.getId(),
+				this.getUserName(),
+				this.getPassword(),
+				this.getRealName(),
+				this.getEmail()
+		);
+	}
 }

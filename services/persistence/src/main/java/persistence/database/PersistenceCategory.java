@@ -24,6 +24,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PostRemove;
+import utilities.datamodel.Category;
 
 /**
  * Entity for persisting Categories in database.
@@ -110,5 +111,16 @@ public class PersistenceCategory {
 	public List<PersistenceProduct> getProducts() {
 		return products;
 	}
-	
+
+	/**
+	 * Convert entity to record.
+	 * @return New record object.
+	 */
+	public Category toRecord() {
+		return new Category(
+				this.getId(),
+				this.getName(),
+				this.getDescription()
+		);
+	}
 }

@@ -29,10 +29,8 @@ public final class CategoryRepository extends AbstractPersistenceRepository<Cate
 	 */
 	public static final CategoryRepository REPOSITORY = new CategoryRepository();
 	
-	//Private constructor.
-	private CategoryRepository() {
-		
-	}
+	// Private constructor.
+	private CategoryRepository() {}
 	
 	/**
 	 * {@inheritDoc}

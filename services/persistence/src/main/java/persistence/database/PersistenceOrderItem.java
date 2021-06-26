@@ -18,6 +18,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PostRemove;
+import utilities.datamodel.OrderItem;
 
 /**
  * Persistence entity Class for OrderItems (item with quantity in shopping cart or order).
@@ -132,5 +133,18 @@ public class PersistenceOrderItem {
 	void setOrder(PersistenceOrder order) {
 		this.order = order;
 	}
-	
+
+	/**
+	 * Convert entity to record.
+	 * @return New record object.
+	 */
+	public OrderItem toRecord() {
+		return new OrderItem(
+				this.getId(),
+				this.product.getId(),
+				this.getOrderId(),
+				this.getQuantity(),
+				this.getUnitPriceInCents()
+		);
+	}
 }

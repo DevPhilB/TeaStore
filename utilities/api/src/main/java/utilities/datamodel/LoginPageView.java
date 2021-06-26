@@ -13,13 +13,15 @@
  */
 package utilities.datamodel;
 
-import java.util.Map;
+import java.util.List;
 
-public record AboutView (
+public record LoginPageView (
         String storeIcon,
         String title,
-        Map<String, String> portraits,
-        String descartesDescription,
-        String descartesLogo,
-        String description
+        List<Category> categoryList,
+        String description,
+        String username,
+        String password,
+        String signIn,
+        String referer
 ) {}

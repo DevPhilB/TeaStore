@@ -13,12 +13,13 @@
  */
 package utilities.datamodel;
 
-public record ProductView (
-        Long id,
-        Long categoryId,
-        String image,
-        String name,
-        Long listPriceInCents,
-        String description,
-        String addToCart
+import java.util.Map;
+
+public record AboutPageView (
+        String storeIcon,
+        String title,
+        Map<String, String> portraits,
+        String descartesDescription,
+        String descartesLogo,
+        String description
 ) {}

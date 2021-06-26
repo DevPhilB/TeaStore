@@ -165,7 +165,7 @@ public class PersistenceAPI implements API {
     private FullHttpResponse orders() {
         List<Order> order = new ArrayList<Order>();
         for (PersistenceOrder persistenceOrder : OrderRepository.REPOSITORY.getAllEntities()) {
-            order.add(persistenceOrder.toOrder());
+            order.add(persistenceOrder.toRecord());
         }
         try {
             String json = mapper.writeValueAsString(order);

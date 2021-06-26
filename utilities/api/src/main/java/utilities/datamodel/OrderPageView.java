@@ -15,10 +15,16 @@ package utilities.datamodel;
 
 import java.util.List;
 
-public record ProfileView(
+public record OrderPageView (
         String storeIcon,
         String title,
         List<Category> categoryList,
-        User user,
-        List<PreviousOrder> orders
+        String firstName,
+        String lastName,
+        String address1,
+        String address2,
+        String creditCardCompany,
+        String creditCardNumber,
+        String creditCardExpiryDate,
+        String confirm
 ) {}

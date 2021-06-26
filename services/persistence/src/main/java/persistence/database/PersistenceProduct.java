@@ -25,6 +25,7 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PostRemove;
+import utilities.datamodel.Product;
 
 /**
  * Persistence entity for products.
@@ -119,5 +120,18 @@ public class PersistenceProduct {
 	public List<PersistenceOrderItem> getOrderItems() {
 		return orderItems;
 	}
-	
+
+	/**
+	 * Convert entity to record.
+	 * @return New record object.
+	 */
+	public Product toRecord() {
+		return new Product(
+				this.getId(),
+				this.getCategoryId(),
+				this.getName(),
+				this.getDescription(),
+				this.getListPriceInCents()
+		);
+	}
 }

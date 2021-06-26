@@ -13,9 +13,15 @@
  */
 package utilities.datamodel;
 
-public record ErrorView(
+import java.util.List;
+
+public record CartPageView (
         String storeIcon,
         String title,
-        String errorImage,
-        String backToShop
+        List<Category> categories,
+        List<CartItem> cartItems,
+        List<ProductView> advertisements,
+        List<String> productImages,
+        String updateCart,
+        String proceedToCheckout
 ) {}

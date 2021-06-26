@@ -34,9 +34,7 @@ public final class OrderRepository extends AbstractPersistenceRepository<Order, 
 	public static final OrderRepository REPOSITORY = new OrderRepository();
 	
 	//Private constructor.
-	private OrderRepository() {
-		
-	}
+	private OrderRepository() {}
 	
 	/**
 	 * {@inheritDoc}

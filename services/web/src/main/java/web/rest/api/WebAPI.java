@@ -196,7 +196,7 @@ public class WebAPI implements API {
         String title = "TeaStore About Us";
         String descartesDescription= "We are part of the Descartes Research Group:";
         String description= "Our research is aimed at developing novel methods, ...";
-        AboutView view = new AboutView(
+        AboutPageView view = new AboutPageView(
                 "STOREICON",
                 title,
                 portraits,
@@ -217,10 +217,10 @@ public class WebAPI implements API {
      */
     public String getPersistenceProducts() {
         String json = "{}";
-        List<Product> products = new ArrayList<>();
+        List<ProductView> products = new ArrayList<>();
         Long id = 1L;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
-        Product product = new Product(
+        ProductView product = new ProductView(
                 id,
                 1L,
                 "PRODUCTONE",
@@ -289,10 +289,10 @@ public class WebAPI implements API {
      */
     public String getRecommendations() {
         String json = "{}";
-        List<Product> advertisements = new ArrayList<>();
+        List<ProductView> advertisements = new ArrayList<>();
         Long id = 2L;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
-        Product product = new Product(
+        ProductView product = new ProductView(
                 id,
                 1L,
                 "PRODUCTTWO",
@@ -317,10 +317,10 @@ public class WebAPI implements API {
      */
     public String getCategoryView() {
         String json = "{}";
-        List<Product> products = new ArrayList<>();
+        List<ProductView> products = new ArrayList<>();
         Long id = 3L;
         String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
-        products.add(new Product(
+        products.add(new ProductView(
                 id,
                 1L,
                 "PRODUCTTHREE",
@@ -334,7 +334,7 @@ public class WebAPI implements API {
         Integer productQuantity = 20;
         Integer page = 1;
         try {
-            CategoryView view = new CategoryView(
+            CategoryPageView view = new CategoryPageView(
                     "STOREICON",
                     title,
                     mapper.readValue(
@@ -434,7 +434,7 @@ public class WebAPI implements API {
             httpClient.sendRequest(handler);
             if(handler.response instanceof HttpContent httpContent) {
                 // TODO: ByteBuf imageData = httpContent.content();
-                AboutView view = mapper.readValue(getWebImages(), AboutView.class);
+                AboutPageView view = mapper.readValue(getWebImages(), AboutPageView.class);
                 request.setUri(authEndpoint);
                 request.setMethod(GET);
                 httpClient = new HttpClient(gatewayHost, authPort, request);
@@ -613,7 +613,7 @@ public class WebAPI implements API {
                 }
                 String updateCart = "/api/web/cartAction/updateCartQuantities";
                 String proceedToCheckout = "/api/web/cartAction/proceedToCheckout";
-                CartView view = new CartView(
+                CartPageView view = new CartPageView(
                         // TODO: ByteBuf imageData = httpContent.content();
                         "STOREICON",
                         "Shopping Cart",
@@ -624,7 +624,7 @@ public class WebAPI implements API {
                         cartItems,
                         mapper.readValue(
                                 getRecommendations(),
-                                new TypeReference<List<Product>>(){}
+                                new TypeReference<List<ProductView>>(){}
                         ),
                         productImages,
                         updateCart,
@@ -719,7 +719,7 @@ public class WebAPI implements API {
     }
 
     private FullHttpResponse databaseView() {
-        DatabaseView view = new DatabaseView(
+        DatabasePageView view = new DatabasePageView(
                 "STOREICON",
                 "Setup the Database",
                 5,
@@ -742,7 +742,7 @@ public class WebAPI implements API {
 
     private FullHttpResponse errorView() {
         // TODO: Persistence, image and auth service calls
-        ErrorView view = new ErrorView(
+        ErrorPageView view = new ErrorPageView(
                 "STOREICON",
                 "Oops, something went wrong!",
                 "ERRORIMAGE",
@@ -764,7 +764,7 @@ public class WebAPI implements API {
     private FullHttpResponse indexView() {
         // TODO: Persistence, image and auth service calls
         try {
-            IndexView view = new IndexView(
+            IndexPageView view = new IndexPageView(
                     "STOREICON",
                     "",
                     mapper.readValue(
@@ -836,7 +836,7 @@ public class WebAPI implements API {
     private FullHttpResponse loginView() {
         // TODO: Persistence, image and auth service calls
         try {
-            LoginView view = new LoginView(
+            LoginPageView view = new LoginPageView(
                     "STOREICON",
                     "Login",
                     mapper.readValue(
@@ -877,7 +877,7 @@ public class WebAPI implements API {
                     "31459265359",
                     "12/2025"
             );
-            OrderView view = new OrderView(
+            OrderPageView view = new OrderPageView(
                     "STOREICON",
                     "Order",
                     mapper.readValue(
@@ -910,7 +910,7 @@ public class WebAPI implements API {
         try {
             Long id = 4L;
             String addToCart = "/api/web/cartAction/addToCart?productId=" + id;
-            Product product = new Product(
+            ProductView product = new ProductView(
                     id,
                     1L,
                     "PRODUCTFOUR",
@@ -919,7 +919,7 @@ public class WebAPI implements API {
                     "Product 4 description",
                     addToCart
             );
-            ProductView view = new ProductView(
+            ProductPageView view = new ProductPageView(
                     "STOREICON",
                     "Order",
                     mapper.readValue(
@@ -929,7 +929,7 @@ public class WebAPI implements API {
                     product,
                     mapper.readValue(
                             getRecommendations(),
-                            new TypeReference<List<Product>>(){}
+                            new TypeReference<List<ProductView>>(){}
                     )
             );
             String json = mapper.writeValueAsString(view);
@@ -956,7 +956,7 @@ public class WebAPI implements API {
                     "John Snow",
                     "jsnow@teastorev2.com"
             );
-            ProfileView view = new ProfileView(
+            ProfilePageView view = new ProfilePageView(
                     "STOREICON",
                     "Order",
                     mapper.readValue(

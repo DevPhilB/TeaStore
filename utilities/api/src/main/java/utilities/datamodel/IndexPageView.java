@@ -15,7 +15,7 @@ package utilities.datamodel;
 
 import java.util.List;
 
-public record IndexView(
+public record IndexPageView (
         String storeIcon,
         String title,
         List<Category> categoryList,

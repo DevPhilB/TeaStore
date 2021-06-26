@@ -13,11 +13,12 @@
  */
 package utilities.datamodel;
 
-public record DatabaseView(
+import java.util.List;
+
+public record ProfilePageView (
         String storeIcon,
         String title,
-        Integer numberOfNewCategories,
-        Integer numberOfNewProductsPerCategory,
-        Integer numberOfNewUsers,
-        Integer numberOfMaxOrdersPerUser
+        List<Category> categories,
+        User user,
+        List<PreviousOrder> orders
 ) {}

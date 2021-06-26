@@ -13,15 +13,9 @@
  */
 package utilities.datamodel;
 
-import java.util.List;
-
-public record LoginView(
+public record ErrorPageView (
         String storeIcon,
         String title,
-        List<Category> categoryList,
-        String description,
-        String username,
-        String password,
-        String signIn,
-        String referer
+        String errorImage,
+        String backToShop
 ) {}

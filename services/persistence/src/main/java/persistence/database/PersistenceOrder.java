@@ -93,21 +93,6 @@ public class PersistenceOrder {
 		CacheManager.MANAGER.clearRemoteCache(PersistenceOrder.class);
 	}
 
-	public Order toOrder() {
-		return new Order(
-				this.getId(),
-				this.user.getId(),
-				this.getTime(),
-				this.getTotalPriceInCents(),
-				this.getAddressName(),
-				this.getAddress1(),
-				this.getAddress2(),
-				this.getCreditCardCompany(),
-				this.getCreditCardNumber(),
-				this.getCreditCardExpiryDate()
-		);
-	}
-
 	public long getId() {
 		return id;
 	}
@@ -259,5 +244,23 @@ public class PersistenceOrder {
 	public void setUser(PersistenceUser user) {
 		this.user = user;
 	}
-	
+
+	/**
+	 * Convert entity to record.
+	 * @return New record object.
+	 */
+	public Order toRecord() {
+		return new Order(
+				this.getId(),
+				this.user.getId(),
+				this.getTime(),
+				this.getTotalPriceInCents(),
+				this.getAddressName(),
+				this.getAddress1(),
+				this.getAddress2(),
+				this.getCreditCardCompany(),
+				this.getCreditCardNumber(),
+				this.getCreditCardExpiryDate()
+		);
+	}
 }

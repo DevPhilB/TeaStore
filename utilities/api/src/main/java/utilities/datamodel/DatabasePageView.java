@@ -13,15 +13,11 @@
  */
 package utilities.datamodel;
 
-import java.util.List;
-
-public record CartView (
-    String storeIcon,
-    String title,
-    List<Category> categoryList,
-    List<CartItem> cartItems,
-    List<Product> advertisements,
-    List<String> productImages,
-    String updateCart,
-    String proceedToCheckout
+public record DatabasePageView (
+        String storeIcon,
+        String title,
+        Integer numberOfNewCategories,
+        Integer numberOfNewProductsPerCategory,
+        Integer numberOfNewUsers,
+        Integer numberOfMaxOrdersPerUser
 ) {}
