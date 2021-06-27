@@ -51,7 +51,6 @@ public class PersistenceAPI implements API {
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        StringBuilder responseData = new StringBuilder();
         QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
         Map<String, List<String>> params = queryStringDecoder.parameters();
         String method = header.method().name();
@@ -98,11 +97,11 @@ public class PersistenceAPI implements API {
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
                                 return getOrder(id);
-                            } else if (params.containsKey("userId")
+                            } else if (params.containsKey("userid")
                                     && params.containsKey("start")
                                     && params.containsKey("max")
                             ) {
-                                Long id = Long.parseLong(params.get("userId").get(0));
+                                Long id = Long.parseLong(params.get("userid").get(0));
                                 Integer start = Integer.parseInt(params.get("start").get(0));
                                 Integer max = Integer.parseInt(params.get("max").get(0));
                                 return getAllOrders(id, start, max);
@@ -216,8 +215,8 @@ public class PersistenceAPI implements API {
                 case "DELETE":
                     switch (subPath) {
                         case "/cache":
-                            if (params.containsKey("className")) {
-                                String className = params.get("className").get(0);
+                            if (params.containsKey("classname")) {
+                                String className = params.get("classname").get(0);
                                 return clearCache(className);
                             } else {
                                 return clearCache(null);
@@ -549,7 +548,6 @@ public class PersistenceAPI implements API {
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
-
 
     /**
      * GET /generatedb/maintenance
@@ -926,10 +924,10 @@ public class PersistenceAPI implements API {
 
 
     /**
-     * GET /products/count?categoryId=
+     * GET /products/count?categoryid=
      *
      * @param categoryId Required category id
-     * @return Number of products in the category
+     * @return Number of products in a category
      */
     private FullHttpResponse getProductCountForCategory(Long categoryId) {
         Long productCount = ProductRepository.REPOSITORY.getProductCount(categoryId);
@@ -1049,7 +1047,7 @@ public class PersistenceAPI implements API {
     }
 
     /**
-     * GET /users?name=
+     * GET /users/name?name=
      *
      * @param name Required user name
      * @return User or NOT_FOUND

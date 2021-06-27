@@ -25,11 +25,11 @@ paths:
           description: "Internal Server Error"
       tags:
         - Web
-  /api/web/cartAction/addToCart:
+  /api/web/cartaction/addtocart:
     get:
       summary: "Add product to cart."
       parameters:
-        - name: "productId"
+        - name: "productid"
           in: "query"
           schema:
             type: integer
@@ -41,11 +41,11 @@ paths:
           description: "Bad Request"
       tags:
         - Web
-  /api/web/cartAction/removeProduct:
+  /api/web/cartaction/removeproduct:
     get:
       summary: "Remove product from cart, return view 'Cart'."
       parameters:
-        - name: "productId"
+        - name: "productid"
           in: "query"
           schema:
             type: integer
@@ -57,11 +57,11 @@ paths:
           description: "Bad Request"
       tags:
         - Web
-  /api/web/cartAction/updateCartQuantities:
+  /api/web/cartaction/updatecartquantities:
     get:
       summary: "Update cart quantity, return view 'Cart'."
       parameters:
-        - name: "productId"
+        - name: "productid"
           in: "query"
           schema:
             type: integer
@@ -73,7 +73,7 @@ paths:
           description: "Bad Request"
       tags:
         - Web
-  /api/web/cartAction/proceedToCheckout:
+  /api/web/cartaction/proceedtocheckout:
     get:
       summary: "Proceed to checkout, return view 'Login' or 'Order'."
       responses:
@@ -83,38 +83,11 @@ paths:
           description: "Bad Request"
       tags:
         - Web
-  /api/web/cartAction/confirm:
+  /api/web/cartaction/confirm:
     post:
       summary: "Confirm order, return view 'Profile'."
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                totalPriceInCents:
-                  type: integer
-                addressName:
-                  type: string
-                address1:
-                  type: string
-                address2:
-                  type: string
-                creditCardCompany:
-                  type: string
-                creditCardNumber:
-                  type: string
-                creditCardExpiryDate:
-                  type: string
-              required:
-                - totalPriceInCents
-                - addressName
-                - address1
-                - address2
-                - creditCardCompany
-                - creditCardNumber
-                - creditCardExpiryDate
+        $ref: '#/components/requestBodies/Order'
       responses:
         "200":
           description: "OK"
@@ -136,12 +109,12 @@ paths:
     get:
       summary: "Return view 'Category'."
       parameters:
-        - name: "categoryId"
+        - name: "id"
           in: "query"
           schema:
             type: integer
           required: true
-        - name: "productNumber"
+        - name: "productquantity"
           in: "query"
           schema:
             type: integer
@@ -160,7 +133,7 @@ paths:
           description: "Internal Server Error"
       tags:
         - Web
-  /api/web/databaseAction:
+  /api/web/databaseaction:
     get:
       summary: "Generate content for database and return view 'Index'."
       parameters:
@@ -223,7 +196,7 @@ paths:
           description: "Internal Server Error"
       tags:
         - Web
-  /api/web/loginAction:
+  /api/web/loginaction:
     post:
       summary: "Log in or out and return view 'Index'."
       requestBody:
@@ -304,7 +277,7 @@ paths:
     delete:
       summary: "Clears the cache for the/all class(es)."
       parameters:
-        - name: "className"
+        - name: "classname"
           in: "query"
           schema:
             type: string
@@ -326,7 +299,7 @@ paths:
         - Persistence
   /api/persistence/categories:
     get:
-      summary: "Return a single or all categories (start = startIndex, max = maxResultCount)."
+      summary: "Return a single (id) or all categories (start = startIndex, max = maxResultCount)."
       parameters:
         - name: "id"
           in: "query"
@@ -357,22 +330,7 @@ paths:
     post:
       summary: "Create category and return it (id changes)."
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: integer
-                name:
-                  type: string
-                description:
-                  type: string
-              required:
-                - id
-                - name
-                - description
+        $ref: '#/components/requestBodies/Category'
       responses:
         "200":
           description: "OK"
@@ -389,22 +347,7 @@ paths:
     put:
       summary: "Update category and return updated category."
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: integer
-                name:
-                  type: string
-                description:
-                  type: string
-              required:
-                - id
-                - name
-                - description
+        $ref: '#/components/requestBodies/Category'
       responses:
         "200":
           description: "OK"
@@ -433,3 +376,585 @@ paths:
           description: "Service Unavailable"
       tags:
         - Persistence
+  /api/persistence/generatedb:
+    get:
+      summary: "Drop database, generate a new one and return status."
+      parameters:
+        - name: "categories"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "products"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "users"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "orders"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+  /api/persistence/generatedb/finished:
+    get:
+      summary: "Return true or false."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+  /api/persistence/generatedb/maintenance:
+    get:
+      summary: "Return true or false."
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    post:
+      summary: "En- or disable maintenance mode and return status."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maintenanceMode:
+                  type: boolean
+              required:
+                - maintenanceMode
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+  /api/persistence/orders:
+    get:
+      summary: "Return a single (id) or all orders (userid, start = startIndex, max = maxResultCount)."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "userid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    post:
+      summary: "Create order and return it (id changes)."
+      requestBody:
+        $ref: '#/components/requestBodies/Order'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+    put:
+      summary: "Update order and return updated order."
+      requestBody:
+        $ref: '#/components/requestBodies/Order'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    delete:
+      summary: "Delete a order."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+  /api/persistence/orderitems:
+    get:
+      summary: "Return a single (id) or all order items (productId, orderId, start = startIndex, max = maxResultCount)."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "productid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "orderid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    post:
+      summary: "Create order item and return it (id changes)."
+      requestBody:
+        $ref: '#/components/requestBodies/OrderItem'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+    put:
+      summary: "Update order item and return updated order item."
+      requestBody:
+        $ref: '#/components/requestBodies/OrderItem'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    delete:
+      summary: "Delete a order item."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+  /api/persistence/products:
+    get:
+      summary: "Return a single (id) or all products (categoryId, start = startIndex, max = maxResultCount)."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "categoryid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    post:
+      summary: "Create product and return it (id changes)."
+      requestBody:
+        $ref: '#/components/requestBodies/Product'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+    put:
+      summary: "Update product and return updated product."
+      requestBody:
+        $ref: '#/components/requestBodies/Product'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    delete:
+      summary: "Delete a product."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+  /api/persistence/products/count:
+    get:
+      summary: "Return number of products in a category."
+      parameters:
+        - name: "categoryid"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+  /api/persistence/users:
+    get:
+      summary: "Return a single (id) or all users (start = startIndex, max = maxResultCount)."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "start"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+        - name: "max"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    post:
+      summary: "Create user and return it (id changes)."
+      requestBody:
+        $ref: '#/components/requestBodies/User'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+    put:
+      summary: "Update user and return updated user."
+      requestBody:
+        $ref: '#/components/requestBodies/User'
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+    delete:
+      summary: "Delete an user."
+      parameters:
+        - name: "id"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "503":
+          description: "Service Unavailable"
+      tags:
+        - Persistence
+  /api/persistence/users/name:
+    get:
+      summary: "Return a single user by name."
+      parameters:
+        - name: "name"
+          in: "query"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Persistence
+components:
+  requestBodies:
+    Category:
+      description: Category as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              description:
+                type: string
+            required:
+              - id
+              - name
+              - description
+    Order:
+      description: Order as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              userId:
+                type: integer
+              time:
+                type: string
+              totalPriceInCents:
+                type: integer
+              addressName:
+                type: string
+              address1:
+                type: string
+              address2:
+                type: string
+              creditCardCompany:
+                type: string
+              creditCardNumber:
+                type: string
+              creditCardExpiryDate:
+                type: string
+            required:
+              - id
+              - userId
+              - time
+              - totalPriceInCents
+              - addressName
+              - address1
+              - address2
+              - creditCardCompany
+              - creditCardNumber
+              - creditCardExpiryDate
+    OrderItem:
+      description: Order item as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              productId:
+                type: integer
+              orderId:
+                type: integer
+              quantity:
+                type: integer
+              unitPriceInCents:
+                type: integer
+            required:
+              - id
+              - productId
+              - orderId
+              - quantity
+              - unitPriceInCents
+    Product:
+      description: Product as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              categoryId:
+                type: integer
+              name:
+                type: string
+              description:
+                type: string
+              listPriceInCents:
+                type: integer
+            required:
+              - id
+              - categoryId
+              - name
+              - description
+              - listPriceInCents
+    User:
+      description: User as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              userName:
+                type: string
+              password:
+                type: string
+              realName:
+                type: string
+              email:
+                type: string
+            required:
+              - id
+              - userName
+              - password
+              - realName
+              - email
