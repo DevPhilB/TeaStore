@@ -24,15 +24,14 @@ import persistence.database.*;
 import utilities.datamodel.*;
 import utilities.rest.API;
 
-import java.io.IOException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.http.HttpMethod.*;
 
 /**
  * API for web service
@@ -44,33 +43,11 @@ public class PersistenceAPI implements API {
     private final HttpVersion httpVersion;
     private final String scheme;
     private final ObjectMapper mapper;
-    private final String gatewayHost;
-    private final Integer webPort;
-    private final Integer imagePort;
-    private final Integer authPort;
-    private final Integer recommenderPort;
-    private final Integer persistencePort;
-    private final HttpRequest request;
 
     public PersistenceAPI(HttpVersion httpVersion, String scheme) {
         this.httpVersion = httpVersion;
         this.scheme = scheme;
         this.mapper = new ObjectMapper();
-        this.gatewayHost = "127.0.0.1";
-        this.webPort = 80;
-        this.imagePort = 80;
-        this.authPort = 80;
-        this.recommenderPort = 80;
-        this.persistencePort = 80;
-        this.request = new DefaultFullHttpRequest(
-                this.httpVersion,
-                HttpMethod.GET,
-                "",
-                Unpooled.EMPTY_BUFFER
-        );
-        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
@@ -375,7 +352,7 @@ public class PersistenceAPI implements API {
     /**
      * GET /categories?id=
      *
-     * @param id  Required category Id
+     * @param id Required category Id
      * @return Category or NOT_FOUND
      */
     private FullHttpResponse getCategory(Long id) {
@@ -443,7 +420,7 @@ public class PersistenceAPI implements API {
         body.readBytes(jsonByte);
         try {
             category = mapper.readValue(jsonByte, Category.class);
-            Long newId = CategoryRepository.REPOSITORY.createEntity(category);
+            long newId = CategoryRepository.REPOSITORY.createEntity(category);
             Category newCategory = CategoryRepository.REPOSITORY.getEntity(newId).toRecord();
             String json = mapper.writeValueAsString(newCategory);
             if (newCategory != null) {
@@ -506,249 +483,701 @@ public class PersistenceAPI implements API {
     }
 
     /**
+     * GET /generatedb
      *
-     * @param categories
-     * @param products
-     * @param users
-     * @param orders
-     * @return
+     * @param categories Number of categories
+     * @param products Number of products per category
+     * @param users Number of users
+     * @param orders Maximum order per user
+     * @return OK or INTERNAL_SERVER_ERROR
      */
     private FullHttpResponse generateDatabase(Integer categories, Integer products, Integer users, Integer orders) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        }
+        DataGenerator.GENERATOR.setMaintenanceModeGlobal(true);
+        DataGenerator.GENERATOR.dropAndCreateTables();
+        Executors.newSingleThreadScheduledExecutor().execute(() -> {
+            DataGenerator.GENERATOR.generateDatabaseContent(
+                    categories,
+                    products,
+                    users,
+                    orders
+            );
+            CacheManager.MANAGER.resetRemoteEMFs();
+            DataGenerator.GENERATOR.setMaintenanceModeGlobal(false);
+        });
+        return new DefaultFullHttpResponse(httpVersion, OK);
     }
 
     /**
+     * GET /generatedb/finished
      *
-     * @param body
-     * @return
-     */
-    private FullHttpResponse generateDatabaseToggleMaintenance(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
-    }
-
-
-    /**
-     *
-     * @return
+     * @return True or false
      */
     private FullHttpResponse generateDatabaseFinishFlag() {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        Boolean finished = DataGenerator.GENERATOR.getGenerationFinishedFlag();
+        try {
+            String json = mapper.writeValueAsString(finished);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * POST /generatedb/maintenance
      *
-     * @return
+     * @param body New maintenance mode (Boolean)
+     * @return OK or INTERNAL_SERVER_ERROR
+     */
+    private FullHttpResponse generateDatabaseToggleMaintenance(ByteBuf body) {
+        Boolean maintenanceMode = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            maintenanceMode = mapper.readValue(jsonByte, Boolean.class);
+            DataGenerator.GENERATOR.setMaintenanceModeInternal(maintenanceMode);
+            return new DefaultFullHttpResponse(httpVersion, OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+    }
+
+
+    /**
+     * GET /generatedb/maintenance
+     *
+     * @return True or false
      */
     private FullHttpResponse generateDatabaseMaintenanceFlag() {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        Boolean isMaintenanceMode = DataGenerator.GENERATOR.isMaintenanceMode();
+        try {
+            String json = mapper.writeValueAsString(isMaintenanceMode);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * GET /orders?id=
      *
-     * @param id
-     * @return
+     * @param id Required order Id
+     * @return Order or NOT_FOUND
      */
     private FullHttpResponse getOrder(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        PersistenceOrder persistenceEntity = OrderRepository.REPOSITORY.getEntity(id);
+        if (persistenceEntity == null) {
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        }
+        Order order = persistenceEntity.toRecord();
+        try {
+            String json = mapper.writeValueAsString(order);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * GET /orders
      *
-     * @param id
-     * @param start
-     * @param max
-     * @return
+     * @param userId Optional user id
+     * @param startIndex Optional start index
+     * @param maxResultCount Optional max result count
+     * @return All orders
      */
-    private FullHttpResponse getAllOrders(Long id, Integer start, Integer max) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+    private FullHttpResponse getAllOrders(Long userId, Integer startIndex, Integer maxResultCount) {
+        List<PersistenceOrder> persistenceEntities = null;
+        if(userId != null) {
+            persistenceEntities = OrderRepository.REPOSITORY.getAllEntitiesWithUser(
+                    userId,
+                    startIndex,
+                    maxResultCount
+            );
+        } else if (startIndex == null || maxResultCount == null) {
+            persistenceEntities = OrderRepository.REPOSITORY.getAllEntities();
+        } else {
+            persistenceEntities = OrderRepository.REPOSITORY.getAllEntities(startIndex, maxResultCount);
+        }
+        List<Order> orders = new ArrayList<Order>();
+        for (PersistenceOrder persistenceOrder : persistenceEntities) {
+            orders.add(persistenceOrder.toRecord());
+        }
+        try {
+            String json = mapper.writeValueAsString(orders);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * POST /orders
      *
-     * @param body
-     * @return
+     * @param body Order as JSON
+     * @return Created element as JSON
      */
     private FullHttpResponse createOrder(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        Order order = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            order = mapper.readValue(jsonByte, Order.class);
+            long newId = OrderRepository.REPOSITORY.createEntity(order);
+            Order newOrder = OrderRepository.REPOSITORY.getEntity(newId).toRecord();
+            String json = mapper.writeValueAsString(newOrder);
+            if (newOrder != null) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * PUT /orders
      *
-     * @param body
-     * @return
+     * @param body Order item as JSON
+     * @return Updated element as JSON
      */
     private FullHttpResponse updateOrder(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        Order order = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            order = mapper.readValue(jsonByte, Order.class);
+            if (OrderRepository.REPOSITORY.getEntity(order.id()) == null) {
+                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            }
+            if (OrderRepository.REPOSITORY.updateEntity(order.id(), order)) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(body)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * DELETE /orders?id=
      *
-     * @param id
-     * @return
+     * @param id Order id
+     * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteOrder(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        if (OrderRepository.REPOSITORY.removeEntity(id)) {
+            return new DefaultFullHttpResponse(httpVersion, OK);
+        }
+        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
     }
 
-
     /**
+     * GET /orderitems?id=
      *
-     * @param id
-     * @return
+     * @param id Required order item Id
+     * @return Order item or NOT_FOUND
      */
     private FullHttpResponse getOrderItem(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        PersistenceOrderItem persistenceEntity = OrderItemRepository.REPOSITORY.getEntity(id);
+        if (persistenceEntity == null) {
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        }
+        OrderItem orderItem = persistenceEntity.toRecord();
+        try {
+            String json = mapper.writeValueAsString(orderItem);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * GET /orderitems
      *
-     * @param productId
-     * @param orderId
-     * @param start
-     * @param max
-     * @return
+     * @param productId Optional product id
+     * @param orderId Optional order id
+     * @param startIndex Optional start index
+     * @param maxResultCount Optional max result count
+     * @return All order items
      */
-    private FullHttpResponse getAllOrderItems(Long productId, Long orderId, Integer start, Integer max) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+    private FullHttpResponse getAllOrderItems(Long productId, Long orderId, Integer startIndex, Integer maxResultCount) {
+        List<PersistenceOrderItem> persistenceEntities = null;
+        if(productId != null) {
+            persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntitiesWithProduct(
+                    productId,
+                    startIndex,
+                    maxResultCount
+            );
+        } else if (orderId != null) {
+            persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntitiesWithOrder(
+                    orderId,
+                    startIndex,
+                    maxResultCount
+            );
+        } else if (startIndex == null || maxResultCount == null) {
+            persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntities();
+        } else {
+            persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntities(startIndex, maxResultCount);
+        }
+        List<OrderItem> orderItems = new ArrayList<OrderItem>();
+        for (PersistenceOrderItem persistenceOrderItem : persistenceEntities) {
+            orderItems.add(persistenceOrderItem.toRecord());
+        }
+        try {
+            String json = mapper.writeValueAsString(orderItems);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * POST /orderitems
      *
-     * @param body
-     * @return
+     * @param body Order item as JSON
+     * @return Created element as JSON
      */
     private FullHttpResponse createOrderItem(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        OrderItem orderItem = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            orderItem = mapper.readValue(jsonByte, OrderItem.class);
+            long newId = OrderItemRepository.REPOSITORY.createEntity(orderItem);
+            OrderItem newOrderItem = OrderItemRepository.REPOSITORY.getEntity(newId).toRecord();
+            String json = mapper.writeValueAsString(newOrderItem);
+            if (newOrderItem != null) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * PUT /orderitems
      *
-     * @param body
-     * @return
+     * @param body Order item as JSON
+     * @return Updated element as JSON
      */
     private FullHttpResponse updateOrderItem(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        OrderItem orderItem = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            orderItem = mapper.readValue(jsonByte, OrderItem.class);
+            if (OrderItemRepository.REPOSITORY.getEntity(orderItem.id()) == null) {
+                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            }
+            if (OrderItemRepository.REPOSITORY.updateEntity(orderItem.id(), orderItem)) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(body)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * DELETE /orderitems?id=
      *
-     * @param id
-     * @return
+     * @param id Order item id
+     * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteOrderItem(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        if (OrderItemRepository.REPOSITORY.removeEntity(id)) {
+            return new DefaultFullHttpResponse(httpVersion, OK);
+        }
+        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
     }
 
     /**
+     * GET /products?id=
      *
-     * @param id
-     * @return
+     * @param id Required product Id
+     * @return Product or NOT_FOUND
      */
     private FullHttpResponse getProduct(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        PersistenceProduct persistenceEntity = ProductRepository.REPOSITORY.getEntity(id);
+        if (persistenceEntity == null) {
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        }
+        Product product = persistenceEntity.toRecord();
+        try {
+            String json = mapper.writeValueAsString(product);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * GET /products
      *
-     * @param categoryId
-     * @param start
-     * @param max
-     * @return
+     * @param categoryId Optional category id
+     * @param startIndex Optional start index
+     * @param maxResultCount Optional max result count
+     * @return All products
      */
-    private FullHttpResponse getAllProducts(Long categoryId, Integer start, Integer max) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+    private FullHttpResponse getAllProducts(Long categoryId, Integer startIndex, Integer maxResultCount) {
+        List<PersistenceProduct> persistenceEntities = null;
+        if(categoryId != null) {
+            persistenceEntities = ProductRepository.REPOSITORY.getAllEntities(
+                    categoryId,
+                    startIndex,
+                    maxResultCount
+            );
+        } else if (startIndex == null || maxResultCount == null) {
+            persistenceEntities = ProductRepository.REPOSITORY.getAllEntities();
+        } else {
+            persistenceEntities = ProductRepository.REPOSITORY.getAllEntities(
+                    startIndex,
+                    maxResultCount
+            );
+        }
+        List<Product> products = new ArrayList<Product>();
+        for (PersistenceProduct persistenceProduct : persistenceEntities) {
+            products.add(persistenceProduct.toRecord());
+        }
+        try {
+            String json = mapper.writeValueAsString(products);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
 
     /**
+     * GET /products/count?categoryId=
      *
-     * @param categoryId
-     * @return
+     * @param categoryId Required category id
+     * @return Number of products in the category
      */
     private FullHttpResponse getProductCountForCategory(Long categoryId) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        Long productCount = ProductRepository.REPOSITORY.getProductCount(categoryId);
+        try {
+            String json = mapper.writeValueAsString(productCount);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * POST /products
      *
-     * @param body
-     * @return
+     * @param body Product as JSON
+     * @return Created element as JSON
      */
     private FullHttpResponse createProduct(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        Product product = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            product = mapper.readValue(jsonByte, Product.class);
+            long newId = ProductRepository.REPOSITORY.createEntity(product);
+            Product newProduct = ProductRepository.REPOSITORY.getEntity(newId).toRecord();
+            String json = mapper.writeValueAsString(newProduct);
+            if (newProduct != null) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * PUT /products
      *
-     * @param body
-     * @return
+     * @param body Product as JSON
+     * @return Updated element as JSON
      */
     private FullHttpResponse updateProduct(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        Product product = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            product = mapper.readValue(jsonByte, Product.class);
+            if (ProductRepository.REPOSITORY.getEntity(product.id()) == null) {
+                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            }
+            if (ProductRepository.REPOSITORY.updateEntity(product.id(), product)) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(body)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * DELETE /products?id=
      *
-     * @param id
-     * @return
+     * @param id Product item id
+     * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteProduct(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        if (ProductRepository.REPOSITORY.removeEntity(id)) {
+            return new DefaultFullHttpResponse(httpVersion, OK);
+        }
+        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
     }
 
     /**
+     * GET /users?id=
      *
-     * @param id
-     * @return
+     * @param id Required user Id
+     * @return User or NOT_FOUND
      */
     private FullHttpResponse getUserById(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        PersistenceUser persistenceEntity = UserRepository.REPOSITORY.getEntity(id);
+        if (persistenceEntity == null) {
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        }
+        User user = persistenceEntity.toRecord();
+        try {
+            String json = mapper.writeValueAsString(user);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * GET /users?name=
      *
-     * @param name
-     * @return
+     * @param name Required user name
+     * @return User or NOT_FOUND
      */
     private FullHttpResponse getUserByName(String name) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        PersistenceUser persistenceEntity = UserRepository.REPOSITORY.getUserByName(name);
+        if (persistenceEntity == null) {
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        }
+        User user = persistenceEntity.toRecord();
+        try {
+            String json = mapper.writeValueAsString(user);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-
     /**
+     * GET /users
      *
-     * @param start
-     * @param max
-     * @return
+     * @param startIndex Optional start index
+     * @param maxResultCount Optional max result count
+     * @return All users
      */
-    private FullHttpResponse getAllUsers(Integer start, Integer max) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+    private FullHttpResponse getAllUsers(Integer startIndex, Integer maxResultCount) {
+        List<PersistenceUser> persistenceEntities = null;
+        if (startIndex == null || maxResultCount == null) {
+            persistenceEntities = UserRepository.REPOSITORY.getAllEntities();
+        } else {
+            persistenceEntities = UserRepository.REPOSITORY.getAllEntities(startIndex, maxResultCount);
+        }
+        List<User> users = new ArrayList<User>();
+        for (PersistenceUser persistenceUser : persistenceEntities) {
+            users.add(persistenceUser.toRecord());
+        }
+        try {
+            String json = mapper.writeValueAsString(users);
+            return new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * POST /users
      *
-     * @param body
-     * @return
+     * @param body User as JSON
+     * @return Created element as JSON
      */
     private FullHttpResponse createUser(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        User user = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            user = mapper.readValue(jsonByte, User.class);
+            long newId = UserRepository.REPOSITORY.createEntity(user);
+            User newUser = UserRepository.REPOSITORY.getEntity(newId).toRecord();
+            String json = mapper.writeValueAsString(newUser);
+            if (newUser != null) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * PUT /users
      *
-     * @param body
-     * @return
+     * @param body User as JSON
+     * @return Updated element as JSON
      */
     private FullHttpResponse updateUser(ByteBuf body) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        User user = null;
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        try {
+            user = mapper.readValue(jsonByte, User.class);
+            if (UserRepository.REPOSITORY.getEntity(user.id()) == null) {
+                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            }
+            if (UserRepository.REPOSITORY.updateEntity(user.id(), user)) {
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(body)
+                );
+            }
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
+     * DELETE /users?id=
      *
-     * @param id
-     * @return
+     * @param id User item id
+     * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteUser(Long id) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
+        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+        }
+        if (UserRepository.REPOSITORY.removeEntity(id)) {
+            return new DefaultFullHttpResponse(httpVersion, OK);
+        }
+        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
     }
 }
