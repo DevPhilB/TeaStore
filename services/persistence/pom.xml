@@ -118,7 +118,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>persistence.rest.server.HttpServer</mainClass>
+							<mainClass>persistence.rest.server.HttpPersistenceServer</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>

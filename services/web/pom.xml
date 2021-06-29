@@ -92,7 +92,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>web.rest.server.HttpServer</mainClass>
+							<mainClass>web.rest.server.HttpWebServer</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>

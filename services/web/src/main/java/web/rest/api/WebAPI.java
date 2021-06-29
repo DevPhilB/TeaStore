@@ -113,7 +113,7 @@ public class WebAPI implements API {
                             return cartView(sessionData);
                         case "/category":
                             if (params.containsKey("id")) {
-                                Long id = Long.parseLong(params.get("categoryid").get(0));
+                                Long id = Long.parseLong(params.get("id").get(0));
                                 Integer productQuantity = 20;
                                 Integer page = 1;
                                 if (params.containsKey("productquantity")) {
@@ -170,12 +170,8 @@ public class WebAPI implements API {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
                     }
-                case "PUT":
-                    return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
-                case "DELETE":
-                    return new DefaultFullHttpResponse(httpVersion, NOT_IMPLEMENTED);
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                    return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
             }
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
@@ -416,9 +412,9 @@ public class WebAPI implements API {
     /**
      * GET /about
      *
-     * Servlet implementation for the web view of "About us"
+     * Create web view "About us"
      *
-     * @return Web view as JSON
+     * @return About page view as JSON
      */
     private FullHttpResponse aboutView(SessionData sessionData) {
         // POST api/image/getWebImages
@@ -465,7 +461,7 @@ public class WebAPI implements API {
      *
      * Handling all cart actions
      *
-     * @return FullHttpResponse
+     * @return Page view depending on cart action
      */
     private FullHttpResponse cartAction(SessionData sessionData, String name, Long productId) {
         // POST /api/auth/cart/add
@@ -530,6 +526,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
     }
 
+    /**
+     * POST /cartaction/confirm
+     *
+     * Confirm current order process
+     *
+     * @return Profile page view as JSON
+     */
     private FullHttpResponse confirmOrder(SessionData sessionData, ByteBuf body) {
         Order orderData = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -563,6 +566,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /cart
+     *
+     * Create web view "Cart"
+     *
+     * @return Cart page view as JSON
+     */
     private FullHttpResponse cartView(SessionData sessionData) {
         // GET 2x products & advertisements
         String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // products
@@ -644,6 +654,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /category
+     *
+     * Create web view "Category"
+     *
+     * @return Category page view as JSON
+     */
     private FullHttpResponse categoryView(SessionData sessionData,
                                           Long id,
                                           Integer productQuantity,
@@ -693,7 +710,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
-    // Only if implemented in persistence
+    /**
+     * GET /databaseaction
+     *
+     * Generate database content
+     *
+     * @return Index page view as JSON
+     */
     private FullHttpResponse databaseAction(int categories, Integer products, Integer users, Integer orders) {
         // GET api/persistence/generatedb
         String authEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
@@ -717,6 +740,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /database
+     *
+     * Create web view "Database"
+     *
+     * @return Database page view as JSON
+     */
     private FullHttpResponse databaseView() {
         DatabasePageView view = new DatabasePageView(
                 "STOREICON",
@@ -739,6 +769,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /error
+     *
+     * Create web view "Error"
+     *
+     * @return Error page view as JSON
+     */
     private FullHttpResponse errorView() {
         // TODO: Persistence, image and auth service calls
         ErrorPageView view = new ErrorPageView(
@@ -760,6 +797,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /index
+     *
+     * Create web view "Index"
+     *
+     * @return Index page view as JSON
+     */
     private FullHttpResponse indexView() {
         // TODO: Persistence, image and auth service calls
         try {
@@ -784,6 +828,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * POST /loginaction
+     *
+     * User login or logout
+     *
+     * @return Index page view as JSON
+     */
     private FullHttpResponse loginAction(SessionData sessionData, ByteBuf body) {
         LoginAction action = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -832,6 +883,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /login
+     *
+     * Create web view "Login"
+     *
+     * @return Login page view as JSON
+     */
     private FullHttpResponse loginView() {
         // TODO: Persistence, image and auth service calls
         try {
@@ -860,6 +918,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /order
+     *
+     * Create web view "Order"
+     *
+     * @return Order page view as JSON
+     */
     private FullHttpResponse orderView(SessionData sessionData) {
         // TODO: Persistence, image and auth service calls
         try {
@@ -904,6 +969,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /product
+     *
+     * Create web view "Product"
+     *
+     * @return Product page view as JSON
+     */
     private FullHttpResponse productView(SessionData sessionData, String productId) {
         // TODO: Persistence, image and auth service calls
         try {
@@ -943,6 +1015,13 @@ public class WebAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * GET /profile
+     *
+     * Create web view "Profile"
+     *
+     * @return Profile page view as JSON
+     */
     private FullHttpResponse profileView(SessionData sessionData) {
         // TODO: Persistence, image and auth service calls
         try {
@@ -979,6 +1058,5 @@ public class WebAPI implements API {
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
-
     // Status view is part of the API gateway
 }

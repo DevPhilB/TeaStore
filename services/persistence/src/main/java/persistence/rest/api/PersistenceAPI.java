@@ -55,8 +55,6 @@ public class PersistenceAPI implements API {
         Map<String, List<String>> params = queryStringDecoder.parameters();
         String method = header.method().name();
         String path = queryStringDecoder.path();
-        String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
-        SessionData sessionData = decodeCookie(cookieValue);
 
         // Select endpoint
         if (path.startsWith("/api/persistence")) {
@@ -159,8 +157,8 @@ public class PersistenceAPI implements API {
                                 return getAllProducts(null, null, null);
                             }
                         case "/products/count":
-                            if (params.containsKey("category")) {
-                                Long categoryId = Long.parseLong(params.get("category").get(0));
+                            if (params.containsKey("categoryid")) {
+                                Long categoryId = Long.parseLong(params.get("categoryid").get(0));
                                 return getProductCountForCategory(categoryId);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
@@ -260,62 +258,10 @@ public class PersistenceAPI implements API {
                             }
                     };
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                    return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
             }
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
-    }
-
-    /**
-     * Decode cookie to session data
-     *
-     * @param cookieValue Cookie value as String
-     * @return SessionData
-     */
-    private SessionData decodeCookie(String cookieValue) {
-        SessionData cookie = null;
-        if (cookieValue != null) {
-            try {
-                cookie = mapper.readValue(
-                        URLDecoder.decode(
-                                cookieValue.substring("SessionData=".length()),
-                                CharsetUtil.UTF_8
-                        ),
-                        SessionData.class
-                );
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            cookie = new SessionData(
-                    null,
-                    null,
-                    null,
-                    null,
-                    new ArrayList<>(),
-                    null
-            );
-        }
-        return cookie;
-    }
-
-    /**
-     * Encode session data as cookie
-     *
-     * @param sessionData Session data
-     * @return Cookie
-     */
-    private Cookie encodeSessionData(SessionData sessionData) {
-        try {
-            String encodedCookie = URLEncoder.encode(
-                    mapper.writeValueAsString(sessionData),
-                    CharsetUtil.UTF_8
-            );
-            return new DefaultCookie("SessionData", encodedCookie);
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     /**
