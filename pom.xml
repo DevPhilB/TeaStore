@@ -23,6 +23,7 @@
 			<module>services/auth</module>
 		-->
 		<module>utilities/api</module>
+		<module>services/image</module>
 		<module>services/persistence</module>
 		<module>services/web</module>
 	</modules>

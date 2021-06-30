@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package web.rest.server;
+package image.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
@@ -20,23 +20,24 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import web.rest.api.WebAPI;
+
+import image.rest.api.ImageAPI;
 
 /**
- * HTTP server handler for web service
+ * HTTP server handler for image service
  * @author Philipp Backes
  */
-public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
     private final HttpVersion httpVersion;
     private final String schema;
-    private final WebAPI api;
+    private final ImageAPI api;
 
-    public HttpWebServiceHandler() {
+    public HttpImageServiceHandler() {
         httpVersion = HttpVersion.HTTP_1_1;
         schema = "http://";
-        api = new WebAPI(httpVersion, schema);
+        api = new ImageAPI(httpVersion, schema);
     }
 
     @Override
