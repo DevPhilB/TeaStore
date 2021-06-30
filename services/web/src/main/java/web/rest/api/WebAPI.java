@@ -23,9 +23,9 @@ import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
-import utilities.rest.API;
-import web.rest.client.HttpClient;
-import web.rest.client.HttpClientHandler;
+import utilities.rest.api.API;
+import utilities.rest.client.HttpClient;
+import utilities.rest.client.HttpClientHandler;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -406,7 +406,7 @@ public class WebAPI implements API {
      * @return Service status
      */
     private FullHttpResponse isReady() {
-        return new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK);
+        return new DefaultFullHttpResponse(httpVersion, OK);
     }
 
     /**

@@ -21,8 +21,6 @@ import jakarta.persistence.Persistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static utilities.rest.API.API_GATEWAY;
-
 /**
  * Class for managing the EMF singleton.
  * @author Jóakim von Kistowski
