@@ -14,13 +14,7 @@ jobs:
       - uses: joschi/setup-jdk@v2
         with:
           java-version: '16'
-      - run: |
-        mvn clean install
-        cd services/auth && mvn assembly:single -f pom.xml
-        cd ../image && mvn assembly:single -f pom.xml
-        cd ../persistence && mvn assembly:single -f pom.xml
-        cd ../recommender && mvn assembly:single -f pom.xml
-        cd ../web && mvn assembly:single -f pom.xml
+      - run: mvn clean install
 
   push-docker:
     runs-on: ubuntu-latest
@@ -42,6 +36,13 @@ jobs:
           context: services/auth/Dockerfile
           push: true
           tags: tvsjsdock/teastore-auth:v2
+      -
+        name: Build and push database
+        uses: docker/build-push-action@v2
+        with:
+          context: database/Dockerfile
+          push: true
+          tags: tvsjsdock/teastore-db:v2
       -
         name: Build and push image
         uses: docker/build-push-action@v2
