@@ -827,6 +827,92 @@ paths:
           description: "Internal Server Error"
       tags:
         - Persistence
+  /api/image/productimages:
+    post:
+      summary: "Return map of product ids and image data."
+      requestBody:
+        $ref: '#/components/requestBodies/ProductImageSizeMap'
+      responses:
+        "200":
+          $ref: '#/components/responses/ProductImageDataMap'
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Image
+  /api/image/webimages:
+    post:
+      summary: "Return map of image names with image data."
+      requestBody:
+        $ref: '#/components/requestBodies/NameImageSizeMap'
+      responses:
+        "200":
+          $ref: '#/components/responses/NameImageDataMap'
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Image
+  /api/image/regenerateimages:
+    get:
+      summary: "Regenerate all product images and return OK."
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Image
+  /api/image/finished:
+    get:
+      summary: "Return service setup state."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: boolean
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Image
+  /api/image/state:
+    get:
+      summary: "Return service status."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Image
+  /api/image/setcachesize:
+    post:
+      summary: "Set cache size and return success state."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: boolean
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Image
 components:
   requestBodies:
     Category:
@@ -958,3 +1044,65 @@ components:
               - password
               - realName
               - email
+    ProductImageSizeMap:
+      description: Map of product ids and image size as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: integer
+                size:
+                  type: string
+              required:
+                - id
+                - size
+    NameImageSizeMap:
+      description: Map of image names and image data as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                size:
+                  type: string
+              required:
+                - name
+                - size
+  responses:
+    # TODO: Add missing response schemas
+    ProductImageDataMap:
+      description: Map of product ids and image data as JSON object
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: integer
+                imageData:
+                  type: string
+    NameImageDataMap:
+      description: Map of image names and image data as JSON object
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                imageData:
+                  type: string
