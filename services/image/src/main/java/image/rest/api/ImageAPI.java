@@ -231,33 +231,4 @@ public class ImageAPI implements API {
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
-
-    /* Create client and send request
-        httpClient = new HttpClient(gatewayHost, imagePort, request);
-        handler = new HttpClientHandler();
-        httpClient.sendRequest(handler);
-        if (handler.response instanceof HttpContent httpContent) {
-            // TODO: ByteBuf imageData = httpContent.content();
-            AboutPageView view = mapper.readValue(getWebImages(), AboutPageView.class);
-            request.setUri(authEndpoint);
-            request.setMethod(GET);
-            httpClient = new HttpClient(gatewayHost, authPort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            String json = "{}";
-            // TODO: Use response status?
-            //if (handler.response instanceof HttpResponse response) {
-            // Check if user is logged in
-            // view.isLoggedIn = response.status() == OK;
-            //}
-            json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
-        } else {
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
-        }
-     */
 }

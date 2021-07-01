@@ -48,10 +48,52 @@ class ImageAPITest {
     }
 
     @Test
-    void testIsReady() {
+    void testGetProductImages() {
         header.setMethod(HttpMethod.POST);
         header.setUri(IMAGE_ENDPOINT + "/productimages");
         body = Unpooled.buffer();
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+    }
+
+    @Test
+    void testGetWebImages() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(IMAGE_ENDPOINT + "/webimages");
+        body = Unpooled.buffer();
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+    }
+
+    @Test
+    void testRegenerateImages() {
+        header.setMethod(HttpMethod.GET);
+        header.setUri(IMAGE_ENDPOINT + "/regenerateimages");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.OK, response.status());
+    }
+
+    @Test
+    void testIsFinished() {
+        header.setMethod(HttpMethod.GET);
+        header.setUri(IMAGE_ENDPOINT + "/finished");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.OK, response.status());
+    }
+
+    @Test
+    void testGetState() {
+        header.setMethod(HttpMethod.GET);
+        header.setUri(IMAGE_ENDPOINT + "/state");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.OK, response.status());
+    }
+
+    @Test
+    void testSetCacheSize() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(IMAGE_ENDPOINT + "/setcachesize");
+        body = Unpooled.copyLong(42L);
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
