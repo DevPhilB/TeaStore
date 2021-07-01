@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
 class PersistenceAPITest {
 
@@ -35,7 +36,7 @@ class PersistenceAPITest {
         header = new DefaultFullHttpRequest(
                 version,
                 HttpMethod.GET,
-                "/api/persistence"
+                PERSISTENCE_ENDPOINT
         );
         body = null;
         api = new PersistenceAPI(version, "http:");
@@ -49,7 +50,7 @@ class PersistenceAPITest {
     @Test
     void testClearCache() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/cache?classname=test");
+        header.setUri(PERSISTENCE_ENDPOINT + "/cache?classname=test");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.NOT_FOUND, response.status());
     }
@@ -57,7 +58,7 @@ class PersistenceAPITest {
     @Test
     void testClearEMF() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/emf");
+        header.setUri(PERSISTENCE_ENDPOINT + "/emf");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -65,7 +66,7 @@ class PersistenceAPITest {
     @Test
     void testGetCategory() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/categories?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/categories?id=42");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -74,7 +75,7 @@ class PersistenceAPITest {
     @Test
     void testGetAllCategories() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/categories");
+        header.setUri(PERSISTENCE_ENDPOINT + "/categories");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -83,7 +84,7 @@ class PersistenceAPITest {
     @Test
     void testCreateCategory() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/persistence/categories");
+        header.setUri(PERSISTENCE_ENDPOINT + "/categories");
         api.handle(header, body, null);
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
@@ -92,7 +93,7 @@ class PersistenceAPITest {
     @Test
     void testUpdateCategory() {
         header.setMethod(HttpMethod.PUT);
-        header.setUri("/api/persistence/categories");
+        header.setUri(PERSISTENCE_ENDPOINT + "/categories");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -101,7 +102,7 @@ class PersistenceAPITest {
     @Test
     void testDeleteCategory() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/categories?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/categories?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
     }
@@ -109,7 +110,7 @@ class PersistenceAPITest {
     @Test
     void testGenerateDatabase() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/generatedb?categories=1&products=2&users=3&orders=4");
+        header.setUri(PERSISTENCE_ENDPOINT + "/generatedb?categories=1&products=2&users=3&orders=4");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -118,7 +119,7 @@ class PersistenceAPITest {
     @Test
     void testGenerateDatabaseFinishFlag() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/generatedb/finished");
+        header.setUri(PERSISTENCE_ENDPOINT + "/generatedb/finished");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -127,7 +128,7 @@ class PersistenceAPITest {
     @Test
     void testGenerateDatabaseToggleMaintenance() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/persistence/generatedb/maintenance");
+        header.setUri(PERSISTENCE_ENDPOINT + "/generatedb/maintenance");
         body = Unpooled.copyBoolean(true);
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
@@ -136,7 +137,7 @@ class PersistenceAPITest {
     @Test
     void testGenerateDatabaseMaintenanceFlag() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/generatedb/maintenance");
+        header.setUri(PERSISTENCE_ENDPOINT + "/generatedb/maintenance");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -144,7 +145,7 @@ class PersistenceAPITest {
     @Test
     void testGetOrder() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/orders?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orders?id=42");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -153,7 +154,7 @@ class PersistenceAPITest {
     @Test
     void testGetAllOrders() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/orders");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orders");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -162,7 +163,7 @@ class PersistenceAPITest {
     @Test
     void testCreateOrder() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/persistence/orders");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orders");
         api.handle(header, body, null);
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
@@ -171,7 +172,7 @@ class PersistenceAPITest {
     @Test
     void testUpdateOrder() {
         header.setMethod(HttpMethod.PUT);
-        header.setUri("/api/persistence/orders");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orders");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -180,7 +181,7 @@ class PersistenceAPITest {
     @Test
     void testDeleteOrder() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/orders?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orders?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
     }
@@ -188,7 +189,7 @@ class PersistenceAPITest {
     @Test
     void testGetOrderItem() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/orderitems?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orderitems?id=42");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -197,7 +198,7 @@ class PersistenceAPITest {
     @Test
     void testGetAllOrderItems() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/orderitems");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orderitems");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -206,7 +207,7 @@ class PersistenceAPITest {
     @Test
     void testCreateOrderItem() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/persistence/orderitems");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orderitems");
         body = Unpooled.buffer();
         api.handle(header, body, null);
         response = api.handle(header, body, null);
@@ -216,7 +217,7 @@ class PersistenceAPITest {
     @Test
     void testUpdateOrderItem() {
         header.setMethod(HttpMethod.PUT);
-        header.setUri("/api/persistence/orderitems");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orderitems");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -225,7 +226,7 @@ class PersistenceAPITest {
     @Test
     void testDeleteOrderItem() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/orders?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/orders?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
     }
@@ -233,7 +234,7 @@ class PersistenceAPITest {
     @Test
     void testGetProduct() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/products?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/products?id=42");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -242,7 +243,7 @@ class PersistenceAPITest {
     @Test
     void testGetAllProducts() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/products");
+        header.setUri(PERSISTENCE_ENDPOINT + "/products");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -251,7 +252,7 @@ class PersistenceAPITest {
     @Test
     void testGetProductCountForCategory() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/products/count?categoryid=1");
+        header.setUri(PERSISTENCE_ENDPOINT + "/products/count?categoryid=1");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -260,7 +261,7 @@ class PersistenceAPITest {
     @Test
     void testCreateProduct() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/persistence/products");
+        header.setUri(PERSISTENCE_ENDPOINT + "/products");
         api.handle(header, body, null);
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
@@ -269,7 +270,7 @@ class PersistenceAPITest {
     @Test
     void testUpdateProduct() {
         header.setMethod(HttpMethod.PUT);
-        header.setUri("/api/persistence/products");
+        header.setUri(PERSISTENCE_ENDPOINT + "/products");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -278,7 +279,7 @@ class PersistenceAPITest {
     @Test
     void testDeleteProduct() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/products?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/products?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
     }
@@ -286,7 +287,7 @@ class PersistenceAPITest {
     @Test
     void testGetUserById() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/users?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/users?id=42");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -295,7 +296,7 @@ class PersistenceAPITest {
     @Test
     void testGetUserByName() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/users/name?name=Test");
+        header.setUri(PERSISTENCE_ENDPOINT + "/users/name?name=Test");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -304,7 +305,7 @@ class PersistenceAPITest {
     @Test
     void testGetAllUsers() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/persistence/users");
+        header.setUri(PERSISTENCE_ENDPOINT + "/users");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -313,7 +314,7 @@ class PersistenceAPITest {
     @Test
     void testCreateUser() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/persistence/users");
+        header.setUri(PERSISTENCE_ENDPOINT + "/users");
         api.handle(header, body, null);
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
@@ -322,7 +323,7 @@ class PersistenceAPITest {
     @Test
     void testUpdateUser() {
         header.setMethod(HttpMethod.PUT);
-        header.setUri("/api/persistence/users");
+        header.setUri(PERSISTENCE_ENDPOINT + "/users");
         assertThrows(Exception.class, ()-> {
             api.handle(header, body, null);
         });
@@ -331,7 +332,7 @@ class PersistenceAPITest {
     @Test
     void testDeleteUser() {
         header.setMethod(HttpMethod.DELETE);
-        header.setUri("/api/persistence/users?id=42");
+        header.setUri(PERSISTENCE_ENDPOINT + "/users?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
     }

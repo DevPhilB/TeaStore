@@ -15,6 +15,7 @@ package image.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
+import image.setup.SetupController;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -31,13 +32,11 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
 
     private HttpRequest request;
     private final HttpVersion httpVersion;
-    private final String schema;
     private final ImageAPI api;
 
-    public HttpImageServiceHandler() {
-        httpVersion = HttpVersion.HTTP_1_1;
-        schema = "http://";
-        api = new ImageAPI(httpVersion, schema);
+    public HttpImageServiceHandler(HttpVersion httpVersion) {
+        this.httpVersion = httpVersion;
+        api = new ImageAPI(httpVersion);
     }
 
     @Override

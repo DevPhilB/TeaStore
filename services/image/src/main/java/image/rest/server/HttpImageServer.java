@@ -13,6 +13,8 @@
  */
 package image.rest.server;
 
+import image.setup.SetupController;
+import io.netty.handler.codec.http.HttpVersion;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -35,21 +37,37 @@ import io.netty.handler.logging.LoggingHandler;
  */
 public class HttpImageServer {
 
-    private final String httpVersion;
-    private final Integer port;
+    private final HttpVersion httpVersion;
+    private final String scheme;
+    private final String gatewayHost;
+    private final Integer persistencePort = 80;
+    private final Integer imagePort;
     private static final Logger logger = LogManager.getLogger(HttpImageServer.class);
 
-    public HttpImageServer(String httpVersion, Integer port) {
-        this.httpVersion = httpVersion;
-        this.port = port;
+    public HttpImageServer(String httpVersion, String scheme, String gatewayHost, Integer port) {
+        this.httpVersion = new HttpVersion(httpVersion, false);
+        this.scheme = scheme;
+        this.gatewayHost = gatewayHost;
+        this.imagePort = port;
+        SetupController.SETUP.setupHttpClient(
+                this.httpVersion,
+                this.scheme,
+                this.gatewayHost,
+                this.persistencePort
+        );
+        SetupController.SETUP.startup();
     }
 
     public static void main(String[] args) throws Exception {
-        Integer port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
-        if (args.length > 1) {
-            new HttpImageServer(args[1], port).run();
+        if (args.length == 4) {
+            new HttpImageServer(args[1], args[2], args[3], Integer.parseInt(args[4])).run();
         } else {
-            new HttpImageServer("HTTP/1.1", port).run();
+            new HttpImageServer(
+                    "HTTP/1.1",
+                    "http://",
+                    "127.0.0.1",
+                    80
+            ).run();
         }
     }
 
@@ -76,13 +94,13 @@ public class HttpImageServer {
                         ChannelPipeline channelPipeline = ch.pipeline();
                         channelPipeline.addLast(new HttpRequestDecoder());
                         channelPipeline.addLast(new HttpResponseEncoder());
-                        channelPipeline.addLast(new HttpImageServiceHandler());
+                        channelPipeline.addLast(new HttpImageServiceHandler(httpVersion));
                     }
                 });
 
-            ChannelFuture future = bootstrap.bind(port).sync();
+            ChannelFuture future = bootstrap.bind(imagePort).sync();
             System.err.println(httpVersion + " image service is available on " +
-                    "http://127.0.0.1:" + port + "/api/image");
+                    "http://127.0.0.1:" + imagePort + "/api/image");
 
             future.channel().closeFuture().sync();
 

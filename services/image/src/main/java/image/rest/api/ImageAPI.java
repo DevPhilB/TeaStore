@@ -13,7 +13,6 @@
  */
 package image.rest.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import image.ImageProvider;
@@ -24,17 +23,12 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.http.HttpMethod.*;
 
 /**
  * API for web service
@@ -44,30 +38,12 @@ import static io.netty.handler.codec.http.HttpMethod.*;
  */
 public class ImageAPI implements API {
     private final HttpVersion httpVersion;
-    private HttpClient httpClient;
-    private HttpClientHandler handler;
-    private final String scheme;
     private final ObjectMapper mapper;
-    private final String gatewayHost;
-    private final Integer persistencePort;
-    private final HttpRequest request;
 
-    public ImageAPI(HttpVersion httpVersion, String scheme) {
+    public ImageAPI(HttpVersion httpVersion) {
         this.httpVersion = httpVersion;
-        this.scheme = scheme;
         this.mapper = new ObjectMapper();
-        this.gatewayHost = "127.0.0.1";
-        this.persistencePort = 80;
-        this.request = new DefaultFullHttpRequest(
-                this.httpVersion,
-                HttpMethod.GET,
-                "",
-                Unpooled.EMPTY_BUFFER
-        );
-        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
-        SetupController.SETUP.startup();
+
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
@@ -122,7 +98,8 @@ public class ImageAPI implements API {
                     jsonByte,
                     new TypeReference<Map<Long, String>>(){}
             );
-            images = ImageProvider.IP.getProductImages(images.entrySet().parallelStream().collect(
+            images = ImageProvider.IP.getProductImages(
+                images.entrySet().parallelStream().collect(
                     Collectors.toMap(Map.Entry::getKey,
                             e -> ImageSize.parseImageSize(e.getValue())
                     )
@@ -216,8 +193,9 @@ public class ImageAPI implements API {
      * @return Service status
      */
     private FullHttpResponse getState() {
+        String state = SetupController.SETUP.getState();
         try {
-            String json = mapper.writeValueAsString(SetupController.SETUP.getState());
+            String json = mapper.writeValueAsString(state);
             return new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,

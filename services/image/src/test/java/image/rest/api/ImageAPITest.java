@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static utilities.rest.api.API.IMAGE_ENDPOINT;
 
 class ImageAPITest {
 
@@ -35,10 +36,10 @@ class ImageAPITest {
         header = new DefaultFullHttpRequest(
                 version,
                 HttpMethod.GET,
-                "/api/image"
+                IMAGE_ENDPOINT
         );
         body = null;
-        api = new ImageAPI(version, "http:");
+        api = new ImageAPI(version);
     }
 
     @AfterEach
@@ -48,9 +49,10 @@ class ImageAPITest {
 
     @Test
     void testIsReady() {
-        header.setMethod(HttpMethod.GET);
-        header.setUri("/api/image/finished");
+        header.setMethod(HttpMethod.POST);
+        header.setUri(IMAGE_ENDPOINT + "/productimages");
+        body = Unpooled.buffer();
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.NOT_IMPLEMENTED, response.status());
+        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
 }

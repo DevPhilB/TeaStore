@@ -3,7 +3,7 @@ version: '3'
 services:
   gateway:
     # The official v2 Traefik docker image
-    image: traefik:v2.4.8
+    image: traefik:v2.5
     # Enables the web UI and tells Traefik to listen to docker
     command: --api.insecure=true --providers.docker --entryPoints.http.address=:80
     ports:

@@ -38,6 +38,11 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.*;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -60,6 +65,10 @@ import image.storage.DriveStorage;
 import image.storage.IDataStorage;
 import image.storage.rules.StoreAll;
 import image.storage.rules.StoreLargeImages;
+import utilities.rest.client.HttpClient;
+import utilities.rest.client.HttpClientHandler;
+
+import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
 /**
  * Image provider setup class. Connects to the persistence service to collect all available products and generates
@@ -112,6 +121,14 @@ public enum SetupController {
      */
     public static final long CREATION_THREAD_POOL_WAIT_PER_IMG_NR = 70;
   }
+  // HTTP client
+  private String scheme;
+  private String gatewayHost;
+  private Integer persistencePort;
+  private HttpRequest request;
+  private HttpClient httpClient;
+  private HttpClientHandler handler;
+  private ObjectMapper mapper;
 
   private StorageRule storageRule = StorageRule.STD_STORAGE_RULE;
   private CachingRule cachingRule = CachingRule.STD_CACHING_RULE;
@@ -128,131 +145,92 @@ public enum SetupController {
   private IDataStorage<StoreImage> storage = null;
   private IDataCache<StoreImage> cache = null;
   private ScheduledThreadPoolExecutor imgCreationPool = new ScheduledThreadPoolExecutor(
-      SetupControllerConstants.CREATION_THREAD_POOL_SIZE);
+      SetupControllerConstants.CREATION_THREAD_POOL_SIZE
+  );
   private static final Logger logger = LogManager.getLogger(SetupController.class);
   private AtomicBoolean isFinished = new AtomicBoolean();
 
-  private SetupController() {
+  private SetupController() {}
 
-  }
-
-  private void waitForPersistence() {
-    // We have to wait for the database that all entries are created before
-    // generating images (which queries persistence). Yes we want to wait forever in
-    // case the persistence is
-    // not answering.
-    Iterator<Integer> waitTimes = SetupControllerConstants.PERSISTENCE_CREATION_WAIT_TIME
-        .iterator();
-    // TODO: Use HTTP client
-    /*
-    while (true) {
-      Response result = null;
-      try {
-        result = ServiceLoadBalancer.loadBalanceRESTOperation(Service.PERSISTENCE, "generatedb",
-            String.class,
-            client -> ResponseWrapper
-                .wrap(HttpWrapper.wrap(client.getService().path(client.getApplicationURI())
-                    .path(client.getEndpointURI()).path("finished")).get()));
-      } catch (NotFoundException notFound) {
-        logger.info("No persistence found.", notFound);
-      } catch (LoadBalancerTimeoutException timeout) {
-        logger.info("Persistence call timed out.", timeout);
-      } catch (NullPointerException npe) {
-        logger.info("ServiceLoadBalancerResult was null!");
-      }
-
-      if (result != null && Boolean.parseBoolean(result.readEntity(String.class))) {
-    		result.close();
-    	  break;
-      }
-
-      try {
-    	int nextWaitTime = SetupControllerConstants.PERSISTENCE_CREATION_MAX_WAIT_TIME;
-    	if (waitTimes.hasNext()) {
-    		nextWaitTime = waitTimes.next();
-    	}
-        logger.info("Persistence not reachable. Waiting for {}ms.", nextWaitTime);
-        Thread.sleep(nextWaitTime);
-      } catch (InterruptedException interrupted) {
-        logger.warn("Thread interrupted while waiting for persistence to be available.", interrupted);
-      }
-    }
-    */
+  public void setupHttpClient(
+          HttpVersion version,
+          String scheme,
+          String gatewayHost,
+          Integer persistencePort
+  ) {
+    this.mapper = new ObjectMapper();
+    this.scheme = scheme;
+    this.gatewayHost = gatewayHost;
+    this.persistencePort = persistencePort;
+    this.request = new DefaultFullHttpRequest(
+            version,
+            HttpMethod.GET,
+            "",
+            Unpooled.EMPTY_BUFFER
+    );
+    this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+    this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+    this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
   }
 
   private void fetchProductsForCategory(Category category, HashMap<Category, List<Long>> products) {
-    waitForPersistence();
-    // TODO
-    /*
-    Response result = null;
+    List<Product> productList = null;
+    // GET api/persistence/products
+    String persistenceEndpointProducts = PERSISTENCE_ENDPOINT +
+            "/products?categoryid=" + category.id() + "&" + "start=0&max=-1";
+    request.setUri(persistenceEndpointProducts);
+    httpClient = new HttpClient(gatewayHost, persistencePort, request);
+    handler = new HttpClientHandler();
     try {
-      result = ServiceLoadBalancer.loadBalanceRESTOperation(Service.PERSISTENCE, "products",
-          Product.class,
-          client -> ResponseWrapper.wrap(HttpWrapper.wrap(client.getService()
-              .path(client.getApplicationURI()).path(client.getEndpointURI()).path("category")
-              .path(String.valueOf(category.id())).queryParam("start", 0).queryParam("max", -1))
-              .get()));
-    } catch (NotFoundException notFound) {
-      logger.error("No persistence found but should be online.", notFound);
-      throw notFound;
-    } catch (LoadBalancerTimeoutException timeout) {
-      logger.error("Persistence call timed out but should be reachable.", timeout);
-      throw timeout;
+      httpClient.sendRequest(handler);
+      if (handler.response instanceof HttpContent httpContent) {
+          ByteBuf body = httpContent.content();
+          byte[] jsonByte = new byte[body.readableBytes()];
+          body.readBytes(jsonByte);
+          productList = mapper.readValue(
+                  jsonByte,
+                  new TypeReference<List<Product>>() {}
+          );
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
-
-    if (result == null) {
+    //
+    if(productList == null) {
       products.put(category, new ArrayList<>());
       logger.info("No products for category {} ({}) found.", category.name(), category.id());
     } else {
-      List<Long> tmp = convertToIDs(result.readEntity(new GenericType<List<Product>>() {
-      }));
-      products.put(category, tmp);
-      result.close();
-      logger.info("Category {} ({}) contains {} products.", category.name(), category.id(),
-          tmp.size());
+      List<Long> ids = productList.stream().map(Product::id).collect(Collectors.toList());
+      products.put(category, ids);
+      logger.info("Category {} ({}) contains {} products.", category.name(), category.id(), ids.size());
     }
-    */
   }
 
   private List<Category> fetchCategories() {
-    waitForPersistence();
-
     List<Category> categories = null;
-    /* Response result = null;
+    // GET api/persistence/categories
+    String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories";
+    request.setUri(persistenceEndpointCategories);
+    httpClient = new HttpClient(gatewayHost, persistencePort, request);
+    handler = new HttpClientHandler();
     try {
-      result = ServiceLoadBalancer.loadBalanceRESTOperation(Service.PERSISTENCE, "categories",
-          Category.class,
-          client -> ResponseWrapper.wrap(HttpWrapper.wrap(
-              client.getService().path(client.getApplicationURI()).path(client.getEndpointURI()))
-              .get()));
-    } catch (NotFoundException notFound) {
-      logger.error("No persistence found but should be online.", notFound);
-      throw notFound;
-    } catch (LoadBalancerTimeoutException timeout) {
-      logger.error("Persistence call timed out but should be reachable.", timeout);
-      throw timeout;
+      httpClient.sendRequest(handler);
+      if (handler.response instanceof HttpContent httpContent) {
+        ByteBuf body = httpContent.content();
+        byte[] jsonByte = new byte[body.readableBytes()];
+        body.readBytes(jsonByte);
+        categories = mapper.readValue(
+                jsonByte,
+                new TypeReference<List<Category>>() {}
+        );
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
-
-    if (result == null) {
-      logger.warn("No categories found.");
-    } else {
-      categories = result.readEntity(new GenericType<List<Category>>() {
-      });
-      result.close();
-      logger.info("{} categories found.", categories.size());
-    }
-    */
     if (categories == null) {
       return new ArrayList<Category>();
     }
     return categories;
-  }
-
-  private List<Long> convertToIDs(List<Product> products) {
-    if (products == null) {
-      return new ArrayList<>();
-    }
-    return products.stream().map(product -> product.id()).collect(Collectors.toList());
   }
 
   private HashMap<Category, BufferedImage> matchCategoriesToImage(List<Category> categories) {
@@ -552,27 +530,14 @@ public enum SetupController {
       break;
     }
 
-    // We only support Drive Storage at this moment
+    // Only support Drive Storage at this moment
     storage = new DriveStorage(workingDir, imgDB, storagePredicate);
-    /*
-    switch (storageMode) {
-    case DRIVE:
-      storage = new DriveStorage(workingDir, imgDB, storagePredicate);
-      break;
-    default:
-      storage = new DriveStorage(workingDir, imgDB, storagePredicate);
-      break;
-    }
-    */
 
     Predicate<StoreImage> cachePredicate = null;
-    switch (cachingRule) {
-    case ALL:
+    if (cachingRule == CachingRule.ALL) {
       cachePredicate = new CacheAll<StoreImage>();
-      break;
-    default:
+    } else {
       cachePredicate = new CacheAll<StoreImage>();
-      break;
     }
 
     cache = null;
@@ -594,8 +559,6 @@ public enum SetupController {
       break;
     case MRU:
       cache = new MostRecentlyUsed<StoreImage>(storage, cacheSize, cachePredicate);
-      break;
-    case NONE:
       break;
     default:
       break;
@@ -676,40 +639,6 @@ public enum SetupController {
     return sb.toString();
   }
 
-  private void waitAndStopImageCreation(boolean terminate, long waitTime) {
-    // Stop image creation to have sort of a steady state to work on
-    // Shutdown now will finish all running tasks and not schedule new threads
-    // Shutdown does allow the thread pool to finish all available tasks but no new
-    // ones
-    if (terminate) {
-      imgCreationPool.shutdownNow();
-      logger.info("Send termination signal to image creation thread pool.");
-    } else {
-      imgCreationPool.shutdown();
-      logger.info("Send shutdown signal to image creation thread pool.");
-    }
-    try {
-      if (imgCreationPool.awaitTermination(waitTime, TimeUnit.MILLISECONDS)) {
-        logger.info("Image creation stopped.");
-      } else {
-        logger.warn("Image creation thread pool not terminating after {}ms. Stop waiting.", waitTime);
-      }
-    } catch (InterruptedException interruptedException) {
-      logger.warn("Waiting for image creation thread pool termination interrupted by exception.",
-          interruptedException);
-    }
-    // Maybe we need to keep a reference to the old thread pool if it has not
-    // finished properly yet.
-    imgCreationPool = new ScheduledThreadPoolExecutor(
-        SetupControllerConstants.CREATION_THREAD_POOL_SIZE);
-  }
-
-  private boolean isFirstImageProvider() {
-    return false;
-    // TODO
-    // return RegistryClient.getClient().getServersForService(Service.IMAGE).size() == 0;
-  }
-
   /*
    * Convenience methods
    */
@@ -740,14 +669,25 @@ public enum SetupController {
     generateImages();
     setupStorage();
     configureImageProvider();
-    // Check if this is the first image provider. If not, wait for termination of
-    // the image creation before registering
-    if (!isFirstImageProvider()) {
-      waitAndStopImageCreation(false,
-          ((nrOfImagesToGenerate - nrOfImagesGenerated.get())
-              / SetupControllerConstants.CREATION_THREAD_POOL_SIZE)
-              * SetupControllerConstants.CREATION_THREAD_POOL_WAIT_PER_IMG_NR);
+    // Wait for completion
+    long waitingTime = (
+            (nrOfImagesToGenerate - nrOfImagesGenerated.get())
+            / SetupControllerConstants.CREATION_THREAD_POOL_SIZE
+            * SetupControllerConstants.CREATION_THREAD_POOL_WAIT_PER_IMG_NR
+    );
+    try {
+      imgCreationPool.shutdown();
+      if (imgCreationPool.awaitTermination(waitingTime, TimeUnit.MILLISECONDS)) {
+        logger.info("Image creation stopped.");
+      } else {
+        logger.warn("Image creation thread pool not terminating after {}ms. Stop waiting.", waitingTime);
+      }
+    } catch (InterruptedException interruptedException) {
+      logger.warn("Waiting for image creation thread pool termination interrupted by exception.",
+              interruptedException);
     }
+    // Maybe we need to keep a reference to the old thread pool if it has not finished properly yet.
+    imgCreationPool = new ScheduledThreadPoolExecutor(SetupControllerConstants.CREATION_THREAD_POOL_SIZE);
     isFinished.set(true);
   }
 
@@ -762,7 +702,26 @@ public enum SetupController {
 
       @Override
       public void run() {
-        waitAndStopImageCreation(true, SetupControllerConstants.CREATION_THREAD_POOL_WAIT);
+        try {
+          imgCreationPool.shutdownNow();
+          if (imgCreationPool.awaitTermination(
+                  SetupControllerConstants.CREATION_THREAD_POOL_WAIT,
+                  TimeUnit.MILLISECONDS
+            ))
+          {
+            logger.info("Image creation stopped.");
+          } else {
+            logger.warn("Image creation thread pool not terminating after {}ms. Stop waiting.",
+                    SetupControllerConstants.CREATION_THREAD_POOL_WAIT);
+          }
+        } catch (InterruptedException interruptedException) {
+          logger.warn("Waiting for image creation thread pool termination interrupted by exception.",
+                  interruptedException);
+        }
+        // Maybe we need to keep a reference to the old thread pool if it has not finished properly yet.
+        imgCreationPool = new ScheduledThreadPoolExecutor(SetupControllerConstants.CREATION_THREAD_POOL_SIZE);
+
+        // Create new image database
         imgDB = new ImageDB();
 
         isFinished.set(false);

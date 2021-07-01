@@ -99,7 +99,7 @@ public class DriveStorage implements IDataStorage<StoreImage> {
   protected StoreImage loadFromDisk(Path imgFile, long id) {
     byte[] imgData = null;
 
-    // Try aquiring a lock for a file.
+    // Try acquiring a lock for a file.
     ReadWriteLock l = getIDLock(id);
     l.readLock().lock();
     try {

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static utilities.rest.api.API.WEB_ENDPOINT;
 
 class WebAPITest {
 
@@ -35,7 +36,7 @@ class WebAPITest {
         header = new DefaultFullHttpRequest(
                 version,
                 HttpMethod.GET,
-                "/api/web"
+                WEB_ENDPOINT
         );
         body = null;
         api = new WebAPI(version, "http:");
@@ -49,7 +50,7 @@ class WebAPITest {
     @Test
     void testIsReady() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/isready");
+        header.setUri(WEB_ENDPOINT + "/isready");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -57,7 +58,7 @@ class WebAPITest {
     @Test
     void testAboutView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/about");
+        header.setUri(WEB_ENDPOINT + "/about");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
@@ -65,7 +66,7 @@ class WebAPITest {
     @Test
     void testCartAction() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/cartaction/addtocart?productid=42");
+        header.setUri(WEB_ENDPOINT + "/cartaction/addtocart?productid=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
     }
@@ -73,7 +74,7 @@ class WebAPITest {
     @Test
     void testConfirmOrder() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/web/cartaction/confirm");
+        header.setUri(WEB_ENDPOINT + "/cartaction/confirm");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
     }
@@ -81,7 +82,7 @@ class WebAPITest {
     @Test
     void testCartView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/cart");
+        header.setUri(WEB_ENDPOINT + "/cart");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
@@ -89,7 +90,7 @@ class WebAPITest {
     @Test
     void testCategoryView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/category?id=42");
+        header.setUri(WEB_ENDPOINT + "/category?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
@@ -97,7 +98,7 @@ class WebAPITest {
     @Test
     void testDatabaseAction() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/databaseaction?categories=1&products=2&users=3&orders=4");
+        header.setUri(WEB_ENDPOINT + "/databaseaction?categories=1&products=2&users=3&orders=4");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
@@ -105,7 +106,7 @@ class WebAPITest {
     @Test
     void testDatabaseView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/database");
+        header.setUri(WEB_ENDPOINT + "/database");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -113,7 +114,7 @@ class WebAPITest {
     @Test
     void testErrorView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/error");
+        header.setUri(WEB_ENDPOINT + "/error");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -121,7 +122,7 @@ class WebAPITest {
     @Test
     void testIndexView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/index");
+        header.setUri(WEB_ENDPOINT + "/index");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -129,7 +130,7 @@ class WebAPITest {
     @Test
     void testLoginAction() {
         header.setMethod(HttpMethod.POST);
-        header.setUri("/api/web/loginaction");
+        header.setUri(WEB_ENDPOINT + "/loginaction");
         body = Unpooled.buffer();
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
@@ -138,7 +139,7 @@ class WebAPITest {
     @Test
     void testLoginView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/login");
+        header.setUri(WEB_ENDPOINT + "/login");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -146,7 +147,7 @@ class WebAPITest {
     @Test
     void testOrderView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/order");
+        header.setUri(WEB_ENDPOINT + "/order");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -154,7 +155,7 @@ class WebAPITest {
     @Test
     void testProductView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/product?id=42");
+        header.setUri(WEB_ENDPOINT + "/product?id=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
@@ -162,7 +163,7 @@ class WebAPITest {
     @Test
     void testProfileView() {
         header.setMethod(HttpMethod.GET);
-        header.setUri("/api/web/profile");
+        header.setUri(WEB_ENDPOINT + "/profile");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
     }
