@@ -7,8 +7,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import image.cache.entry.AbstractEntry;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.Category;
 import utilities.datamodel.ImageSize;
@@ -30,7 +31,7 @@ public class CreatorFactory {
   private ImageDB imgDB;
   private AtomicLong nrOfImagesGenerated;
 
-  private final Logger log = LoggerFactory.getLogger(CreatorFactory.class);
+  private static final Logger LOG = LogManager.getLogger(CreatorFactory.class);
 
   /**
    * Standard constructor defining all necessary information to create image generation runnables.
@@ -46,37 +47,37 @@ public class CreatorFactory {
       Map<Category, List<Long>> products, Map<Category, BufferedImage> categoryImages,
       AtomicLong nrOfImagesGenerated) {
     if (imgDB == null) {
-      log.error("Supplied image database is null.");
+      LOG.error("Supplied image database is null.");
       throw new NullPointerException("Supplied image database is null.");
     }
     if (products == null) {
-      log.error("Supplied product map is null.");
+      LOG.error("Supplied product map is null.");
       throw new NullPointerException("Supplied product map is null.");
     }
     if (nrOfImagesGenerated == null) {
-      log.error("Supplied counter for images generated is null.");
+      LOG.error("Supplied counter for images generated is null.");
       throw new NullPointerException("Supplied counter for images generated is null.");
     }
 
     if (workingDir == null) {
-      log.info("Supplied working directory is null. Set to value {}.",
+      LOG.info("Supplied working directory is null. Set to value {}.",
           SetupController.SETUP.getWorkingDir());
     } else {
       this.workingDir = workingDir;
     }
     if (categoryImages == null) {
-      log.info("Supplied category images are null. Defaulting to not add category images.");
+      LOG.info("Supplied category images are null. Defaulting to not add category images.");
     } else {
       this.categoryImages = categoryImages;
     }
     if (imgSize == null) {
-      log.info("Supplied image size is null. Defaulting to standard size of {}.",
+      LOG.info("Supplied image size is null. Defaulting to standard size of {}.",
           ImageSizePreset.STD_IMAGE_SIZE);
     } else {
       this.imgSize = imgSize;
     }
     if (shapesPerImage < 0) {
-      log.info("Number of shapes per image cannot be below 0, was {}. Set to 0.", shapesPerImage);
+      LOG.info("Number of shapes per image cannot be below 0, was {}. Set to 0.", shapesPerImage);
     } else {
       this.shapesPerImage = shapesPerImage;
     }

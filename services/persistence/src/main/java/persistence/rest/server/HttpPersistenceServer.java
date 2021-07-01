@@ -40,7 +40,7 @@ public class HttpPersistenceServer {
     private final String httpVersion;
     private final String scheme;
     private final Integer port;
-    private static final Logger logger = LogManager.getLogger(HttpPersistenceServer.class);
+    private static final Logger LOG = LogManager.getLogger(HttpPersistenceServer.class);
 
     public HttpPersistenceServer(String httpVersion, String scheme, Integer port) {
         this.httpVersion = httpVersion;
@@ -89,7 +89,7 @@ public class HttpPersistenceServer {
             ChannelFuture future = bootstrap.bind(port).sync();
             String status = httpVersion + " persistence service is available on " +
                     scheme + "persistence:" + port + PERSISTENCE_ENDPOINT;
-            logger.info(status);
+            LOG.info(status);
             System.err.println(status);
 
             future.channel().closeFuture().sync();

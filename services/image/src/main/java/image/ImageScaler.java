@@ -17,8 +17,9 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import image.cache.entry.AbstractEntry;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.ImageSize;
 
@@ -33,7 +34,7 @@ import utilities.datamodel.ImageSize;
  */
 public final class ImageScaler {
 
-  private static Logger log = LoggerFactory.getLogger(ImageScaler.class);
+  private static final Logger LOG = LogManager.getLogger(ImageScaler.class);
 
   private ImageScaler() {
 	  
@@ -54,7 +55,7 @@ public final class ImageScaler {
    */
   public static BufferedImage scale(BufferedImage image, ImageSize size) {
     if (size == null) {
-      log.error("The supplied image size is null.");
+      LOG.error("The supplied image size is null.");
       throw new NullPointerException("The supplied image size is null.");
     }
 
@@ -79,7 +80,7 @@ public final class ImageScaler {
    */
   public static BufferedImage scale(BufferedImage image, double scalingFactor) {
     if (scalingFactor <= 0.0) {
-      log.error("The supplied scaling factor is 0 or below.");
+      LOG.error("The supplied scaling factor is 0 or below.");
       throw new IllegalArgumentException("The supplied scaling factor is 0 or below.");
     }
 
@@ -108,11 +109,11 @@ public final class ImageScaler {
   public static BufferedImage scale(BufferedImage image, double widthScaling,
       double heightScaling) {
     if (widthScaling <= 0.0) {
-      log.error("The supplied width scaling factor is 0 or below.");
+      LOG.error("The supplied width scaling factor is 0 or below.");
       throw new IllegalArgumentException("The supplied width scaling factor is 0 or below.");
     }
     if (heightScaling <= 0.0) {
-      log.error("The supplied height scaling factor is 0 or below.");
+      LOG.error("The supplied height scaling factor is 0 or below.");
       throw new IllegalArgumentException("The supplied height scaling factor is 0 or below.");
     }
 
@@ -144,7 +145,7 @@ public final class ImageScaler {
    */
   public static BufferedImage scale(BufferedImage image, int size) {
     if (size <= 0) {
-      log.error("The supplied pixel size is below 1.");
+      LOG.error("The supplied pixel size is below 1.");
       throw new IllegalArgumentException("The supplied pixel size is below 1.");
     }
 
@@ -168,15 +169,15 @@ public final class ImageScaler {
    */
   public static BufferedImage scale(BufferedImage image, int width, int height) {
     if (image == null) {
-      log.error("The supplied image is null.");
+      LOG.error("The supplied image is null.");
       throw new NullPointerException("The supplied image is null.");
     }
     if (width <= 0) {
-      log.error("The supplied pixel width is below 1.");
+      LOG.error("The supplied pixel width is below 1.");
       throw new IllegalArgumentException("The supplied pixel width is below 1.");
     }
     if (height <= 0) {
-      log.error("The supplied pixel height is below 1.");
+      LOG.error("The supplied pixel height is below 1.");
       throw new IllegalArgumentException("The supplied pixel height is below 1.");
     }
 

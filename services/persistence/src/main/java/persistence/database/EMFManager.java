@@ -18,8 +18,8 @@ import java.util.HashMap;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Class for managing the EMF singleton.
@@ -30,8 +30,8 @@ final class EMFManager {
 
 	private static EntityManagerFactory emf = null; 
 	private static HashMap<String, String> persistenceProperties = null;
-	
-	private static final Logger LOG = LoggerFactory.getLogger(EMFManager.class);
+
+	private static final Logger LOG = LogManager.getLogger(EMFManager.class);
 	
 	private static final String DRIVER_PROPERTY = "jakarta.persistence.jdbc.driver";
 	private static final String IN_MEMORY_DRIVER_VALUE = "org.hsqldb.jdbcDriver";

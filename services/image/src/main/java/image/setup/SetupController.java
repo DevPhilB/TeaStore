@@ -147,7 +147,7 @@ public enum SetupController {
   private ScheduledThreadPoolExecutor imgCreationPool = new ScheduledThreadPoolExecutor(
       SetupControllerConstants.CREATION_THREAD_POOL_SIZE
   );
-  private static final Logger logger = LogManager.getLogger(SetupController.class);
+  private static final Logger LOG = LogManager.getLogger(SetupController.class);
   private AtomicBoolean isFinished = new AtomicBoolean();
 
   private SetupController() {}
@@ -198,11 +198,11 @@ public enum SetupController {
     //
     if(productList == null) {
       products.put(category, new ArrayList<>());
-      logger.info("No products for category {} ({}) found.", category.name(), category.id());
+      LOG.info("No products for category {} ({}) found.", category.name(), category.id());
     } else {
       List<Long> ids = productList.stream().map(Product::id).collect(Collectors.toList());
       products.put(category, ids);
-      logger.info("Category {} ({}) contains {} products.", category.name(), category.id(), ids.size());
+      LOG.info("Category {} ({}) contains {} products.", category.name(), category.id(), ids.size());
     }
   }
 
@@ -242,7 +242,7 @@ public enum SetupController {
       for (Category category : categories) {
         String[] tmp = category.name().split(",");
         if (tmp[0].toLowerCase().replace(" ", "-").equals(name)) {
-          logger.info("Found matching category {} ({}) for image {}.", category.name(),
+          LOG.info("Found matching category {} ({}) for image {}.", category.name(),
               category.id(), name + "." + StoreImage.STORE_IMAGE_FORMAT);
           result.put(category, categoryImages.get(name));
         }
@@ -279,7 +279,7 @@ public enum SetupController {
       imgCreationPool.execute(factory.newRunnable());
     }
 
-    logger.info("Image creator thread started. {} {} sized images to generate using {} threads.",
+    LOG.info("Image creator thread started. {} {} sized images to generate using {} threads.",
         nrOfImagesToGenerate, ImageSizePreset.STD_IMAGE_SIZE.toString(),
         SetupControllerConstants.CREATION_THREAD_POOL_SIZE);
   }
@@ -288,16 +288,16 @@ public enum SetupController {
    * Search for category images in the resource folder.
    */
   public void detectCategoryImages() {
-    logger.info("Trying to find images that indicate categories in generated images.");
+    LOG.info("Trying to find images that indicate categories in generated images.");
 
     String resPath = "categoryimg" + File.separator + "black-tea.png";
     File dir = getPathToResource(resPath).toFile();
 
     if (dir != null) {
-      logger.info("Found resource directory with category images at {}.",
+      LOG.info("Found resource directory with category images at {}.",
           dir.toPath().toAbsolutePath().toString());
     } else {
-      logger.info("Resource path {} not found.", resPath);
+      LOG.info("Resource path {} not found.", resPath);
       return;
     }
 
@@ -314,14 +314,14 @@ public enum SetupController {
                 ImageIO.read(file));
             nrOfImagesForCategory++;
           } catch (IOException ioException) {
-            logger.warn(
+            LOG.warn(
                 "An IOException occured while reading image file " + file.getAbsolutePath() + ".",
                 ioException);
           }
         }
       }
     }
-    logger.info("Found {} images for categories.", nrOfImagesForCategory);
+    LOG.info("Found {} images for categories.", nrOfImagesForCategory);
   }
 
   /**
@@ -330,15 +330,15 @@ public enum SetupController {
   public void createWorkingDir() {
     if (!workingDir.toFile().exists()) {
       if (!workingDir.toFile().mkdir()) {
-        logger.error("Standard working directory \"" + workingDir.toAbsolutePath()
+        LOG.error("Standard working directory \"" + workingDir.toAbsolutePath()
             + "\" could not be created.");
         throw new IllegalArgumentException("Standard working directory \""
             + workingDir.toAbsolutePath() + "\" could not be created.");
       } else {
-        logger.info("Working directory {} created.", workingDir.toAbsolutePath().toString());
+        LOG.info("Working directory {} created.", workingDir.toAbsolutePath().toString());
       }
     } else {
-      logger.info("Working directory {} already existed.", workingDir.toAbsolutePath().toString());
+      LOG.info("Working directory {} already existed.", workingDir.toAbsolutePath().toString());
     }
   }
 
@@ -360,7 +360,7 @@ public enum SetupController {
       }
       dir = Paths.get(path).getParent();
     } catch (UnsupportedEncodingException e) {
-      logger.warn("The resource path \"" + path + "\" could not be decoded with UTF-8.");
+      LOG.warn("The resource path \"" + path + "\" could not be decoded with UTF-8.");
     }
     // End of rework
     return dir;
@@ -379,7 +379,7 @@ public enum SetupController {
    */
   public void detectExistingImages(ImageDB db) {
     if (db == null) {
-      logger.error("The supplied image database is null.");
+      LOG.error("The supplied image database is null.");
       throw new NullPointerException("The supplied image database is null.");
     }
 
@@ -387,10 +387,10 @@ public enum SetupController {
     Path dir = getPathToResource(resPath);
 
     if (dir != null) {
-      logger.info("Found resource directory with existing images at {}.",
+      LOG.info("Found resource directory with existing images at {}.",
           dir.toAbsolutePath().toString());
     } else {
-      logger.info("Resource path {} not found.", resPath);
+      LOG.info("Resource path {} not found.", resPath);
       return;
     }
 
@@ -411,11 +411,11 @@ public enum SetupController {
             buffImg = ImageIO.read(file);
 
           } catch (IOException ioException) {
-            logger.warn("An IOException occured while reading the file " + file.getAbsolutePath()
+            LOG.warn("An IOException occured while reading the file " + file.getAbsolutePath()
                 + " from disk.", ioException.getMessage());
           } finally {
             if (buffImg == null) {
-              logger.warn("The file \"" + file.toPath().toAbsolutePath() + "\" could not be read.");
+              LOG.warn("The file \"" + file.toPath().toAbsolutePath() + "\" could not be read.");
               continue;
             }
           }
@@ -431,7 +431,7 @@ public enum SetupController {
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE,
                 StandardOpenOption.TRUNCATE_EXISTING);
           } catch (IOException ioException) {
-            logger.warn("An IOException occured while writing the image with ID "
+            LOG.warn("An IOException occured while writing the image with ID "
                 + String.valueOf(imageID) + " to the file "
                 + workingDir.resolve(String.valueOf(imageID)).toAbsolutePath() + ".",
                 ioException.getMessage());
@@ -442,7 +442,7 @@ public enum SetupController {
       }
     }
 
-    logger.info("Scanned path {} for existing images. {} images found.",
+    LOG.info("Scanned path {} for existing images. {} images found.",
         dir.toAbsolutePath().toString(), nrOfImagesExisting);
   }
 
@@ -453,11 +453,11 @@ public enum SetupController {
    */
   public boolean setCacheSize(long cacheSize) {
     if (cacheSize < 0) {
-      logger.info("Tried to set cache size to a value below zero. Keeping old value");
+      LOG.info("Tried to set cache size to a value below zero. Keeping old value");
       return false;
     }
     if (cache == null) {
-      logger.info("No cache defined.");
+      LOG.info("No cache defined.");
       return false;
     }
     return cache.setMaxCacheSize(cacheSize);
@@ -493,7 +493,7 @@ public enum SetupController {
       }
     }
 
-    logger.info("Deleted images in working directory {}. {} images deleted.",
+    LOG.info("Deleted images in working directory {}. {} images deleted.",
         workingDir.toAbsolutePath().toString(), nrOfImagesDeleted);
   }
 
@@ -509,9 +509,9 @@ public enum SetupController {
     }
 
     if (isDeleted) {
-      logger.info("Deleted working directory {}.", workingDir.toAbsolutePath().toString());
+      LOG.info("Deleted working directory {}.", workingDir.toAbsolutePath().toString());
     } else {
-      logger.info("Working directory {} not deleted.", workingDir.toAbsolutePath().toString());
+      LOG.info("Working directory {} not deleted.", workingDir.toAbsolutePath().toString());
     }
   }
 
@@ -564,7 +564,7 @@ public enum SetupController {
       break;
     }
 
-    logger.info("Storage setup done.");
+    LOG.info("Storage setup done.");
   }
 
   /**
@@ -579,7 +579,7 @@ public enum SetupController {
     	ImageProvider.IP.setStorage(cache);
     }
 
-    logger.info("Storage and image database handed over to image provider");
+    LOG.info("Storage and image database handed over to image provider");
   }
 
   /**
@@ -678,12 +678,12 @@ public enum SetupController {
     try {
       imgCreationPool.shutdown();
       if (imgCreationPool.awaitTermination(waitingTime, TimeUnit.MILLISECONDS)) {
-        logger.info("Image creation stopped.");
+        LOG.info("Image creation stopped.");
       } else {
-        logger.warn("Image creation thread pool not terminating after {}ms. Stop waiting.", waitingTime);
+        LOG.warn("Image creation thread pool not terminating after {}ms. Stop waiting.", waitingTime);
       }
     } catch (InterruptedException interruptedException) {
-      logger.warn("Waiting for image creation thread pool termination interrupted by exception.",
+      LOG.warn("Waiting for image creation thread pool termination interrupted by exception.",
               interruptedException);
     }
     // Maybe we need to keep a reference to the old thread pool if it has not finished properly yet.
@@ -709,13 +709,13 @@ public enum SetupController {
                   TimeUnit.MILLISECONDS
             ))
           {
-            logger.info("Image creation stopped.");
+            LOG.info("Image creation stopped.");
           } else {
-            logger.warn("Image creation thread pool not terminating after {}ms. Stop waiting.",
+            LOG.warn("Image creation thread pool not terminating after {}ms. Stop waiting.",
                     SetupControllerConstants.CREATION_THREAD_POOL_WAIT);
           }
         } catch (InterruptedException interruptedException) {
-          logger.warn("Waiting for image creation thread pool termination interrupted by exception.",
+          LOG.warn("Waiting for image creation thread pool termination interrupted by exception.",
                   interruptedException);
         }
         // Maybe we need to keep a reference to the old thread pool if it has not finished properly yet.

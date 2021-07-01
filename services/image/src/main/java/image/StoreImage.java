@@ -22,8 +22,9 @@ import java.util.Base64;
 
 import javax.imageio.ImageIO;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import image.cache.entry.AbstractEntry;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.ImageSize;
 import image.cache.entry.ICachable;
@@ -56,7 +57,7 @@ public class StoreImage implements ICachable<StoreImage> {
   private final long id;
   private byte[] data;
   private ImageSize size;
-  private Logger log = LoggerFactory.getLogger(StoreImage.class);
+  private static final Logger LOG = LogManager.getLogger(StoreImage.class);
 
   /**
    * Creates a new store image with a given id and size. The image is converted
@@ -71,7 +72,7 @@ public class StoreImage implements ICachable<StoreImage> {
    */
   public StoreImage(final long id, BufferedImage image, ImageSize size) {
     if (image == null) {
-      log.error("Supplied image is null.");
+      LOG.error("Supplied image is null.");
       throw new NullPointerException("Supplied image is null.");
     }
 
@@ -88,7 +89,7 @@ public class StoreImage implements ICachable<StoreImage> {
    */
   public StoreImage(final long id, byte[] base64, ImageSize size) {
     if (base64 == null) {
-      log.error("Supplied base64 encoded byte array is null.");
+      LOG.error("Supplied base64 encoded byte array is null.");
       throw new NullPointerException("Supplied base64 encoded byte array is null.");
     }
 
@@ -99,7 +100,7 @@ public class StoreImage implements ICachable<StoreImage> {
 
   private void setImageSize(ImageSize size) {
     if (size == null) {
-      log.error("Supplied image size is null.");
+      LOG.error("Supplied image size is null.");
       throw new NullPointerException("Supplied image size is null.");
     }
     this.size = size;
@@ -113,7 +114,7 @@ public class StoreImage implements ICachable<StoreImage> {
    */
   public StoreImage(StoreImage image) {
     if (image == null) {
-      log.error("Supplied store image is null.");
+      LOG.error("Supplied store image is null.");
       throw new NullPointerException("Store image is null.");
     }
 
@@ -138,7 +139,7 @@ public class StoreImage implements ICachable<StoreImage> {
     try {
       ImageIO.write(image, STORE_IMAGE_FORMAT, stream);
     } catch (IOException ioException) {
-      log.warn("An IOException occured while trying to write image to a stream.", ioException);
+      LOG.warn("An IOException occured while trying to write image to a stream.", ioException);
     }
     data = Base64.getEncoder().encode(stream.toByteArray());
   }
@@ -154,7 +155,7 @@ public class StoreImage implements ICachable<StoreImage> {
     try {
       image = ImageIO.read(stream);
     } catch (IOException ioException) {
-      log.warn("An IOException occured while trying to read image from stream.", ioException);
+      LOG.warn("An IOException occured while trying to read image from stream.", ioException);
     }
     return image;
   }

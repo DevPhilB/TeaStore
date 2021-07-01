@@ -12,8 +12,9 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.imageio.ImageIO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.ImageSize;
 import utilities.enumeration.ImageSizePreset;
@@ -35,7 +36,7 @@ public class CreatorRunner implements Runnable {
   private final BufferedImage categoryImage;
   private final AtomicLong nrOfImagesGenerated;
 
-  private final Logger log = LoggerFactory.getLogger(CreatorRunner.class);
+  private static final Logger LOG = LogManager.getLogger(CreatorRunner.class);
 
   /**
    * Creates a new runnable object to generate a single image.
@@ -83,10 +84,10 @@ public class CreatorRunner implements Runnable {
           StandardOpenOption.TRUNCATE_EXISTING);
     } catch (IOException ioException) {
       if (!(ioException instanceof ClosedByInterruptException)) {
-        log.warn("An IOException occured while writing image with ID " + String.valueOf(imgID)
+        LOG.warn("An IOException occured while writing image with ID " + String.valueOf(imgID)
             + " to file " + imgFile.toAbsolutePath() + ".", ioException);
       } else {
-        log.warn("An exception was thrown during image creation with ID " + String.valueOf(imgID)
+        LOG.warn("An exception was thrown during image creation with ID " + String.valueOf(imgID)
             + " to file " + imgFile.toAbsolutePath() + ".", ioException);
       }
     }

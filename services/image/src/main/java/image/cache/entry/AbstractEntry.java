@@ -13,8 +13,8 @@
  */
 package image.cache.entry;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Base wrapper class for cachable data types.
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractEntry<D extends ICachable<D>> implements ICacheEntry<D> {
 
   private D data;
-  private Logger log = LoggerFactory.getLogger(AbstractEntry.class);
+  private static final Logger LOG = LogManager.getLogger(AbstractEntry.class);
 
   /**
    * Basic constructor storing the cachable data. If the cachable data supplied is
@@ -39,7 +39,7 @@ public abstract class AbstractEntry<D extends ICachable<D>> implements ICacheEnt
    */
   public AbstractEntry(D data) {
     if (data == null) {
-      log.error("The supplied data is null.");
+      LOG.error("The supplied data is null.");
       throw new NullPointerException("Supplied data is null.");
     }
 

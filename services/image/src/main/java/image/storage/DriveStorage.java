@@ -38,7 +38,7 @@ public class DriveStorage implements IDataStorage<StoreImage> {
   private Path workingDir;
   private ImageDB imgDB;
   private Predicate<StoreImage> storageRule;
-  private static final Logger logger = LogManager.getLogger(DriveStorage.class);
+  private static final Logger LOG = LogManager.getLogger(DriveStorage.class);
 
   private final HashMap<Long, ReadWriteLock> lockedIDs = new HashMap<>();
   private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
@@ -51,15 +51,15 @@ public class DriveStorage implements IDataStorage<StoreImage> {
    */
   public DriveStorage(Path workingDir, ImageDB imgDB, Predicate<StoreImage> storageRule) {
     if (workingDir == null) {
-      logger.error("The supplied working directory is null.");
+      LOG.error("The supplied working directory is null.");
       throw new NullPointerException("The supplied working directory is null.");
     }
     if (imgDB == null) {
-      logger.error("The supplied image database is null.");
+      LOG.error("The supplied image database is null.");
       throw new NullPointerException("The supplied image database is null.");
     }
     if (storageRule == null) {
-      logger.error("The supplied rule to determine if an image can be stored is null.");
+      LOG.error("The supplied rule to determine if an image can be stored is null.");
       throw new NullPointerException(
           "The supplied rule to determine if an image can be stored is null.");
     }
@@ -105,7 +105,7 @@ public class DriveStorage implements IDataStorage<StoreImage> {
     try {
       imgData = Files.readAllBytes(imgFile);
     } catch (IOException ioException) {
-      logger.warn("An IOException occured while trying to read the file \"" + imgFile.toAbsolutePath()
+      LOG.warn("An IOException occured while trying to read the file \"" + imgFile.toAbsolutePath()
           + "\" from disk. Returning null.", ioException);
     } finally {
       l.readLock().unlock();
@@ -152,7 +152,7 @@ public class DriveStorage implements IDataStorage<StoreImage> {
       Files.write(imgFile, data.getByteArray(), StandardOpenOption.CREATE, StandardOpenOption.WRITE,
           StandardOpenOption.TRUNCATE_EXISTING);
     } catch (IOException ioException) {
-      logger.warn("An IOException occured while trying to write the file \"" + imgFile.toAbsolutePath()
+      LOG.warn("An IOException occured while trying to write the file \"" + imgFile.toAbsolutePath()
           + "\" to disk.", ioException);
       return false;
     } finally {

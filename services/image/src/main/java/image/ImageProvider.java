@@ -17,8 +17,8 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.ImageSize;
 import utilities.enumeration.ImageSizePreset;
@@ -44,7 +44,7 @@ public enum ImageProvider {
 
   private ImageDB db;
   private IDataStorage<StoreImage> storage;
-  private Logger log = LoggerFactory.getLogger(ImageProvider.class);
+  private static final Logger LOG = LogManager.getLogger(ImageProvider.class);
 
   private ImageProvider() {
 
@@ -120,15 +120,15 @@ public enum ImageProvider {
 
   private String getImageFor(ImageDBKey key, ImageSize size) {
     if (db == null || storage == null) {
-      log.warn("Image provider not correctly initialized. Missing image database and storage.");
+      LOG.warn("Image provider not correctly initialized. Missing image database and storage.");
       return null;
     }
     if (key == null || size == null) {
-      log.info("Supplied image key or size are null.");
+      LOG.info("Supplied image key or size are null.");
       return null;
     }
     if (!key.isProductKey() && (key.getWebUIName() == null || key.getWebUIName().isEmpty())) {
-      log.info("Supplied image key invalid. Is neither web image nor product image.");
+      LOG.info("Supplied image key invalid. Is neither web image nor product image.");
       return null;
     }
 

@@ -19,8 +19,9 @@ import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import image.cache.entry.AbstractEntry;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.ImageSize;
 
@@ -38,7 +39,7 @@ public class ImageDB {
   private HashMap<Long, Map<Long, ImageSize>> products = new HashMap<>();
   private HashMap<String, Map<Long, ImageSize>> webui = new HashMap<>();
   private HashMap<Long, ImageSize> sizes = new HashMap<>();
-  private final Logger log = LoggerFactory.getLogger(ImageDB.class);
+  private static final Logger LOG = LogManager.getLogger(ImageDB.class);
 
   // Locking
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -60,7 +61,7 @@ public class ImageDB {
    */
   public ImageDB(ImageDB copy) {
     if (copy == null) {
-      log.error("The supplied image database to copy is null.");
+      LOG.error("The supplied image database to copy is null.");
       throw new NullPointerException("The supplied image database to copy is null.");
     }
 
@@ -82,7 +83,7 @@ public class ImageDB {
    */
   public boolean hasImageID(ImageDBKey imageKey, ImageSize imageSize) {
     if (imageKey == null) {
-      log.error("The supplied image key is null.");
+      LOG.error("The supplied image key is null.");
       throw new NullPointerException("The supplied image key is null.");
     }
 
@@ -132,7 +133,7 @@ public class ImageDB {
    */
   public long getImageID(ImageDBKey imageKey, ImageSize imageSize) {
     if (imageKey == null) {
-      log.error("The supplied image key is null.");
+      LOG.error("The supplied image key is null.");
       throw new NullPointerException("The supplied image key is null.");
     }
 
@@ -221,7 +222,7 @@ public class ImageDB {
    */
   public void setImageMapping(ImageDBKey imageKey, long imageID, ImageSize imageSize) {
     if (imageKey == null) {
-      log.error("The supplied image key is null.");
+      LOG.error("The supplied image key is null.");
       throw new NullPointerException("The supplied image key is null.");
     }
 
@@ -251,7 +252,7 @@ public class ImageDB {
   /**
    * Creates a new mapping between, an image name, the unique image ID and the
    * size of the image. If the image name or size is null, a
-   * {@link java.lang.NullPointerExcpetion} will be thrown.
+   * {@link java.lang.NullPointerException} will be thrown.
    * 
    * @param name
    *          The image name
@@ -262,7 +263,7 @@ public class ImageDB {
    */
   public void setImageMapping(String name, long imageID, ImageSize imageSize) {
     if (name == null) {
-      log.error("The supplied image name is null.");
+      LOG.error("The supplied image name is null.");
       throw new NullPointerException("The supplied image name is null.");
     }
 
@@ -273,7 +274,7 @@ public class ImageDB {
   private <K> void map(K key, long imageID, ImageSize imageSize,
       HashMap<K, Map<Long, ImageSize>> db) {
     if (imageSize == null) {
-      log.error("Supplied image size is null.");
+      LOG.error("Supplied image size is null.");
       throw new NullPointerException("Supplied image size is null.");
     }
 

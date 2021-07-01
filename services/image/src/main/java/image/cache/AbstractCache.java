@@ -18,8 +18,9 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import image.cache.entry.AbstractEntry;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import image.cache.entry.ICachable;
 import image.cache.entry.ICacheEntry;
@@ -42,7 +43,7 @@ public abstract class AbstractCache<S extends Collection<F>, T extends ICachable
   private long maxCacheSize;
   private long currentCacheSize;
   private Predicate<T> cachingRule;
-  private Logger log = LoggerFactory.getLogger(AbstractCache.class);
+  private static final Logger LOG = LogManager.getLogger(AbstractCache.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**
@@ -55,16 +56,16 @@ public abstract class AbstractCache<S extends Collection<F>, T extends ICachable
   public AbstractCache(S entries, IDataStorage<T> cachedStorage, long maxCacheSize,
       Predicate<T> cachingRule) {
     if (entries == null) {
-      log.error("The provided internal storage object is null.");
+      LOG.error("The provided internal storage object is null.");
       throw new NullPointerException("The provided internal storage object is null.");
     }
     if (cachingRule == null) {
-      log.error("The provided caching rule is null.");
+      LOG.error("The provided caching rule is null.");
       throw new NullPointerException("The provided caching rule is null.");
     }
 
     if (cachedStorage == null) {
-      log.info("No underlying disk storage supplied, assuming no data is stored on disk.");
+      LOG.info("No underlying disk storage supplied, assuming no data is stored on disk.");
       this.cachedStorage = new NoStorage<T>();
     } else {
       this.cachedStorage = cachedStorage;
@@ -134,7 +135,7 @@ public abstract class AbstractCache<S extends Collection<F>, T extends ICachable
   @Override
   public boolean setMaxCacheSize(long maxCacheSize) {
     if (maxCacheSize <= 0) {
-      log.error("The provided cache size is negative. Must be positive.");
+      LOG.error("The provided cache size is negative. Must be positive.");
       throw new IllegalArgumentException("The provided cache size is negative. Must be positive.");
     }
 

@@ -40,7 +40,7 @@ public class HttpWebServer {
     private final String httpVersion;
     private final String scheme;
     private final Integer port;
-    private static final Logger logger = LogManager.getLogger(HttpWebServer.class);
+    private static final Logger LOG = LogManager.getLogger(HttpWebServer.class);
 
     public HttpWebServer(String httpVersion, String scheme, Integer port) {
         this.httpVersion = httpVersion;
@@ -89,7 +89,7 @@ public class HttpWebServer {
             ChannelFuture future = bootstrap.bind(port).sync();
             String status = httpVersion + " web service is available on " +
                     scheme + "web:" + port + WEB_ENDPOINT;
-            logger.info(status);
+            LOG.info(status);
             System.err.println(status);
             System.err.println();
 

@@ -44,7 +44,7 @@ public class HttpImageServer {
     private final String gatewayHost;
     private final Integer persistencePort = 80;
     private final Integer imagePort;
-    private static final Logger logger = LogManager.getLogger(HttpImageServer.class);
+    private static final Logger LOG = LogManager.getLogger(HttpImageServer.class);
 
     public HttpImageServer(String httpVersion, String scheme, String gatewayHost, Integer port) {
         this.httpVersion = new HttpVersion(httpVersion, false);
@@ -103,7 +103,7 @@ public class HttpImageServer {
             ChannelFuture future = bootstrap.bind(imagePort).sync();
             String status = httpVersion + " image service is available on " +
                     scheme + "image:" + imagePort + IMAGE_ENDPOINT;
-            logger.info(status);
+            LOG.info(status);
             System.err.println(status);
 
             future.channel().closeFuture().sync();
