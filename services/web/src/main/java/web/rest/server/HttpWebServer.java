@@ -29,6 +29,8 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import static utilities.rest.api.API.WEB_ENDPOINT;
+
 /**
  * HTTP server for web service
  * @author Philipp Backes
@@ -36,21 +38,25 @@ import io.netty.handler.logging.LoggingHandler;
 public class HttpWebServer {
 
     private final String httpVersion;
+    private final String scheme;
     private final Integer port;
     private static final Logger logger = LogManager.getLogger(HttpWebServer.class);
 
-    public HttpWebServer(String httpVersion, Integer port) {
+    public HttpWebServer(String httpVersion, String scheme, Integer port) {
         this.httpVersion = httpVersion;
+        this.scheme = scheme;
         this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
-        Integer port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
-        if (args.length > 1) {
-            new HttpWebServer(args[1], port).run();
-        } else {
-            new HttpWebServer("HTTP/1.1", port).run();
-        }
+        String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
+        String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
+        Integer port = args.length > 3 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        new HttpWebServer(
+                httpVersion,
+                scheme,
+                port
+        ).run();
     }
 
     public void run() throws Exception {
@@ -81,8 +87,11 @@ public class HttpWebServer {
                 });
 
             ChannelFuture future = bootstrap.bind(port).sync();
-            System.err.println(httpVersion + " web service is available on " +
-                    "http://127.0.0.1:" + port + "/api/web");
+            String status = httpVersion + " web service is available on " +
+                    scheme + "web:" + port + WEB_ENDPOINT;
+            logger.info(status);
+            System.err.println(status);
+            System.err.println();
 
             future.channel().closeFuture().sync();
 

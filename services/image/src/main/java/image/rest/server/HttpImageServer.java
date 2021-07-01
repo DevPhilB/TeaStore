@@ -31,6 +31,8 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import static utilities.rest.api.API.IMAGE_ENDPOINT;
+
 /**
  * HTTP server for image service
  * @author Philipp Backes
@@ -59,16 +61,16 @@ public class HttpImageServer {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length == 4) {
-            new HttpImageServer(args[1], args[2], args[3], Integer.parseInt(args[4])).run();
-        } else {
-            new HttpImageServer(
-                    "HTTP/1.1",
-                    "http://",
-                    "127.0.0.1",
-                    80
-            ).run();
-        }
+        String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
+        String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
+        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "gateway" : "gateway";
+        Integer port = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
+        new HttpImageServer(
+                httpVersion,
+                scheme,
+                gatewayHost,
+                port
+        ).run();
     }
 
     public void run() throws Exception {
@@ -99,8 +101,10 @@ public class HttpImageServer {
                 });
 
             ChannelFuture future = bootstrap.bind(imagePort).sync();
-            System.err.println(httpVersion + " image service is available on " +
-                    "http://127.0.0.1:" + imagePort + "/api/image");
+            String status = httpVersion + " image service is available on " +
+                    scheme + "image:" + imagePort + IMAGE_ENDPOINT;
+            logger.info(status);
+            System.err.println(status);
 
             future.channel().closeFuture().sync();
 

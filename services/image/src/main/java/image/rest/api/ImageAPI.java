@@ -43,7 +43,6 @@ public class ImageAPI implements API {
     public ImageAPI(HttpVersion httpVersion) {
         this.httpVersion = httpVersion;
         this.mapper = new ObjectMapper();
-
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {

@@ -29,6 +29,8 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
+
 /**
  * HTTP server for persistence service
  * @author Philipp Backes
@@ -36,21 +38,25 @@ import io.netty.handler.logging.LoggingHandler;
 public class HttpPersistenceServer {
 
     private final String httpVersion;
+    private final String scheme;
     private final Integer port;
     private static final Logger logger = LogManager.getLogger(HttpPersistenceServer.class);
 
-    public HttpPersistenceServer(String httpVersion, Integer port) {
+    public HttpPersistenceServer(String httpVersion, String scheme, Integer port) {
         this.httpVersion = httpVersion;
+        this.scheme = scheme;
         this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
-        Integer port = args.length > 0 ? Integer.parseInt(args[0]) : 80;
-        if (args.length > 1) {
-            new HttpPersistenceServer(args[1], port).run();
-        } else {
-            new HttpPersistenceServer("HTTP/1.1", port).run();
-        }
+        String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
+        String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
+        Integer port = args.length > 3 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        new HttpPersistenceServer(
+                httpVersion,
+                scheme,
+                port
+        ).run();
     }
 
     public void run() throws Exception {
@@ -81,8 +87,10 @@ public class HttpPersistenceServer {
                 });
 
             ChannelFuture future = bootstrap.bind(port).sync();
-            System.err.println(httpVersion + " persistence service is available on " +
-                    "http://127.0.0.1:" + port + "/api/persistence");
+            String status = httpVersion + " persistence service is available on " +
+                    scheme + "persistence:" + port + PERSISTENCE_ENDPOINT;
+            logger.info(status);
+            System.err.println(status);
 
             future.channel().closeFuture().sync();
 

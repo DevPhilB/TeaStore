@@ -61,7 +61,7 @@ public class WebAPI implements API {
         this.httpVersion = httpVersion;
         this.scheme = scheme;
         this.mapper = new ObjectMapper();
-        this.gatewayHost = "127.0.0.1";
+        this.gatewayHost = "gateway";
         this.webPort = 80;
         this.imagePort = 80;
         this.authPort = 80;
