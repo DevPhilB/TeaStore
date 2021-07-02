@@ -913,6 +913,96 @@ paths:
           description: "Internal Server Error"
       tags:
         - Image
+  /api/recommender/recommend:
+    post:
+      summary: "Return a list of all recommended products based on multiple order items."
+      parameters:
+        - name: "userid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      requestBody:
+        $ref: '#/components/requestBodies/OrderItemList'
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Recommender
+  /api/recommender/recommendsingle:
+    post:
+      summary: "Return a list of all recommended products based on a single order item."
+      parameters:
+        - name: "userid"
+          in: "query"
+          schema:
+            type: integer
+          required: false
+      requestBody:
+        $ref: '#/components/requestBodies/OrderItem'
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Recommender
+  /api/recommender/train:
+    get:
+      summary: "Trigger training of the recommendation algorithm."
+      responses:
+        "200":
+          description: "OK"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Recommender
+  /api/recommender/train/timestamp:
+    get:
+      summary: "Return the last training time stamp of this service instance."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Recommender
+  /api/recommender/train/isready:
+    get:
+      summary: "Return service status."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: boolean
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Recommender
 components:
   requestBodies:
     Category:
@@ -1078,6 +1168,32 @@ components:
               required:
                 - name
                 - size
+    OrderItemList:
+      description: Order item as JSON object
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: integer
+                productId:
+                  type: integer
+                orderId:
+                  type: integer
+                quantity:
+                  type: integer
+                unitPriceInCents:
+                  type: integer
+              required:
+                - id
+                - productId
+                - orderId
+                - quantity
+                - unitPriceInCents
   responses:
     # TODO: Add missing response schemas
     ProductImageDataMap:
