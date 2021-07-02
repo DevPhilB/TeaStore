@@ -23,6 +23,8 @@ services:
       - "traefik.enable=false"
   persistence:
     build: services/persistence
+    depends_on:
+      - db
     # image: tvsjsdock/teastore-persistence:v2
     expose:
       - "80"
@@ -37,6 +39,8 @@ services:
       - "traefik.protocol=http"
   image:
     build: services/image
+    depends_on:
+      - db
     # image: tvsjsdock/teastore-image:v2
     expose:
       - "80"
@@ -47,8 +51,26 @@ services:
       - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/image`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
+  recommender:
+    build: services/recommender
+    depends_on:
+      - db
+    # image: tvsjsdock/teastore-recommender:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "recommender"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/recommender`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
   web:
     build: services/web
+    depends_on:
+      - persistence
+      - recommender
+      - image
     # image: tvsjsdock/teastore-web:v2
     expose:
       - "80"
