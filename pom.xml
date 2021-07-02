@@ -16,15 +16,12 @@
 			<module>interfaces/tools.descartes.teastore.entities</module>
 			<module>utilities/tools.descartes.teastore.kieker.probes</module>
 			<module>utilities/tools.descartes.teastore.kieker.rabbitmq</module>
-			<module>services/image</module>
-			<module>services/persistence</module>
-			<module>services/recommender</module>
-			<module>services/registry</module>
 			<module>services/auth</module>
 		-->
 		<module>utilities/api</module>
 		<module>services/image</module>
 		<module>services/persistence</module>
+		<module>services/recommender</module>
 		<module>services/web</module>
 	</modules>
 

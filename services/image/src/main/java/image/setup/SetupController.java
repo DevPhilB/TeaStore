@@ -152,6 +152,9 @@ public enum SetupController {
 
   private SetupController() {}
 
+  /**
+   * Set up HTTP client for persistence queries
+   */
   public void setupHttpClient(
           HttpVersion version,
           String scheme,
