@@ -51,6 +51,20 @@ services:
       - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/image`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
+  auth:
+    build: services/auth
+    depends_on:
+      - db
+    # image: tvsjsdock/teastore-auth:v2
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "auth"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/auth`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
   recommender:
     build: services/recommender
     depends_on:
@@ -69,8 +83,9 @@ services:
     build: services/web
     depends_on:
       - persistence
-      - recommender
       - image
+      - auth
+      - recommender
     # image: tvsjsdock/teastore-web:v2
     expose:
       - "80"
