@@ -45,7 +45,7 @@ public class ShaSecurityProvider implements ISecurityProvider {
             data.sessionId(),
             null,
             data.order(),
-            data.cartItemList(),
+            data.orderItems(),
             data.message()
     );
     String dataString = dataToString(data);
@@ -54,7 +54,7 @@ public class ShaSecurityProvider implements ISecurityProvider {
             data.sessionId(),
             getSha512(dataString),
             data.order(),
-            data.cartItemList(),
+            data.orderItems(),
             data.message()
     );
     return data;
@@ -81,7 +81,7 @@ public class ShaSecurityProvider implements ISecurityProvider {
             data.sessionId(),
             null,
             data.order(),
-            data.cartItemList(),
+            data.orderItems(),
             data.message()
     );
     String dataString = dataToString(data);

@@ -48,11 +48,66 @@ class AuthAPITest {
     }
 
     @Test
-    void testGetTest() {
+    void testAddProductToCart() {
         header.setMethod(HttpMethod.POST);
-        header.setUri(AUTH_ENDPOINT + "/test");
-        body = Unpooled.buffer();
+        header.setUri(AUTH_ENDPOINT + "/cart/add?productid=42");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+    }
+
+    @Test
+    void testRemoveProductFromCart() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(AUTH_ENDPOINT + "/cart/remove?productid=42");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.NOT_FOUND, response.status());
+    }
+
+    @Test
+    void testUpdateQuantity() {
+        header.setMethod(HttpMethod.PUT);
+        header.setUri(AUTH_ENDPOINT + "/cart/update?productid=42?quantity=2");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+    }
+
+    @Test
+    void testPlaceOrder() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(AUTH_ENDPOINT + "/useractions/placeorder");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+    }
+
+    @Test
+    void testLogin() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(AUTH_ENDPOINT + "/useractions/login?name=name&password=password");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+    }
+
+    @Test
+    void testLogout() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(AUTH_ENDPOINT + "/useractions/logout");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+    }
+
+    @Test
+    void testIsLoggedIn() {
+        header.setMethod(HttpMethod.POST);
+        header.setUri(AUTH_ENDPOINT + "/useractions/isloggedin");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+    }
+
+    @Test
+    void testIsReady() {
+        header.setMethod(HttpMethod.GET);
+        header.setUri(AUTH_ENDPOINT + "/isready");
+        response = api.handle(header, body, null);
+        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
     }
 }

@@ -101,7 +101,10 @@ public class AuthAPI implements API {
                         }
                     };
                     case "/useractions/placeorder":
-                        return placeOrder(sessionData, body);
+                        if(body != null) {
+                            return placeOrder(sessionData, body);
+                        }
+                        return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                     case "/useractions/login":
                         if (params.containsKey("name") && params.containsKey("password")) {
                             String name = params.get("name").get(0);
@@ -133,7 +136,7 @@ public class AuthAPI implements API {
     }
 
     /**
-     * POST /cart/add?productid=
+     * POST /cart/add?productid=X
      *
      * Adds product to cart.
      * If the product is already in the cart the quantity is increased.
@@ -210,7 +213,7 @@ public class AuthAPI implements API {
     }
 
     /**
-     * POST /cart/remove?productid=
+     * POST /cart/remove?productid=X
      *
      * Remove product from cart.
      *
@@ -222,7 +225,7 @@ public class AuthAPI implements API {
         OrderItem toRemove = null;
         try {
             for (OrderItem item : sessionData.orderItems()) {
-                if (item.productId() == productId) {
+                if (item.productId().equals(productId)) {
                     toRemove = item;
                 }
             }
@@ -245,7 +248,7 @@ public class AuthAPI implements API {
     }
 
     /**
-     * PUT /cart/update?productid=
+     * PUT /cart/update?productid=X&quantity=Y
      *
      * Updates quantity of product in cart.
      *
@@ -257,7 +260,7 @@ public class AuthAPI implements API {
     private FullHttpResponse updateQuantity(SessionData sessionData, Long productId, Integer quantity) {
         try {
             for (OrderItem item : sessionData.orderItems()) {
-                if (item.productId() == productId) {
+                if (item.productId().equals(productId)) {
                     OrderItem newItem = new OrderItem(
                             item.id(),
                             item.productId(),

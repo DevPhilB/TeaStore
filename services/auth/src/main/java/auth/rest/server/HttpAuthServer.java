@@ -41,7 +41,6 @@ public class HttpAuthServer {
     private final HttpVersion httpVersion;
     private final String scheme;
     private final String gatewayHost;
-    private final Integer persistencePort = 80;
     private final Integer authPort;
     private static final Logger LOG = LogManager.getLogger(HttpAuthServer.class);
 
