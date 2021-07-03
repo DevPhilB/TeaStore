@@ -1003,6 +1003,148 @@ paths:
           description: "Internal Server Error"
       tags:
         - Recommender
+  /api/auth/cart/add:
+    post:
+      summary: "Add product to cart and return updated session data."
+      parameters:
+        - name: "productid"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/cart/remove:
+    post:
+      summary: "Remove product from cart and return updated session data."
+      parameters:
+        - name: "productid"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/cart/update:
+    put:
+      summary: "Updates quantity of product in cart and return updated session data."
+      parameters:
+        - name: "productid"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+        - name: "quantity"
+          in: "query"
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/useractions/placeorder:
+    post:
+      summary: "Persists order in database and return updated session data."
+      requestBody:
+        $ref: '#/components/requestBodies/Order'
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/useractions/login:
+    post:
+      summary: "Log in user and return updated session data."
+      parameters:
+        - name: "name"
+          in: "query"
+          schema:
+            type: string
+          required: true
+        - name: "password"
+          in: "query"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "404":
+          description: "Not Found"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/useractions/logout:
+    post:
+      summary: "Log out user and return updated session data."
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/useractions/isloggedin:
+    post:
+      summary: "Check if user is logged in and return updated session data."
+      responses:
+        "200":
+          $ref: '#/components/responses/SessionData'
+        "400":
+          description: "Bad Request"
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
+  /api/auth/useractions/isready:
+    post:
+      summary: "Check if service is ready and return true."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: boolean
+        "500":
+          description: "Internal Server Error"
+      tags:
+        - Auth
 components:
   requestBodies:
     Category:
@@ -1196,6 +1338,59 @@ components:
                 - unitPriceInCents
   responses:
     # TODO: Add missing response schemas
+    SessionData:
+      description: Session data as JSON object
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              userId:
+                type: integer
+              sessionId:
+                type: string
+              token:
+                type: string
+              order:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  userId:
+                    type: integer
+                  time:
+                    type: string
+                  totalPriceInCents:
+                    type: integer
+                  addressName:
+                    type: string
+                  address1:
+                    type: string
+                  address2:
+                    type: string
+                  creditCardCompany:
+                    type: string
+                  creditCardNumber:
+                    type: string
+                  creditCardExpiryDate:
+                    type: string
+              orderItems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    productId:
+                      type: integer
+                    orderId:
+                      type: integer
+                    quantity:
+                      type: integer
+                    unitPriceInCents:
+                      type: integer
+              message:
+                type: string
     ProductImageDataMap:
       description: Map of product ids and image data as JSON object
       content:

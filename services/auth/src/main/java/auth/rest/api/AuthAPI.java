@@ -268,7 +268,8 @@ public class AuthAPI implements API {
                             quantity,
                             item.unitPriceInCents()
                     );
-                    item = newItem;
+                    int index = sessionData.orderItems().indexOf(item);
+                    sessionData.orderItems().set(index, newItem);
                     SessionData data = new ShaSecurityProvider().secure(sessionData);
                     String json = mapper.writeValueAsString(data);
                     return new DefaultFullHttpResponse(
@@ -412,7 +413,9 @@ public class AuthAPI implements API {
                 byte[] jsonContentByte = new byte[contentBody.readableBytes()];
                 contentBody.readBytes(jsonContentByte);
                 user = mapper.readValue(jsonContentByte, User.class);
-                if (user != null && BCryptProvider.checkPassword(password, user.password())) {
+                if(user == null) {
+                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
                             user.id(),
                             new RandomSessionIdGenerator().getSessionId(),
@@ -428,6 +431,8 @@ public class AuthAPI implements API {
                             HttpResponseStatus.OK,
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
+                } else {
+                    return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                 }
             }
         } catch (Exception e) {
