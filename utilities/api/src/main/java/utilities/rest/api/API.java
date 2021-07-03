@@ -26,7 +26,7 @@ import io.netty.handler.codec.http.LastHttpContent;
  *
  */
 public interface API {
-    String API_GATEWAY = "localhost:80";
+    String API_GATEWAY = "gateway";
     String WEB_ENDPOINT = "/api/web";
     String IMAGE_ENDPOINT = "/api/image";
     String AUTH_ENDPOINT = "/api/auth";
