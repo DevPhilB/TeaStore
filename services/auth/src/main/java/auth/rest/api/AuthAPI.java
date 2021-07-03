@@ -13,17 +13,22 @@
  */
 package auth.rest.api;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import auth.security.BCryptProvider;
+import auth.security.RandomSessionIdGenerator;
+import auth.security.ShaSecurityProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
+import utilities.rest.api.CookieUtil;
+import utilities.rest.client.HttpClient;
+import utilities.rest.client.HttpClientHandler;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,25 +43,36 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
  */
 public class AuthAPI implements API {
     private final HttpVersion httpVersion;
+    private HttpClient httpClient;
+    private HttpClientHandler handler;
     private final ObjectMapper mapper;
-    private static final Logger LOG = LogManager.getLogger(AuthAPI.class);
+    private final String gatewayHost;
+    private final Integer persistencePort;
+    private final HttpRequest request;
 
     public AuthAPI(HttpVersion httpVersion) {
         this.httpVersion = httpVersion;
         this.mapper = new ObjectMapper();
+        this.gatewayHost = "gateway";
+        this.persistencePort = 80;
+        this.request = new DefaultFullHttpRequest(
+                this.httpVersion,
+                HttpMethod.GET,
+                "",
+                Unpooled.EMPTY_BUFFER
+        );
+        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    // TODO
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
-    }
-
-    /*
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
         QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
         Map<String, List<String>> params = queryStringDecoder.parameters();
         String method = header.method().name();
         String path = queryStringDecoder.path();
+        String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
+        SessionData sessionData = CookieUtil.decodeCookie(cookieValue);
 
         // Select endpoint
         if (path.startsWith("/api/auth")) {
@@ -64,30 +80,51 @@ public class AuthAPI implements API {
             switch (method) {
                 case "GET":
                     switch (subPath) {
-                        case "/train":
-                            return train();
-                        case "/train/timestamp":
-                            return getTimeStamp();
-                        case "/train/isready":
+                        case "/ready":
                             return isReady();
                     }
                 case "POST":
                     switch (subPath) {
-                        case "/recommend":
-                            if (params.containsKey("userid")) {
-                                Long userId = Long.parseLong(params.get("userid").get(0));
-                                return getRecommendedProducts(userId, body, false);
+                        case "/cart/add":
+                            if (params.containsKey("productid")) {
+                                Long productId = Long.parseLong(params.get("productid").get(0));
+                                return addProductToCart(sessionData, productId);
                             } else {
-                                return getRecommendedProducts(null, body, false);
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
-                        case "/recommendsingle":
-                            if (params.containsKey("userid")) {
-                                Long userId = Long.parseLong(params.get("userid").get(0));
-                                return getRecommendedProducts(userId, body, true);
-                            } else {
-                                return getRecommendedProducts(null, body, true);
-                            }
+                    case "/cart/remove":
+                        if (params.containsKey("productid")) {
+                            Long productId = Long.parseLong(params.get("productid").get(0));
+                            return removeProductFromCart(sessionData, productId);
+                        } else {
+                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                        }
                     };
+                    case "/useractions/placeorder":
+                        return placeOrder(sessionData, body);
+                    case "/useractions/login":
+                        if (params.containsKey("name") && params.containsKey("password")) {
+                            String name = params.get("name").get(0);
+                            String password = params.get("password").get(0);
+                            return login(sessionData, name, password);
+                        } else {
+                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                        }
+                    case "/useractions/logout":
+                        return logout(sessionData);
+                    case "/useractions/isloggedin":
+                        return isLoggedIn(sessionData);
+                case "PUT":
+                    switch (subPath) {
+                        case "/cart/update":
+                            if (params.containsKey("productid") && params.containsKey("quantity")) {
+                                Long productId = Long.parseLong(params.get("productid").get(0));
+                                Integer quantity = Integer.parseInt(params.get("quantity").get(0));
+                                return updateQuantity(sessionData, productId, quantity);
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
+                    }
                 default:
                     return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
             }
@@ -96,40 +133,337 @@ public class AuthAPI implements API {
     }
 
     /**
-     * POST /recommend
-     * OR
-     * POST /recommendsingle
+     * POST /cart/add?productid=
      *
-     * Return a list of all {@link Product}s, that are recommended for the given
-     * {@link User} buying the given list of {@link OrderItem}s.
-     * <br>
-     * The returning list does not contain any {@link Product} that is already part
-     * of the given list of {@link OrderItem}s. It might be empty, however.
+     * Adds product to cart.
+     * If the product is already in the cart the quantity is increased.
      *
-     * @param userId The id of the {@link User} to recommend for. May be null.
-     * @param body List containing all {@link OrderItem}s in the current cart or
-     *             an {@link OrderItem} to use as auth as JSON.
-     * @param singleItem Expect list of or single {@link OrderItem}.
-     * @return List of {@link Long} objects as JSON, containing all {@link Product} IDs that
-     *         are recommended to add to the cart or an INTERNALSERVERERROR, if the recommendation failed.
+     * @param sessionData Session data from the current user
+     * @param productId Product id
+     * @return Updated session data
      */
-    /*
-    private FullHttpResponse getRecommendedProducts(Long userId, ByteBuf body, Boolean singleItem) {
+    private FullHttpResponse addProductToCart(SessionData sessionData, Long productId) {
+        Product product = null;
+        // GET api/persistence/products?id=productId
+        String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
+        try {
+            request.setUri(persistenceEndpointProduct);
+            request.setMethod(HttpMethod.GET);
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpContent) {
+                ByteBuf body = httpContent.content();
+                byte[] jsonByte = new byte[body.readableBytes()];
+                body.readBytes(jsonByte);
+                product = mapper.readValue(jsonByte, Product.class);
+                OrderItem item = null;
+                SessionData data = null;
+                for (OrderItem orderItem : sessionData.orderItems()) {
+                    if (orderItem.productId().equals(productId)) {
+                        item = new OrderItem(
+                                orderItem.id(),
+                                orderItem.productId(),
+                                orderItem.orderId(),
+                                orderItem.quantity() + 1,
+                                orderItem.unitPriceInCents()
+                        );
+                        data = new ShaSecurityProvider().secure(sessionData);
+                        String json = mapper.writeValueAsString(data);
+                        return new DefaultFullHttpResponse(
+                                httpVersion,
+                                HttpResponseStatus.OK,
+                                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                        );
+                    }
+                    item = new OrderItem(
+                            null,
+                            productId,
+                            null,
+                            1,
+                            product.listPriceInCents()
+                    );
+                    List<OrderItem> items = sessionData.orderItems();
+                    items.add(item);
+                    data = new SessionData(
+                            sessionData.userId(),
+                            sessionData.sessionId(),
+                            sessionData.token(),
+                            sessionData.order(),
+                            items,
+                            sessionData.message()
+                    );
+                    data = new ShaSecurityProvider().secure(data);
+                    String json = mapper.writeValueAsString(data);
+                    return new DefaultFullHttpResponse(
+                            httpVersion,
+                            HttpResponseStatus.OK,
+                            Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                    );
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * POST /cart/remove?productid=
+     *
+     * Remove product from cart.
+     *
+     * @param sessionData Session data from the current user
+     * @param productId Product id
+     * @return Updated session data
+     */
+    private FullHttpResponse removeProductFromCart(SessionData sessionData, Long productId) {
+        OrderItem toRemove = null;
+        try {
+            for (OrderItem item : sessionData.orderItems()) {
+                if (item.productId() == productId) {
+                    toRemove = item;
+                }
+            }
+            if (toRemove != null) {
+                sessionData.orderItems().remove(toRemove);
+                SessionData data = new ShaSecurityProvider().secure(sessionData);
+                String json = mapper.writeValueAsString(data);
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * PUT /cart/update?productid=
+     *
+     * Updates quantity of product in cart.
+     *
+     * @param sessionData Session data from the current user
+     * @param productId Product id
+     * @param quantity New quantity
+     * @return Updated session data
+     */
+    private FullHttpResponse updateQuantity(SessionData sessionData, Long productId, Integer quantity) {
+        try {
+            for (OrderItem item : sessionData.orderItems()) {
+                if (item.productId() == productId) {
+                    OrderItem newItem = new OrderItem(
+                            item.id(),
+                            item.productId(),
+                            item.orderId(),
+                            quantity,
+                            item.unitPriceInCents()
+                    );
+                    item = newItem;
+                    SessionData data = new ShaSecurityProvider().secure(sessionData);
+                    String json = mapper.writeValueAsString(data);
+                    return new DefaultFullHttpResponse(
+                            httpVersion,
+                            HttpResponseStatus.OK,
+                            Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                    );
+                }
+            }
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * POST /useractions/placeorder
+     *
+     * Persists order in database.
+     *
+     * @param sessionData Session data from the current user
+     * @param body Order as JSON
+     * @return Updated session data
+     */
+    private FullHttpResponse placeOrder(SessionData sessionData, ByteBuf body) {
+        Order orderData = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
+        // POST api/persistence/orders
+        String persistenceEndpointCreateOrder = PERSISTENCE_ENDPOINT + "/orders";
+        // POST api/persistence/orderitems
+        String persistenceEndpointCreateOrderItem = PERSISTENCE_ENDPOINT + "/orderitems";
+        if (new ShaSecurityProvider().validate(sessionData) == null || sessionData.orderItems().isEmpty()) {
+            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        }
+
         try {
-            List<OrderItem> currentItems = new ArrayList<>();
-            if (singleItem) {
-                OrderItem item = mapper.readValue(jsonByte, OrderItem.class);
-                currentItems.add(item);
-            } else {
-                currentItems = mapper.readValue(
-                        jsonByte,
-                        new TypeReference<List<OrderItem>>(){}
-                );
+            orderData = mapper.readValue(jsonByte, Order.class);
+            Order newOrder = new Order(
+                    sessionData.order().id(),
+                    sessionData.order().userId(),
+                    LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                    orderData.totalPriceInCents(),
+                    orderData.addressName(),
+                    orderData.address1(),
+                    orderData.address2(),
+                    orderData.creditCardCompany(),
+                    orderData.creditCardNumber(),
+                    orderData.creditCardExpiryDate()
+            );
+            Long orderId = null;
+            request.setUri(persistenceEndpointCreateOrder);
+            request.setMethod(HttpMethod.POST);
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpContent) {
+                ByteBuf contentBody = httpContent.content();
+                byte[] jsonContentByte = new byte[contentBody.readableBytes()];
+                body.readBytes(jsonContentByte);
+                orderId = mapper.readValue(jsonContentByte, Long.class);
+                for (OrderItem item : sessionData.orderItems()) {
+                    OrderItem orderItem = new OrderItem(
+                            null,
+                            item.productId(),
+                            item.orderId(),
+                            item.quantity(),
+                            item.unitPriceInCents()
+                    );
+                    request.setUri(persistenceEndpointCreateOrderItem);
+                    request.setMethod(HttpMethod.POST);
+                    // Create client and send request
+                    httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                    handler = new HttpClientHandler();
+                    httpClient.sendRequest(handler);
+                    if (handler.response instanceof HttpResponse response) {
+                        if (response.status() != OK) {
+                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                        }
+                    }
+                    sessionData.orderItems().clear();
+                    SessionData data = new SessionData(
+                            sessionData.userId(),
+                            sessionData.sessionId(),
+                            sessionData.token(),
+                            new Order(
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null
+                            ),
+                            sessionData.orderItems(),
+                            sessionData.message()
+                    );
+                    data = new ShaSecurityProvider().secure(data);
+                    String json = mapper.writeValueAsString(data);
+                    return new DefaultFullHttpResponse(
+                            httpVersion,
+                            HttpResponseStatus.OK,
+                            Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                    );
+                }
             }
-            List<Long> recommended = AuthSelector.getInstance().recommendProducts(userId, currentItems);
-            String json = mapper.writeValueAsString(recommended);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * POST /useractions/login?name=name&password=password
+     *
+     * Log in user.
+     *
+     * @param sessionData Session data from the current user
+     * @param name User name
+     * @param password User password
+     * @return Updated session data
+     */
+    private FullHttpResponse login(SessionData sessionData, String name, String password) {
+        User user = null;
+        // GET api/persistence/users/name?name=name
+        String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
+        try {
+            request.setUri(persistenceEndpointUser);
+            request.setMethod(HttpMethod.GET);
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpContent) {
+                ByteBuf contentBody = httpContent.content();
+                byte[] jsonContentByte = new byte[contentBody.readableBytes()];
+                contentBody.readBytes(jsonContentByte);
+                user = mapper.readValue(jsonContentByte, User.class);
+                if (user != null && BCryptProvider.checkPassword(password, user.password())) {
+                    SessionData data = new SessionData(
+                            user.id(),
+                            new RandomSessionIdGenerator().getSessionId(),
+                            sessionData.token(),
+                            sessionData.order(),
+                            sessionData.orderItems(),
+                            sessionData.message()
+                    );
+                    data = new ShaSecurityProvider().secure(data);
+                    String json = mapper.writeValueAsString(data);
+                    return new DefaultFullHttpResponse(
+                            httpVersion,
+                            HttpResponseStatus.OK,
+                            Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                    );
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * POST /useractions/logout
+     *
+     * Log out user.
+     *
+     * @param sessionData Session data from the current user
+     * @return Updated session data
+     */
+    private FullHttpResponse logout(SessionData sessionData) {
+        try {
+            sessionData.orderItems().clear();
+            SessionData data = new SessionData(
+                    null,
+                    null,
+                    sessionData.token(),
+                    new Order(
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    ),
+                    sessionData.orderItems(),
+                    sessionData.message()
+            );
+            String json = mapper.writeValueAsString(data);
             return new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
@@ -142,54 +476,17 @@ public class AuthAPI implements API {
     }
 
     /**
-     * GET /train
+     * POST /useractions/isloggedin
      *
-     * Triggers the training of the recommendation algorithm.
-     * It retrieves all data order items and all orders from the database entity
-     * and is therefore both very network and computation time intensive.
-     * <br>
-     * This method must be called before the endpoint is usable,
-     * as the IAuth will throw an UnsupportedOperationException.
-     * <br>
-     * Calling this method a second time initiates a new training process from scratch.
+     * Checks if user is logged in.
      *
-     * @return OK or INTERNAL_SERVER_ERROR
+     * @param sessionData Session data from the current user
+     * @return Updated session data
      */
-    /*
-    private FullHttpResponse train() {
+    private FullHttpResponse isLoggedIn(SessionData sessionData) {
+        SessionData data = new ShaSecurityProvider().validate(sessionData);
         try {
-            long start = System.currentTimeMillis();
-            long number = TrainingSynchronizer.getInstance().retrieveDataAndRetrain();
-            long time = System.currentTimeMillis() - start;
-            if (number != -1) {
-                LOG.info(
-                        "The (re)train was succesfully done. It took " + time + "ms and "
-                        + number + " of Orderitems were retrieved from the database."
-                );
-                return new DefaultFullHttpResponse(httpVersion, OK);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        LOG.error("The (re)trainprocess failed.");
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
-    }
-
-    /**
-     * GET /train/timestamp
-     *
-     * Returns the last time stamp, which was considered at the training of this instance.
-     *
-     * @return Timestamp or INTERNAL_SERVER_ERROR
-     */
-    /*
-    private FullHttpResponse getTimeStamp() {
-        if (TrainingSynchronizer.getInstance().getMaxTime() == TrainingSynchronizer.DEFAULT_MAX_TIME_VALUE) {
-            LOG.error("The collection of the current maxTime was not possible.");
-            return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
-        }
-        try {
-            String json = mapper.writeValueAsString(TrainingSynchronizer.getInstance().getMaxTime());
+            String json = mapper.writeValueAsString(data);
             return new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
@@ -201,23 +498,17 @@ public class AuthAPI implements API {
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
+
     /**
-     * GET /train/isready
+     * GET /isready
      *
-     * This methods checks, if the service is ready to serve recommendation requests,
-     * i.e., if the algorithm has finished training and no retraining process is running.
-     * However, this does not imply that issuing a recommendation will fail, if this method returns false.
-     * For example, if a retraining is issued,
-     * the old trained instance might still answer issued requests until the new instance is fully trained.
-     * However, performance behavior is probably influenced.
+     * This methods checks, if the service is ready
      *
-     * @return True or false
+     * @return True
      */
-    /*
     private FullHttpResponse isReady() {
-        Boolean ready = TrainingSynchronizer.getInstance().isReady();
         try {
-            String json = mapper.writeValueAsString(ready);
+            String json = mapper.writeValueAsString(Boolean.TRUE);
             return new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
@@ -228,5 +519,4 @@ public class AuthAPI implements API {
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
-    */
 }

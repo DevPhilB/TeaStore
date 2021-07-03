@@ -55,7 +55,8 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
             this.request = request;
             // Check HTTP method
             if (request.method() != HttpMethod.GET
-                && request.method() != HttpMethod.POST) {
+                && request.method() != HttpMethod.POST
+                && request.method() != HttpMethod.PUT) {
                 writeStatusResponse(context, METHOD_NOT_ALLOWED);
             }
             if (HttpUtil.is100ContinueExpected(request)) {

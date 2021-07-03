@@ -20,6 +20,6 @@ public record SessionData (
         String sessionId,
         String token,
         Order order,
-        List<CartItem> cartItemList,
+        List<OrderItem> orderItems,
         String message
 ) {}

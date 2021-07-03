@@ -24,6 +24,7 @@ import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
+import utilities.rest.api.CookieUtil;
 import utilities.rest.client.HttpClient;
 import utilities.rest.client.HttpClientHandler;
 
@@ -84,7 +85,7 @@ public class WebAPI implements API {
         String method = header.method().name();
         String path = queryStringDecoder.path();
         String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
-        SessionData sessionData = decodeCookie(cookieValue);
+        SessionData sessionData = CookieUtil.decodeCookie(cookieValue);
 
         // Select endpoint
         if (path.startsWith("/api/web")) {
@@ -347,57 +348,7 @@ public class WebAPI implements API {
         return json;
     }
 
-    /**
-     * Decode cookie to session data
-     *
-     * @param cookieValue Cookie value as String
-     * @return SessionData
-     */
-    private SessionData decodeCookie(String cookieValue) {
-        SessionData cookie = null;
-        if (cookieValue != null) {
-            try {
-                cookie = mapper.readValue(
-                        URLDecoder.decode(
-                                cookieValue.substring("SessionData=".length()),
-                                CharsetUtil.UTF_8
-                        ),
-                        SessionData.class
-                );
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            cookie = new SessionData(
-                    null,
-                    null,
-                    null,
-                    null,
-                    new ArrayList<>(),
-                    null
-            );
-        }
-        return cookie;
-    }
 
-    /**
-     * Encode session data as cookie
-     *
-     * @param sessionData Session data
-     * @return Cookie
-     */
-    private Cookie encodeSessionData(SessionData sessionData) {
-        try {
-            String encodedCookie = URLEncoder.encode(
-                    mapper.writeValueAsString(sessionData),
-                    CharsetUtil.UTF_8
-            );
-            return new DefaultCookie("SessionData", encodedCookie);
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
 
     /**
@@ -469,7 +420,7 @@ public class WebAPI implements API {
         // POST /api/auth/cart/remove
         String authEndpointRemove = AUTH_ENDPOINT + "/cart/remove";
         // PUT /api/auth/cart
-        String authEndpointUpdate = AUTH_ENDPOINT + "/cart";
+        String authEndpointUpdate = AUTH_ENDPOINT + "/cart/update";
         // GET /api/auth/useractions/isloggedin
         String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {

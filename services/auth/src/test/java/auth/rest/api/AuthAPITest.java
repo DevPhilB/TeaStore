@@ -21,7 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
+import static utilities.rest.api.API.AUTH_ENDPOINT;
 
 class AuthAPITest {
 
@@ -36,7 +36,7 @@ class AuthAPITest {
         header = new DefaultFullHttpRequest(
                 version,
                 HttpMethod.GET,
-                RECOMMENDER_ENDPOINT
+                AUTH_ENDPOINT
         );
         body = null;
         api = new AuthAPI(version);
@@ -50,7 +50,7 @@ class AuthAPITest {
     @Test
     void testGetTest() {
         header.setMethod(HttpMethod.POST);
-        header.setUri(RECOMMENDER_ENDPOINT + "/test");
+        header.setUri(AUTH_ENDPOINT + "/test");
         body = Unpooled.buffer();
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.NOT_FOUND, response.status());
