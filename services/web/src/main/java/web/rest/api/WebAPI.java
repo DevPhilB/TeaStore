@@ -23,6 +23,7 @@ import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
+import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
 import utilities.rest.client.HttpClient;
@@ -179,179 +180,6 @@ public class WebAPI implements API {
     }
 
     /**
-     * Required for testing as Long as image service is not implemented
-     */
-    public String getWebImages() {
-        String json = "{}";
-        Map<String, String> portraits = new HashMap<>();
-        portraits.put("portraitAndre", "PORTRAIT1");
-        portraits.put("portraitJohannes", "PORTRAIT2");
-        portraits.put("portraitSimon", "PORTRAIT3");
-        portraits.put("portraitNorbert", "PORTRAIT4");
-        portraits.put("portraitKounev", "PORTRAIT5");
-        String title = "TeaStore About Us";
-        String descartesDescription= "We are part of the Descartes Research Group:";
-        String description= "Our research is aimed at developing novel methods, ...";
-        AboutPageView view = new AboutPageView(
-                "STOREICON",
-                title,
-                portraits,
-                descartesDescription,
-                "DESCARTESLOGO",
-                description
-        );
-        try {
-            json = mapper.writeValueAsString(view);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return json;
-    }
-
-    /**
-     * Required for testing as Long as persistence service is not implemented
-     */
-    public String getPersistenceProducts() {
-        String json = "{}";
-        List<ProductView> products = new ArrayList<>();
-        long id = 1L;
-        String addToCart = "/api/web/cartaction/addtocart?productId=" + id;
-        ProductView product = new ProductView(
-                id,
-                1L,
-                "PRODUCTONE",
-                "Product 1",
-                100L,
-                "Product 1 description",
-                addToCart
-        );
-        products.add(product);
-        try {
-            json = mapper.writeValueAsString(products);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return json;
-    }
-
-    /**
-     * Required for testing as Long as persistence service is not implemented
-     */
-    public String getPersistenceCategories() {
-        String json = "{}";
-        List<Category> categoryList = new ArrayList<>();
-        Category category = new Category(
-                1L,
-                "Category 1",
-                "Category 1 description"
-        );
-        categoryList.add(category);
-        categoryList.add(category);
-        categoryList.add(category);
-        try {
-            json = mapper.writeValueAsString(categoryList);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return json;
-    }
-
-    /**
-     * Required for testing as Long as persistence service is not implemented
-     */
-    public String getPersistencePreviousOrder() {
-        String json = "{}";
-        List<PreviousOrder> PreviousOrderList = new ArrayList<>();
-        PreviousOrder PreviousOrder = new PreviousOrder(
-                1L,
-                "2021-06-23",
-                163L,
-                "John Snow",
-                "1111 The North, Westeros, Winterfell"
-        );
-        PreviousOrderList.add(PreviousOrder);
-        PreviousOrderList.add(PreviousOrder);
-        PreviousOrderList.add(PreviousOrder);
-        try {
-            json = mapper.writeValueAsString(PreviousOrderList);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return json;
-    }
-
-    /**
-     * Required for testing as Long as recommender service is not implemented
-     */
-    public String getRecommendations() {
-        String json = "{}";
-        List<ProductView> advertisements = new ArrayList<>();
-        long id = 2L;
-        String addToCart = "/api/web/cartaction/addtocart?productId=" + id;
-        ProductView product = new ProductView(
-                id,
-                1L,
-                "PRODUCTTWO",
-                "Ad: Product 2",
-                100L,
-                "Ad: Product 2 description",
-                addToCart
-        );
-        advertisements.add(product);
-        advertisements.add(product);
-        advertisements.add(product);
-        try {
-            json = mapper.writeValueAsString(advertisements);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return json;
-    }
-
-    /**
-     * Required for testing as Long as persistence service is not implemented
-     */
-    public String getCategoryView() {
-        String json = "{}";
-        List<ProductView> products = new ArrayList<>();
-        long id = 3L;
-        String addToCart = "/api/web/cartaction/addtocart?productId=" + id;
-        products.add(new ProductView(
-                id,
-                1L,
-                "PRODUCTTHREE",
-                "Ad: Product 3",
-                100L,
-                "Ad: Product 3 description",
-                addToCart
-        ));
-        Long categoryId = 1L;
-        String title = "Tea";
-        Integer productQuantity = 20;
-        Integer page = 1;
-        try {
-            CategoryPageView view = new CategoryPageView(
-                    "STOREICON",
-                    title,
-                    mapper.readValue(
-                            getPersistenceCategories(),
-                            new TypeReference<List<Category>>(){}
-                    ),
-                    products,
-                    page,
-                    productQuantity
-            );
-            json = mapper.writeValueAsString(view);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return json;
-    }
-
-
-
-
-    /**
      * GET /ready
      *
      * @return Service status
@@ -374,30 +202,69 @@ public class WebAPI implements API {
         try {
             request.setUri(imageEndpoint);
             request.setMethod(POST);
+            Map<String, String> imageSizeMap = new HashMap<>();
+            String imagePortraitSize = ImageSizePreset.PORTRAIT.getSize().toString();
+            String imageLogoSize = ImageSizePreset.LOGO.getSize().toString();
+            imageSizeMap.put("icon", imageLogoSize);
+            imageSizeMap.put("andreBauer", imagePortraitSize);
+            imageSizeMap.put("johannesGrohmann", imagePortraitSize);
+            imageSizeMap.put("joakimKistowski", imagePortraitSize);
+            imageSizeMap.put("simonEismann", imagePortraitSize);
+            imageSizeMap.put("norbertSchmitt", imagePortraitSize);
+            imageSizeMap.put("samuelKounev", imagePortraitSize);
+            imageSizeMap.put("descartesLogo", imageLogoSize);
+            String json = mapper.writeValueAsString(imageSizeMap);
+            FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    request.method(),
+                    imageEndpoint,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, imagePort, request);
+            httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpContent) {
-                // TODO: ByteBuf imageData = httpContent.content();
-                AboutPageView view = mapper.readValue(getWebImages(), AboutPageView.class);
+            if (handler.response instanceof HttpContent httpImageContent) {
+                ByteBuf imageBody = httpImageContent.content();
+                byte[] jsonImageByte = new byte[imageBody.readableBytes()];
+                imageBody.readBytes(jsonImageByte);
+                Map<String, String> imageDataMap = mapper.readValue(
+                        jsonImageByte,
+                        new TypeReference<Map<String, String>>(){}
+                );
+                String storeIcon = imageDataMap.remove("icon");
+                String descartesLogo = imageDataMap.remove("descartesLogo");
+                String title = "TeaStore About Us";
+                String descartesDescription = "We are part of the Descartes Research Group:";
+                String description = "Our research is aimed at developing novel methods, ...";
+                AboutPageView view = new AboutPageView(
+                        storeIcon,
+                        title,
+                        imageDataMap,
+                        descartesDescription,
+                        descartesLogo,
+                        description
+                );
                 request.setUri(authEndpoint);
+                request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
                 request.setMethod(GET);
                 httpClient = new HttpClient(gatewayHost, authPort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                String json = "{}";
-                // TODO: Use response status?
-                //if (handler.response instanceof HttpResponse response) {
-                    // Check if user is logged in
-                    // view.isLoggedIn = response.status() == OK;
-                //}
                 json = mapper.writeValueAsString(view);
-                return new DefaultFullHttpResponse(
+                DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                         httpVersion,
                         HttpResponseStatus.OK,
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
+                if (handler.response instanceof HttpContent httpSessionDataContent) {
+                    ByteBuf sessionDataBody = httpImageContent.content();
+                    byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                    sessionDataBody.readBytes(jsonImageByte);
+                    SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                }
+                return response;
             } else {
                 return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
             }
@@ -577,6 +444,12 @@ public class WebAPI implements API {
                         // TODO: ByteBuf imageData = httpContent.content();
                         "STOREICON",
                         "Shopping Cart",
+                        // TODO
+                        new ArrayList<>(),
+                        cartItems,
+                        // TODO
+                        new ArrayList<>(),
+                        /*
                         mapper.readValue(
                                 getPersistenceCategories(),
                                 new TypeReference<List<Category>>(){}
@@ -585,7 +458,7 @@ public class WebAPI implements API {
                         mapper.readValue(
                                 getRecommendations(),
                                 new TypeReference<List<ProductView>>(){}
-                        ),
+                        ), */
                         productImages,
                         updateCart,
                         proceedToCheckout
@@ -634,7 +507,7 @@ public class WebAPI implements API {
             httpClient.sendRequest(handler);
             if (handler.response instanceof HttpContent httpContent) {
                 // TODO: Replace with service calls
-                String json = getCategoryView();
+                String json = null;
                 // TODO: other requests
                 request.setUri(persistenceEndpointProducts);
                 httpClient = new HttpClient(gatewayHost, authPort, request);
@@ -761,10 +634,13 @@ public class WebAPI implements API {
             IndexPageView view = new IndexPageView(
                     "STOREICON",
                     "",
+                    new ArrayList<>(),
+                    // TODO
+                    /*
                     mapper.readValue(
                             getPersistenceCategories(),
                             new TypeReference<List<Category>>(){}
-                    ),
+                    ), */
                     "LARGESTOREICON"
             );
             String json = mapper.writeValueAsString(view);
@@ -847,10 +723,11 @@ public class WebAPI implements API {
             LoginPageView view = new LoginPageView(
                     "STOREICON",
                     "Login",
-                    mapper.readValue(
-                            getPersistenceCategories(),
-                            new TypeReference<List<Category>>(){}
-                    ),
+                    new ArrayList<>(),
+//                    mapper.readValue(
+//                            getPersistenceCategories(),
+//                            new TypeReference<List<Category>>(){}
+//                    ),
                     "Please enter your username and password.",
                     "",
                     "",
@@ -895,10 +772,11 @@ public class WebAPI implements API {
             OrderPageView view = new OrderPageView(
                     "STOREICON",
                     "Order",
-                    mapper.readValue(
-                            getPersistenceCategories(),
-                            new TypeReference<List<Category>>(){}
-                    ),
+                    new ArrayList<>(),
+//                    mapper.readValue(
+//                            getPersistenceCategories(),
+//                            new TypeReference<List<Category>>(){}
+//                    ),
                     order.addressName().split("")[0],
                     order.addressName().split("")[1],
                     order.address1(),
@@ -944,6 +822,11 @@ public class WebAPI implements API {
             ProductPageView view = new ProductPageView(
                     "STOREICON",
                     "Order",
+                    // TODO
+                    new ArrayList<>(),
+                    product,
+                    new ArrayList<>()
+                    /*
                     mapper.readValue(
                             getPersistenceCategories(),
                             new TypeReference<List<Category>>(){}
@@ -952,7 +835,7 @@ public class WebAPI implements API {
                     mapper.readValue(
                             getRecommendations(),
                             new TypeReference<List<ProductView>>(){}
-                    )
+                    ) */
             );
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(
@@ -988,6 +871,11 @@ public class WebAPI implements API {
             ProfilePageView view = new ProfilePageView(
                     "STOREICON",
                     "Order",
+                    // TODO
+                    new ArrayList<>(),
+                    user,
+                    new ArrayList<>()
+                    /*
                     mapper.readValue(
                             getPersistenceCategories(),
                             new TypeReference<List<Category>>(){}
@@ -996,7 +884,7 @@ public class WebAPI implements API {
                     mapper.readValue(
                             getPersistencePreviousOrder(),
                             new TypeReference<List<PreviousOrder>>(){}
-                    )
+                    ) */
             );
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(

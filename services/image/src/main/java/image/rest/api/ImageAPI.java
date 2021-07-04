@@ -129,17 +129,21 @@ public class ImageAPI implements API {
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
-            Map<String, String> images = mapper.readValue(
+            Map<String, String> imageSizeMap = mapper.readValue(
                     jsonByte,
                     new TypeReference<Map<String, String>>(){}
             );
-            images = ImageProvider.IP.getWebImages(images.entrySet().parallelStream().collect(
-                    Collectors.toMap(Map.Entry::getKey,
-                            e -> ImageSize.parseImageSize(e.getValue())
-                    )
+            Map<String, String> imageDataMap = ImageProvider.IP.getWebImages(
+                    imageSizeMap.entrySet().parallelStream().collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                e -> ImageSize.parseImageSize(
+                                        e.getValue()
+                                )
+                        )
                     )
             );
-            String json = mapper.writeValueAsString(images);
+            String json = mapper.writeValueAsString(imageDataMap);
             return new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
