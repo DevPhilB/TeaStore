@@ -100,17 +100,25 @@ public class WebAPI implements API {
                             return aboutView(sessionData);
                         case "/cartaction/addtocart":
                         case "/cartaction/removeproduct":
-                        case "/cartaction/updatecartquantities":
                             if (params.containsKey("productid")) {
                                 String action = subPath.substring("/cartaction/".length());
                                 Long productId = Long.parseLong(params.get("productid").get(0));
-                                return cartAction(sessionData, action, productId);
+                                return cartAction(sessionData, action, productId, null);
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
+                        case "/cartaction/updatecartquantities":
+                            if (params.containsKey("productid") && params.containsKey("quantity")) {
+                                String action = subPath.substring("/cartaction/".length());
+                                Long productId = Long.parseLong(params.get("productid").get(0));
+                                Long quantity = Long.parseLong(params.get("quantity").get(0));
+                                return cartAction(sessionData, action, productId, quantity);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
                         case "/cartaction/proceedtocheckout":
                             String action = subPath.substring("/cartaction/".length());
-                            return cartAction(sessionData, action, 0L);
+                            return cartAction(sessionData, action, null, null);
                         case "/cart":
                             return cartView(sessionData);
                         case "/category":
@@ -258,9 +266,9 @@ public class WebAPI implements API {
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
                 if (handler.response instanceof HttpContent httpSessionDataContent) {
-                    ByteBuf sessionDataBody = httpImageContent.content();
+                    ByteBuf sessionDataBody = httpSessionDataContent.content();
                     byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                    sessionDataBody.readBytes(jsonImageByte);
+                    sessionDataBody.readBytes(jsonSessionDataByte);
                     SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
                 }
@@ -281,67 +289,73 @@ public class WebAPI implements API {
      *
      * @return Page view depending on cart action
      */
-    private FullHttpResponse cartAction(SessionData sessionData, String name, Long productId) {
-        // POST /api/auth/cart/add
-        String authEndpointAdd = AUTH_ENDPOINT + "/cart/add";
-        // POST /api/auth/cart/remove
-        String authEndpointRemove = AUTH_ENDPOINT + "/cart/remove";
-        // PUT /api/auth/cart
-        String authEndpointUpdate = AUTH_ENDPOINT + "/cart/update";
+    private FullHttpResponse cartAction(SessionData sessionData, String name, Long productId, Long quantity) {
+        // POST /api/auth/cart/add?productid=
+        String authEndpointAdd = AUTH_ENDPOINT + "/cart/add?productid=" + productId;
+        // POST /api/auth/cart/remove?productid=
+        String authEndpointRemove = AUTH_ENDPOINT + "/cart/remove?productid=" + productId;
+        // PUT /api/auth/cart/update?productid=X&quantity=Y
+        String authEndpointUpdate = AUTH_ENDPOINT + "/cart/update?productid=" + productId + "&quantity=" + quantity;
         // GET /api/auth/useractions/isloggedin
         String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
-            System.out.println("Action: " + name);
-            switch(name) {
+            SessionData newSessionData = sessionData;
+            request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+            switch (name) {
                 case "addtocart":
                     request.setMethod(HttpMethod.POST);
                     request.setUri(authEndpointAdd);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() != OK) {
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
+                    if (handler.response instanceof HttpContent httpSessionDataContent) {
+                        ByteBuf sessionDataBody = httpSessionDataContent.content();
+                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                        sessionDataBody.readBytes(jsonSessionDataByte);
+                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
                 case "removeproduct":
                     request.setMethod(HttpMethod.POST);
                     request.setUri(authEndpointRemove);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() != OK) {
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
+                    if (handler.response instanceof HttpContent httpSessionDataContent) {
+                        ByteBuf sessionDataBody = httpSessionDataContent.content();
+                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                        sessionDataBody.readBytes(jsonSessionDataByte);
+                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
                 case "updatecartquantities":
                     request.setMethod(HttpMethod.PUT);
                     request.setUri(authEndpointUpdate);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() == UNAUTHORIZED) {
-                            return loginView();
-                        }
+                    if (handler.response instanceof HttpContent httpSessionDataContent) {
+                        ByteBuf sessionDataBody = httpSessionDataContent.content();
+                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                        sessionDataBody.readBytes(jsonSessionDataByte);
+                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
                 case "proceedtocheckout":
                     request.setMethod(HttpMethod.GET);
                     request.setUri(authEndpointCheck);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() == UNAUTHORIZED) {
-                            return loginView();
-                        } else {
-                            return orderView(sessionData);
-                        }
+                    if (handler.response instanceof HttpContent httpSessionDataContent) {
+                        ByteBuf sessionDataBody = httpSessionDataContent.content();
+                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                        sessionDataBody.readBytes(jsonSessionDataByte);
+                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    } else {
+                        return loginView();
                     }
             }
-            // And return cart view
-             return cartView(sessionData);
+            FullHttpResponse response = cartView(newSessionData);
+            response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -352,14 +366,11 @@ public class WebAPI implements API {
      * @return Profile page view as JSON
      */
     private FullHttpResponse confirmOrder(SessionData sessionData, ByteBuf body) {
-        Order orderData = null;
-        byte[] jsonByte = new byte[body.readableBytes()];
-        body.readBytes(jsonByte);
         // POST /api/auth/useractions/placeorder
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
-            orderData = mapper.readValue(jsonByte, Order.class);
             request.setMethod(HttpMethod.POST);
+            request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
             // Create client and send request
             FullHttpRequest postRequest = new DefaultFullHttpRequest(
                     request.protocolVersion(),
@@ -369,15 +380,17 @@ public class WebAPI implements API {
             );
             httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
             handler = new HttpClientHandler();
-            // TODO: Check auth endpoint
-            if (handler.response instanceof HttpResponse response) {
-                if (response.status() != OK) {
-                    return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                } else {
-                    return profileView(sessionData);
-                }
+            if (handler.response instanceof HttpContent httpSessionDataContent) {
+                ByteBuf sessionDataBody = httpSessionDataContent.content();
+                byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                sessionDataBody.readBytes(jsonSessionDataByte);
+                SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                FullHttpResponse response = profileView(newSessionData);
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                return response;
+            } else {
+                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
             }
-            return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             e.printStackTrace();
         }
