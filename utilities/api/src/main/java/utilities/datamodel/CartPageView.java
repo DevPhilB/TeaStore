@@ -21,7 +21,6 @@ public record CartPageView (
         List<Category> categories,
         List<CartItem> cartItems,
         List<ProductView> advertisements,
-        List<String> productImages,
         String updateCart,
         String proceedToCheckout
 ) {}

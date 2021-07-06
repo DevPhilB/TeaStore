@@ -208,8 +208,6 @@ public class WebAPI implements API {
         String imageEndpoint = IMAGE_ENDPOINT + "/webimages";
         String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
         try {
-            request.setUri(imageEndpoint);
-            request.setMethod(POST);
             Map<String, String> imageSizeMap = new HashMap<>();
             String imagePortraitSize = ImageSizePreset.PORTRAIT.getSize().toString();
             String imageLogoSize = ImageSizePreset.LOGO.getSize().toString();
@@ -224,7 +222,7 @@ public class WebAPI implements API {
             String json = mapper.writeValueAsString(imageSizeMap);
             FullHttpRequest postRequest = new DefaultFullHttpRequest(
                     request.protocolVersion(),
-                    request.method(),
+                    POST,
                     imageEndpoint,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
@@ -405,86 +403,209 @@ public class WebAPI implements API {
      * @return Cart page view as JSON
      */
     private FullHttpResponse cartView(SessionData sessionData) {
-        // GET 2x products & advertisements
+        // GET products & advertisements
         String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // products
         // POST api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        String imageEndpointProduct = IMAGE_ENDPOINT + "/productimages"; // productImages for ads
         // GET api/persistence/categories
-        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories"; // categoryList
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?start=-1&max=-1"; // categoryList
+        // POST /api/recommender/recommend
+        String recommenderEndpoint = RECOMMENDER_ENDPOINT + "/recommend"; // productIds for advertisements
+        // POST api/image/getProductImages
+        String imageEndpointProduct = IMAGE_ENDPOINT + "/productimages"; // productImages for ads
         // GET /api/auth/useractions/isloggedin
         String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin"; // isLoggedIn
-        // POST /api/recommender/recommend
-        String recommenderEndpoint = RECOMMENDER_ENDPOINT + "/recommend"; // productIds for advertisments
         try {
-            // TODO: IMPLEMENT
-            request.setUri(persistenceEndpointProducts);
+            // Get products
+            List<OrderItem> orderItems = sessionData.orderItems();
+            ArrayList<Long> ids = new ArrayList<Long>();
+            for (OrderItem orderItem : orderItems) {
+                ids.add(orderItem.productId());
+            }
+            HashMap<Long, Product> products = new HashMap<Long, Product>();
+            for (Long id : ids) {
+                request.setUri(persistenceEndpointProducts + "?id=" + id);
+                // Create client and send request
+                httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                if (handler.response instanceof HttpContent httpProductContent) {
+                    ByteBuf productBody = httpProductContent.content();
+                    byte[] jsonProductByte = new byte[productBody.readableBytes()];
+                    productBody.readBytes(jsonProductByte);
+                    Product product = mapper.readValue(jsonProductByte, Product.class);
+                    products.put(product.id(), product);
+                }
+            }
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            Map<String, String> webImageDataMap = new HashMap<>();
+            String imageLogoSize = ImageSizePreset.LOGO.getSize().toString();
+            webImageSizeMap.put("icon", imageLogoSize);
+            String webImageSizeMapJson = mapper.writeValueAsString(webImageSizeMap);
+            FullHttpRequest postImageRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    POST,
+                    imageEndpointWeb,
+                    Unpooled.copiedBuffer(webImageSizeMapJson, CharsetUtil.UTF_8)
+            );
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, postImageRequest);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpImageContent) {
+                ByteBuf imageBody = httpImageContent.content();
+                byte[] jsonImageByte = new byte[imageBody.readableBytes()];
+                imageBody.readBytes(jsonImageByte);
+                webImageDataMap = mapper.readValue(
+                        jsonImageByte,
+                        new TypeReference<Map<String, String>>(){}
+                );
+            }
+            // Get categories
+            List<Category> categories = new ArrayList<>();
+            request.setUri(persistenceEndpointCategories);
+            request.setMethod(GET);
             // Create client and send request
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpContent) {
-                // TODO: Replace with service calls
-                long id = 1L;
-                String removeProduct = "/api/web/cartaction/removeproduct?productId=" + id;
-                List<CartItem> cartItems = new ArrayList<>();
-                CartItem item = new CartItem(
-                        id,
-                        "Product 1",
-                        "Product 1 description",
-                        2,
-                        100L,
-                        200L,
-                        removeProduct
+            if (handler.response instanceof HttpContent httpCategoriesContent) {
+                ByteBuf categoriesBody = httpCategoriesContent.content();
+                byte[] jsonCategoriesByte = new byte[categoriesBody.readableBytes()];
+                categoriesBody.readBytes(jsonCategoriesByte);
+                categories = mapper.readValue(
+                        jsonCategoriesByte,
+                        new TypeReference<List<Category>>(){}
                 );
-                cartItems.add(item);
-                // TODO: Filter products with recommendations
-                List<String> productImages = new ArrayList<String>();
-                // TODO: other requests
-                request.setUri(authEndpoint);
-                httpClient = new HttpClient(gatewayHost, authPort, request);
+            }
+            // Create cart items
+            List<CartItem> cartItems = new ArrayList<>();
+            for(OrderItem item : orderItems) {
+                Long productId = item.productId();
+                cartItems.add(new CartItem(
+                        productId,
+                        products.get(productId).name(),
+                        products.get(productId).description(),
+                        item.quantity(),
+                        item.unitPriceInCents(),
+                        item.quantity() * item.unitPriceInCents(),
+                        "/api/web/cartaction/removeproduct?productId=" + productId
+                ));
+            }
+            // Create product view with recommendations = advertisements
+            List<ProductView> advertisements = new ArrayList<>();
+            List<Product> recommendedProducts = new ArrayList<>();
+            List<Long> productIds = new ArrayList<>();
+            String orderItemsJson = mapper.writeValueAsString(orderItems);
+            FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    GET,
+                    recommenderEndpoint + "?userid=" + sessionData.userId(),
+                    Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
+            );
+            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemsRequest);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpProductIdsContent) {
+                ByteBuf productIdsBody = httpProductIdsContent.content();
+                byte[] jsonProductIdsByte = new byte[productIdsBody.readableBytes()];
+                productIdsBody.readBytes(jsonProductIdsByte);
+                productIds = mapper.readValue(
+                        jsonProductIdsByte,
+                        new TypeReference<List<Long>>(){}
+                );
+            }
+            // Get product images
+            Map<Long, String> productImageSizeMap = new HashMap<>();
+            Map<Long, String> productImageDataMap = new HashMap<>();
+            String imageProductCartSize = ImageSizePreset.PREVIEW.getSize().toString();
+            // Get recommended products
+            for (Long productId : productIds) {
+                productImageSizeMap.put(productId, imageProductCartSize);
+                //
+                request.setUri(persistenceEndpointProducts + "?id=" + productId);
+                // Create client and send request
+                httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                String json = "{}";
-                boolean isLoggedIn = false;
-                if (handler.response instanceof HttpResponse response) {
-                    // Check if user is logged in
-                    isLoggedIn = response.status() == OK;
+                if (handler.response instanceof HttpContent httpProductContent) {
+                    ByteBuf productBody = httpProductContent.content();
+                    byte[] jsonProductByte = new byte[productBody.readableBytes()];
+                    productBody.readBytes(jsonProductByte);
+                    recommendedProducts.add(mapper.readValue(jsonProductByte, Product.class));
                 }
-                String updateCart = "/api/web/cartaction/updatecartquantities";
-                String proceedToCheckout = "/api/web/cartaction/proceedtocheckout";
-                CartPageView view = new CartPageView(
-                        // TODO: ByteBuf imageData = httpContent.content();
-                        "STOREICON",
-                        "Shopping Cart",
-                        // TODO
-                        new ArrayList<>(),
-                        cartItems,
-                        // TODO
-                        new ArrayList<>(),
-                        /*
-                        mapper.readValue(
-                                getPersistenceCategories(),
-                                new TypeReference<List<Category>>(){}
-                        ),
-                        cartItems,
-                        mapper.readValue(
-                                getRecommendations(),
-                                new TypeReference<List<ProductView>>(){}
-                        ), */
-                        productImages,
-                        updateCart,
-                        proceedToCheckout
-                );
-                json = mapper.writeValueAsString(view);
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-                );
-            } else {
-                return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
             }
+            String productImageSizeMapJson = mapper.writeValueAsString(productImageSizeMap);
+            postImageRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    POST,
+                    imageEndpointProduct,
+                    Unpooled.copiedBuffer(productImageSizeMapJson, CharsetUtil.UTF_8)
+            );
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, postImageRequest);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpImageContent) {
+                ByteBuf imageBody = httpImageContent.content();
+                byte[] jsonImageByte = new byte[imageBody.readableBytes()];
+                imageBody.readBytes(jsonImageByte);
+                productImageDataMap = mapper.readValue(
+                        jsonImageByte,
+                        new TypeReference<Map<Long, String>>(){}
+                );
+            }
+            //
+            for (Product product : recommendedProducts) {
+                Long productId = product.id();
+                advertisements.add(
+                        new ProductView(
+                                productId,
+                                product.categoryId(),
+                                productImageDataMap.get(productId),
+                                product.name(),
+                                product.listPriceInCents(),
+                                product.description(),
+                                "/api/web/cartaction/addtocart?productId=" + product.id()
+                        )
+                );
+            }
+
+            // Check login
+            request.setUri(authEndpoint);
+            httpClient = new HttpClient(gatewayHost, authPort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            SessionData newSessionData = null;
+            if (handler.response instanceof HttpContent httpSessionDataContent) {
+                ByteBuf sessionDataBody = httpSessionDataContent.content();
+                byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                sessionDataBody.readBytes(jsonSessionDataByte);
+                newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+            }
+            String title = "TeaStore Cart";
+            String updateCart = "/api/web/cartaction/updatecartquantities";
+            String proceedToCheckout = "/api/web/cartaction/proceedtocheckout";
+            CartPageView view = new CartPageView(
+                    webImageDataMap.get("icon"),
+                    title,
+                    categories,
+                    cartItems,
+                    advertisements,
+                    updateCart,
+                    proceedToCheckout
+            );
+            String json = mapper.writeValueAsString(view);
+            FullHttpResponse response = new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -585,6 +706,9 @@ public class WebAPI implements API {
      * @return Database page view as JSON
      */
     private FullHttpResponse databaseView() {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
+        // TODO: Get store icon
         DatabasePageView view = new DatabasePageView(
                 "STOREICON",
                 "Setup the Database",
@@ -614,6 +738,8 @@ public class WebAPI implements API {
      * @return Error page view as JSON
      */
     private FullHttpResponse errorView() {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // TODO: Persistence, image and auth service calls
         ErrorPageView view = new ErrorPageView(
                 "STOREICON",
@@ -642,6 +768,8 @@ public class WebAPI implements API {
      * @return Index page view as JSON
      */
     private FullHttpResponse indexView() {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // TODO: Persistence, image and auth service calls
         try {
             IndexPageView view = new IndexPageView(
@@ -731,6 +859,8 @@ public class WebAPI implements API {
      * @return Login page view as JSON
      */
     private FullHttpResponse loginView() {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // TODO: Persistence, image and auth service calls
         try {
             LoginPageView view = new LoginPageView(
@@ -767,6 +897,8 @@ public class WebAPI implements API {
      * @return Order page view as JSON
      */
     private FullHttpResponse orderView(SessionData sessionData) {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // TODO: Persistence, image and auth service calls
         try {
             long id = 1L;
@@ -819,6 +951,8 @@ public class WebAPI implements API {
      * @return Product page view as JSON
      */
     private FullHttpResponse productView(SessionData sessionData, String productId) {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // TODO: Persistence, image and auth service calls
         try {
             long id = 4L;
@@ -870,6 +1004,8 @@ public class WebAPI implements API {
      * @return Profile page view as JSON
      */
     private FullHttpResponse profileView(SessionData sessionData) {
+        // GET api/image/getWebImages
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // TODO: Persistence, image and auth service calls
         try {
             long id = 1L;
