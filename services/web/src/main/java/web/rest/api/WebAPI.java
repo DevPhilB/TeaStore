@@ -13,14 +13,11 @@
  */
 package web.rest.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.enumeration.ImageSizePreset;
@@ -29,8 +26,7 @@ import utilities.rest.api.CookieUtil;
 import utilities.rest.client.HttpClient;
 import utilities.rest.client.HttpClientHandler;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -71,7 +67,7 @@ public class WebAPI implements API {
         this.persistencePort = 80;
         this.request = new DefaultFullHttpRequest(
                 this.httpVersion,
-                HttpMethod.GET,
+                GET,
                 "",
                 Unpooled.EMPTY_BUFFER
         );
@@ -146,23 +142,23 @@ public class WebAPI implements API {
                                 Integer products = Integer.parseInt(params.get("products").get(0));
                                 Integer users = Integer.parseInt(params.get("users").get(0));
                                 Integer orders = Integer.parseInt(params.get("orders").get(0));
-                                return databaseAction(categories, products, users, orders);
+                                return databaseAction(sessionData, categories, products, users, orders);
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
                         case "/database":
                             return databaseView();
                         case "/error":
-                            return errorView();
+                            return errorView(sessionData);
                         case "/index":
-                            return indexView();
+                            return indexView(sessionData);
                         case "/login":
-                            return loginView();
+                            return loginView(sessionData);
                         case "/order":
                             return orderView(sessionData);
                         case "/product":
                             if (params.containsKey("id")) {
-                                return productView(sessionData, params.get("id").get(0));
+                                return productView(sessionData, Long.parseLong(params.get("id").get(0)));
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
@@ -186,6 +182,107 @@ public class WebAPI implements API {
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
     }
+
+    //
+    // Helper methods
+    //
+
+    private Map<String, String> getWebImages(
+            String imageEndpoint,
+            Map<String, String> imageSizeMap
+            ) throws IOException {
+        Map<String, String> imageWebDataMap = new HashMap<>();
+        String json = mapper.writeValueAsString(imageSizeMap);
+        FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                request.protocolVersion(),
+                POST,
+                imageEndpoint,
+                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+        );
+        // Create client and send request
+        httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
+        handler = new HttpClientHandler();
+        httpClient.sendRequest(handler);
+        if (handler.response instanceof HttpContent httpImageContent) {
+            ByteBuf imageBody = httpImageContent.content();
+            byte[] jsonImageByte = new byte[imageBody.readableBytes()];
+            imageBody.readBytes(jsonImageByte);
+            imageWebDataMap = mapper.readValue(
+                    jsonImageByte,
+                    new TypeReference<Map<String, String>>(){}
+            );
+        }
+        return imageWebDataMap;
+    }
+
+    private Map<Long, String> getProductImages(
+            String imageEndpoint,
+            Map<Long, String> imageSizeMap
+    ) throws IOException {
+        Map<Long, String> imageProductDataMap = new HashMap<>();
+        String json = mapper.writeValueAsString(imageSizeMap);
+        FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                request.protocolVersion(),
+                POST,
+                imageEndpoint,
+                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+        );
+        // Create client and send request
+        httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
+        handler = new HttpClientHandler();
+        httpClient.sendRequest(handler);
+        if (handler.response instanceof HttpContent httpImageContent) {
+            ByteBuf imageBody = httpImageContent.content();
+            byte[] jsonImageByte = new byte[imageBody.readableBytes()];
+            imageBody.readBytes(jsonImageByte);
+            imageProductDataMap = mapper.readValue(
+                    jsonImageByte,
+                    new TypeReference<Map<Long, String>>(){}
+            );
+        }
+        return imageProductDataMap;
+    }
+
+    private List<Category> getCategories(String persistenceEndpointCategories) throws IOException {
+        List<Category> categories = new ArrayList<>();
+        request.setUri(persistenceEndpointCategories);
+        request.setMethod(GET);
+        // Create client and send request
+        httpClient = new HttpClient(gatewayHost, persistencePort, request);
+        handler = new HttpClientHandler();
+        httpClient.sendRequest(handler);
+        if (handler.response instanceof HttpContent httpCategoriesContent) {
+            ByteBuf categoriesBody = httpCategoriesContent.content();
+            byte[] jsonCategoriesByte = new byte[categoriesBody.readableBytes()];
+            categoriesBody.readBytes(jsonCategoriesByte);
+            categories = mapper.readValue(
+                    jsonCategoriesByte,
+                    new TypeReference<List<Category>>(){}
+            );
+        }
+        return categories;
+    }
+
+    private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
+        request.setUri(authEndpoint);
+        request.setMethod(GET);
+        request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+        httpClient = new HttpClient(gatewayHost, authPort, request);
+        handler = new HttpClientHandler();
+        httpClient.sendRequest(handler);
+        SessionData newSessionData = null;
+        if (handler.response instanceof HttpContent httpSessionDataContent) {
+            ByteBuf sessionDataBody = httpSessionDataContent.content();
+            byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+            sessionDataBody.readBytes(jsonSessionDataByte);
+            newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+        }
+        return newSessionData;
+    }
+
+    //
+    // Endpoint methods
+    //
 
     /**
      * GET /ready
@@ -219,61 +316,40 @@ public class WebAPI implements API {
             imageSizeMap.put("norbertSchmitt", imagePortraitSize);
             imageSizeMap.put("samuelKounev", imagePortraitSize);
             imageSizeMap.put("descartesLogo", imageLogoSize);
-            String json = mapper.writeValueAsString(imageSizeMap);
-            FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    POST,
-                    imageEndpoint,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            Map<String, String> imageDataMap = getWebImages(imageEndpoint, imageSizeMap);
+            String storeIcon = imageDataMap.remove("icon");
+            String descartesLogo = imageDataMap.remove("descartesLogo");
+            String title = "TeaStore About Us";
+            String descartesDescription = "We are part of the Descartes Research Group:";
+            String description = "Our research is aimed at developing novel methods, ...";
+            AboutPageView view = new AboutPageView(
+                    storeIcon,
+                    title,
+                    imageDataMap,
+                    descartesDescription,
+                    descartesLogo,
+                    description
             );
-            // Create client and send request
-            httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
+            request.setUri(authEndpoint);
+            request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+            request.setMethod(GET);
+            httpClient = new HttpClient(gatewayHost, authPort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpImageContent) {
-                ByteBuf imageBody = httpImageContent.content();
-                byte[] jsonImageByte = new byte[imageBody.readableBytes()];
-                imageBody.readBytes(jsonImageByte);
-                Map<String, String> imageDataMap = mapper.readValue(
-                        jsonImageByte,
-                        new TypeReference<Map<String, String>>(){}
-                );
-                String storeIcon = imageDataMap.remove("icon");
-                String descartesLogo = imageDataMap.remove("descartesLogo");
-                String title = "TeaStore About Us";
-                String descartesDescription = "We are part of the Descartes Research Group:";
-                String description = "Our research is aimed at developing novel methods, ...";
-                AboutPageView view = new AboutPageView(
-                        storeIcon,
-                        title,
-                        imageDataMap,
-                        descartesDescription,
-                        descartesLogo,
-                        description
-                );
-                request.setUri(authEndpoint);
-                request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
-                request.setMethod(GET);
-                httpClient = new HttpClient(gatewayHost, authPort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
-                json = mapper.writeValueAsString(view);
-                DefaultFullHttpResponse response = new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-                );
-                if (handler.response instanceof HttpContent httpSessionDataContent) {
-                    ByteBuf sessionDataBody = httpSessionDataContent.content();
-                    byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                    sessionDataBody.readBytes(jsonSessionDataByte);
-                    SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
-                    response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
-                }
-                return response;
-            } else {
-                return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+            String json = mapper.writeValueAsString(view);
+            DefaultFullHttpResponse response = new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+            if (handler.response instanceof HttpContent httpSessionDataContent) {
+                ByteBuf sessionDataBody = httpSessionDataContent.content();
+                byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                sessionDataBody.readBytes(jsonSessionDataByte);
+                SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
             }
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -301,7 +377,7 @@ public class WebAPI implements API {
             request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
             switch (name) {
                 case "addtocart":
-                    request.setMethod(HttpMethod.POST);
+                    request.setMethod(POST);
                     request.setUri(authEndpointAdd);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
@@ -312,7 +388,7 @@ public class WebAPI implements API {
                         newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
                 case "removeproduct":
-                    request.setMethod(HttpMethod.POST);
+                    request.setMethod(POST);
                     request.setUri(authEndpointRemove);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
@@ -323,7 +399,7 @@ public class WebAPI implements API {
                         newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
                 case "updatecartquantities":
-                    request.setMethod(HttpMethod.PUT);
+                    request.setMethod(PUT);
                     request.setUri(authEndpointUpdate);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
@@ -334,7 +410,7 @@ public class WebAPI implements API {
                         newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
                 case "proceedtocheckout":
-                    request.setMethod(HttpMethod.GET);
+                    request.setMethod(GET);
                     request.setUri(authEndpointCheck);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
@@ -344,7 +420,7 @@ public class WebAPI implements API {
                         sessionDataBody.readBytes(jsonSessionDataByte);
                         newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     } else {
-                        return loginView();
+                        return loginView(sessionData);
                     }
             }
             FullHttpResponse response = cartView(newSessionData);
@@ -367,7 +443,7 @@ public class WebAPI implements API {
         // POST /api/auth/useractions/placeorder
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
-            request.setMethod(HttpMethod.POST);
+            request.setMethod(POST);
             request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
             // Create client and send request
             FullHttpRequest postRequest = new DefaultFullHttpRequest(
@@ -439,46 +515,11 @@ public class WebAPI implements API {
             }
             // Get store icon
             Map<String, String> webImageSizeMap = new HashMap<>();
-            Map<String, String> webImageDataMap = new HashMap<>();
-            String imageLogoSize = ImageSizePreset.LOGO.getSize().toString();
-            webImageSizeMap.put("icon", imageLogoSize);
-            String webImageSizeMapJson = mapper.writeValueAsString(webImageSizeMap);
-            FullHttpRequest postImageRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    POST,
-                    imageEndpointWeb,
-                    Unpooled.copiedBuffer(webImageSizeMapJson, CharsetUtil.UTF_8)
-            );
-            // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, postImageRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpImageContent) {
-                ByteBuf imageBody = httpImageContent.content();
-                byte[] jsonImageByte = new byte[imageBody.readableBytes()];
-                imageBody.readBytes(jsonImageByte);
-                webImageDataMap = mapper.readValue(
-                        jsonImageByte,
-                        new TypeReference<Map<String, String>>(){}
-                );
-            }
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
             // Get categories
-            List<Category> categories = new ArrayList<>();
-            request.setUri(persistenceEndpointCategories);
-            request.setMethod(GET);
-            // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpCategoriesContent) {
-                ByteBuf categoriesBody = httpCategoriesContent.content();
-                byte[] jsonCategoriesByte = new byte[categoriesBody.readableBytes()];
-                categoriesBody.readBytes(jsonCategoriesByte);
-                categories = mapper.readValue(
-                        jsonCategoriesByte,
-                        new TypeReference<List<Category>>(){}
-                );
-            }
+            List<Category> categories = getCategories(persistenceEndpointCategories);
             // Create cart items
             List<CartItem> cartItems = new ArrayList<>();
             for(OrderItem item : orderItems) {
@@ -518,11 +559,10 @@ public class WebAPI implements API {
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
-            Map<Long, String> productImageDataMap = new HashMap<>();
-            String imageProductCartSize = ImageSizePreset.PREVIEW.getSize().toString();
+            String imageProductPreviewSize = ImageSizePreset.PREVIEW.getSize().toString();
             // Get recommended products
             for (Long productId : productIds) {
-                productImageSizeMap.put(productId, imageProductCartSize);
+                productImageSizeMap.put(productId, imageProductPreviewSize);
                 //
                 request.setUri(persistenceEndpointProducts + "?id=" + productId);
                 // Create client and send request
@@ -536,27 +576,8 @@ public class WebAPI implements API {
                     recommendedProducts.add(mapper.readValue(jsonProductByte, Product.class));
                 }
             }
-            String productImageSizeMapJson = mapper.writeValueAsString(productImageSizeMap);
-            postImageRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    POST,
-                    imageEndpointProduct,
-                    Unpooled.copiedBuffer(productImageSizeMapJson, CharsetUtil.UTF_8)
-            );
-            // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, postImageRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpImageContent) {
-                ByteBuf imageBody = httpImageContent.content();
-                byte[] jsonImageByte = new byte[imageBody.readableBytes()];
-                imageBody.readBytes(jsonImageByte);
-                productImageDataMap = mapper.readValue(
-                        jsonImageByte,
-                        new TypeReference<Map<Long, String>>(){}
-                );
-            }
-            //
+            Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
+            // Create product views
             for (Product product : recommendedProducts) {
                 Long productId = product.id();
                 advertisements.add(
@@ -571,19 +592,8 @@ public class WebAPI implements API {
                         )
                 );
             }
-
             // Check login
-            request.setUri(authEndpoint);
-            httpClient = new HttpClient(gatewayHost, authPort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            SessionData newSessionData = null;
-            if (handler.response instanceof HttpContent httpSessionDataContent) {
-                ByteBuf sessionDataBody = httpSessionDataContent.content();
-                byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                sessionDataBody.readBytes(jsonSessionDataByte);
-                newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
-            }
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             String title = "TeaStore Cart";
             String updateCart = "/api/web/cartaction/updatecartquantities";
             String proceedToCheckout = "/api/web/cartaction/proceedtocheckout";
@@ -624,44 +634,111 @@ public class WebAPI implements API {
                                           Integer productQuantity,
                                           Integer page)
     {
-        // GET api/persistence/categories
-        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories"; // categoryList
-        // GET api/persistence/products
-        String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // 2x products
-        // GET api/image/getProductImages
-        String imageEndpointProduct = IMAGE_ENDPOINT + "/productimages"; // productImages
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?id=" + id;
+        // GET api/persistence/products
+        String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products";
+        String persistenceEndpointCategoryProducts = PERSISTENCE_ENDPOINT + "/products?category=" + id;
+        // GET api/image/getProductImages
+        String imageEndpointProduct = IMAGE_ENDPOINT + "/productimages"; // productImages
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin"; // isLoggedIn
         try {
-            // TODO: IMPLEMENT
-            request.setUri(persistenceEndpointCategories);
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+            // Get categories
+            List<Category> categories = getCategories(persistenceEndpointCategories);
+            // Get number of all products
+            int products = 0;
+            request.setUri(persistenceEndpointProducts);
+            request.setMethod(GET);
             // Create client and send request
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpContent) {
-                // TODO: Replace with service calls
-                String json = null;
-                // TODO: other requests
-                request.setUri(persistenceEndpointProducts);
-                httpClient = new HttpClient(gatewayHost, authPort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
-                // String json = "{}";
-                boolean isLoggedIn = false;
-                if (handler.response instanceof HttpResponse response) {
-                    // Check if user is logged in
-                    isLoggedIn = response.status() == OK;
-                }
-                // json = mapper.writeValueAsString(view);
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-                );
-            } else {
-                return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+            if (handler.response instanceof HttpContent httpProductsContent) {
+                ByteBuf productsBody = httpProductsContent.content();
+                byte[] jsonProductsByte = new byte[productsBody.readableBytes()];
+                productsBody.readBytes(jsonProductsByte);
+                products = mapper.readValue(
+                        jsonProductsByte,
+                        new TypeReference<List<Product>>(){}
+                ).size();
             }
+            // Check page number
+            int maxPages = (int) Math.ceil(((double) products) / productQuantity);
+            if (maxPages <= page) {
+                page = maxPages;
+            }
+            // Get products for this category
+            persistenceEndpointCategoryProducts += "&start=" +
+                    (page - 1) * productQuantity + "&max=" + productQuantity;
+            List<Product> productList = new ArrayList<>();
+            request.setUri(persistenceEndpointCategoryProducts);
+            request.setMethod(GET);
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpProductsContent) {
+                ByteBuf productsBody = httpProductsContent.content();
+                byte[] jsonProductsByte = new byte[productsBody.readableBytes()];
+                productsBody.readBytes(jsonProductsByte);
+                productList = mapper.readValue(
+                        jsonProductsByte,
+                        new TypeReference<List<Product>>(){}
+                );
+            }
+            // Get product images
+            Map<Long, String> productImageSizeMap = new HashMap<>();
+            String imageProductCategorySize = ImageSizePreset.ICON.getSize().toString();
+            for (Product product : productList) {
+                productImageSizeMap.put(product.id(), imageProductCategorySize);
+            }
+            Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
+            // Create productViews
+            List<ProductView> productViews = new ArrayList<>();
+            for (Product product : productList) {
+                Long productId = product.id();
+                productViews.add(
+                        new ProductView(
+                                productId,
+                                product.categoryId(),
+                                productImageDataMap.get(productId),
+                                product.name(),
+                                product.listPriceInCents(),
+                                product.description(),
+                                "/api/web/cartaction/addtocart?productId=" + product.id()
+                        )
+                );
+            }
+            // Create category page view
+            String title = "TeaStore Categorie " + categories.get(id.intValue()).name();
+            CategoryPageView view = new CategoryPageView(
+                    webImageDataMap.get("icon"),
+                    title,
+                    categories,
+                    productViews,
+                    page,
+                    productQuantity
+            );
+            String json = mapper.writeValueAsString(view);
+            FullHttpResponse response = new DefaultFullHttpResponse(
+                    httpVersion,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+            );
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -675,7 +752,7 @@ public class WebAPI implements API {
      *
      * @return Index page view as JSON
      */
-    private FullHttpResponse databaseAction(int categories, Integer products, Integer users, Integer orders) {
+    private FullHttpResponse databaseAction(SessionData sessionData, int categories, Integer products, Integer users, Integer orders) {
         // GET api/persistence/generatedb
         String authEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
                 "?categories=" + categories + "&products=" + products +
@@ -688,7 +765,7 @@ public class WebAPI implements API {
             httpClient.sendRequest(handler);
             if (handler.response instanceof HttpResponse response) {
                 // And return to index view
-                return indexView();
+                return indexView(sessionData);
             } else {
                 return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
             }
@@ -708,23 +785,28 @@ public class WebAPI implements API {
     private FullHttpResponse databaseView() {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Get store icon
-        DatabasePageView view = new DatabasePageView(
-                "STOREICON",
-                "Setup the Database",
-                5,
-                100,
-                100,
-                5
-        );
         try {
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+            // Create database page view
+            DatabasePageView view = new DatabasePageView(
+                    webImageDataMap.get("icon"),
+                    "Setup the Database",
+                    5,
+                    100,
+                    100,
+                    5
+            );
             String json = mapper.writeValueAsString(view);
             return new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
@@ -737,24 +819,39 @@ public class WebAPI implements API {
      *
      * @return Error page view as JSON
      */
-    private FullHttpResponse errorView() {
+    private FullHttpResponse errorView(SessionData sessionData) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Persistence, image and auth service calls
-        ErrorPageView view = new ErrorPageView(
-                "STOREICON",
-                "Oops, something went wrong!",
-                "ERRORIMAGE",
-                "/api/web/index"
-        );
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            String imageErrorSize = ImageSizePreset.ERROR.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            webImageSizeMap.put("error", imageErrorSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+            // Create error page view
+            ErrorPageView view = new ErrorPageView(
+                    webImageDataMap.get("icon"),
+                    "Oops, something went wrong!",
+                    webImageDataMap.get("error"),
+                    "/api/web/index"
+            );
             String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
+            FullHttpResponse response = new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
-        } catch (JsonProcessingException e) {
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
@@ -767,30 +864,45 @@ public class WebAPI implements API {
      *
      * @return Index page view as JSON
      */
-    private FullHttpResponse indexView() {
+    private FullHttpResponse indexView(SessionData sessionData) {
         // GET api/image/getWebImages
-        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Persistence, image and auth service calls
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages";
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?start=-1&max=-1";
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
+            // Get store icon
+            Map<String, String> webImageIconSizeMap = new HashMap<>();
+            Map<String, String> webImageIndexSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            String imageIndexSize = ImageSizePreset.INDEX.getSize().toString();
+            webImageIconSizeMap.put("icon", imageIconSize);
+            webImageIndexSizeMap.put("icon", imageIndexSize);
+            Map<String, String> webImageIconDataMap = getWebImages(imageEndpointWeb, webImageIconSizeMap);
+            Map<String, String> webImageIndexDataMap = getWebImages(imageEndpointWeb, webImageIndexSizeMap);
+            // Get categories
+            List<Category> categories = getCategories(persistenceEndpointCategories);
+            // Create index page view
             IndexPageView view = new IndexPageView(
-                    "STOREICON",
-                    "",
-                    new ArrayList<>(),
-                    // TODO
-                    /*
-                    mapper.readValue(
-                            getPersistenceCategories(),
-                            new TypeReference<List<Category>>(){}
-                    ), */
-                    "LARGESTOREICON"
+                    webImageIconDataMap.get("icon"),
+                    "TeaStore Home",
+                    categories,
+                    webImageIndexDataMap.get("icon")
             );
             String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
+            FullHttpResponse response = new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
-        } catch (JsonProcessingException e) {
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
@@ -808,43 +920,54 @@ public class WebAPI implements API {
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         //
-        String authEndpointLogin = AUTH_ENDPOINT + "/useractions/login"; // POST
+        String authEndpointLogin = AUTH_ENDPOINT + "/useractions/login?name="; // POST
         String authEndpointLogout = AUTH_ENDPOINT + "/useractions/logout"; // POST
         try {
             action = mapper.readValue(jsonByte, LoginAction.class);
-            request.setMethod(HttpMethod.POST);
-            switch(action.name()) {
+            FullHttpRequest postRequest = null;
+            SessionData newSessionData = null;
+            switch (action.name()) {
                 case "login":
+                    authEndpointLogin += action.username() + "&password=" + action.password();
                     // Create client and send request
-                    FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                    postRequest = new DefaultFullHttpRequest(
                             request.protocolVersion(),
-                            request.method(),
+                            POST,
                             authEndpointLogin,
                             body
                     );
+                    postRequest.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
                     httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() != OK) {
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
-                        // TODO: Save login state?
+                    if (handler.response instanceof HttpContent httpSessionDataContent) {
+                        ByteBuf sessionDataBody = httpSessionDataContent.content();
+                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                        sessionDataBody.readBytes(jsonSessionDataByte);
+                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
+                    return profileView(newSessionData);
                 case "logout":
-                    request.setUri(authEndpointLogout);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                    postRequest = new DefaultFullHttpRequest(
+                            request.protocolVersion(),
+                            POST,
+                            authEndpointLogout,
+                            body
+                    );
+                    postRequest.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+                    httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() != OK) {
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
+                    if (handler.response instanceof HttpContent httpSessionDataContent) {
+                        ByteBuf sessionDataBody = httpSessionDataContent.content();
+                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
+                        sessionDataBody.readBytes(jsonSessionDataByte);
+                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
                     }
+                    return indexView(newSessionData);
             }
-            // And return cart view
-            return indexView(); // TODO: Return to previous site
+            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -858,31 +981,43 @@ public class WebAPI implements API {
      *
      * @return Login page view as JSON
      */
-    private FullHttpResponse loginView() {
+    private FullHttpResponse loginView(SessionData sessionData) {
         // GET api/image/getWebImages
-        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Persistence, image and auth service calls
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages";
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?start=-1&max=-1";
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+            // Get categories
+            List<Category> categories = getCategories(persistenceEndpointCategories);
+            // Create login page view
             LoginPageView view = new LoginPageView(
-                    "STOREICON",
+                    webImageSizeMap.get("icon"),
                     "Login",
-                    new ArrayList<>(),
-//                    mapper.readValue(
-//                            getPersistenceCategories(),
-//                            new TypeReference<List<Category>>(){}
-//                    ),
+                    categories,
                     "Please enter your username and password.",
                     "",
                     "",
-                    "/api/web/loginaction/login",
-                    "referer"
+                    "/api/web/loginaction/login?name=USERNAME&password=PASSWORD"
             );
             String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
+            FullHttpResponse response = new DefaultFullHttpResponse(
                     httpVersion,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -899,44 +1034,44 @@ public class WebAPI implements API {
     private FullHttpResponse orderView(SessionData sessionData) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Persistence, image and auth service calls
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?start=-1&max=-1";
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
-            long id = 1L;
-            Order order = new Order(
-                    id,
-                    id + 1L,
-                    "2021-03-23 13:17:00",
-                    100000L,
-                    "John Snow",
-                    "Winterfell",
-                    "1111 The North, Westeros",
-                    "Visa",
-                    "31459265359",
-                    "12/2025"
-            );
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+            // Get categories
+            List<Category> categories = getCategories(persistenceEndpointCategories);
+            // Get order page view
             OrderPageView view = new OrderPageView(
-                    "STOREICON",
-                    "Order",
-                    new ArrayList<>(),
-//                    mapper.readValue(
-//                            getPersistenceCategories(),
-//                            new TypeReference<List<Category>>(){}
-//                    ),
-                    order.addressName().split("")[0],
-                    order.addressName().split("")[1],
-                    order.address1(),
-                    order.address2(),
-                    order.creditCardCompany(),
-                    order.creditCardNumber(),
-                    order.creditCardExpiryDate(),
+                    webImageSizeMap.get("icon"),
+                    "TeaStore Order",
+                    categories,
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
                     "/api/web/cartaction/proceedtocheckout"
             );
             String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
+            FullHttpResponse response = new DefaultFullHttpResponse(
                     httpVersion,
-                    OK,
+                    HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -950,46 +1085,136 @@ public class WebAPI implements API {
      *
      * @return Product page view as JSON
      */
-    private FullHttpResponse productView(SessionData sessionData, String productId) {
+    private FullHttpResponse productView(SessionData sessionData, Long productId) {
         // GET api/image/getWebImages
-        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Persistence, image and auth service calls
+        String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages";
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?start=-1&max=-1";
+        // GET api/persistence/products
+        String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products";
+        // GET api/image/getProductImages
+        String imageEndpointProduct = IMAGE_ENDPOINT + "/productimages";
+        // POST /api/recommender/recommend
+        String recommenderEndpoint = RECOMMENDER_ENDPOINT + "/recommend";
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
-            long id = 4L;
-            String addToCart = "/api/web/cartaction/addtocart?productId=" + id;
-            ProductView product = new ProductView(
-                    id,
-                    1L,
-                    "PRODUCTFOUR",
-                    "Product 4",
-                    150L,
-                    "Product 4 description",
+            // Get store icon
+            Map<String, String> webImageSizeMap = new HashMap<>();
+            String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+            webImageSizeMap.put("icon", imageIconSize);
+            Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+            // Get categories
+            List<Category> categories = getCategories(persistenceEndpointCategories);
+            // Get product
+            Product product = null;
+            request.setUri(persistenceEndpointProducts + "?id=" + productId);
+            request.setMethod(GET);
+            // Create client and send request
+            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpProductContent) {
+                ByteBuf productBody = httpProductContent.content();
+                byte[] jsonProductByte = new byte[productBody.readableBytes()];
+                productBody.readBytes(jsonProductByte);
+                product = mapper.readValue(jsonProductByte, Product.class);
+            }
+            // Get product images
+            Map<Long, String> productImageSizeMap = new HashMap<>();
+            String imageProductFullSize = ImageSizePreset.FULL.getSize().toString();
+            productImageSizeMap.put(productId, imageProductFullSize);
+            Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
+            // Create product view
+            String addToCart = "/api/web/cartaction/addtocart?productId=" + productId;
+            ProductView productView = new ProductView(
+                    productId,
+                    product.categoryId(),
+                    productImageDataMap.get(productId),
+                    product.name(),
+                    product.listPriceInCents(),
+                    product.description(),
                     addToCart
             );
+            // Create product view with recommendations = advertisements
+            List<ProductView> advertisements = new ArrayList<>();
+            List<OrderItem> orderItems = sessionData.orderItems();
+            List<Product> recommendedProducts = new ArrayList<>();
+            List<Long> productIds = new ArrayList<>();
+            String orderItemsJson = mapper.writeValueAsString(orderItems);
+            FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    GET,
+                    recommenderEndpoint + "?userid=" + sessionData.userId(),
+                    Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
+            );
+            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemsRequest);
+            handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
+            if (handler.response instanceof HttpContent httpProductIdsContent) {
+                ByteBuf productIdsBody = httpProductIdsContent.content();
+                byte[] jsonProductIdsByte = new byte[productIdsBody.readableBytes()];
+                productIdsBody.readBytes(jsonProductIdsByte);
+                productIds = mapper.readValue(
+                        jsonProductIdsByte,
+                        new TypeReference<List<Long>>(){}
+                );
+            }
+            // Get product images
+            productImageSizeMap = new HashMap<>();
+            String imageProductPreviewSize = ImageSizePreset.PREVIEW.getSize().toString();
+            // Get recommended products
+            for (Long id : productIds) {
+                productImageSizeMap.put(id, imageProductPreviewSize);
+                //
+                request.setUri(persistenceEndpointProducts + "?id=" + id);
+                // Create client and send request
+                httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                if (handler.response instanceof HttpContent httpProductContent) {
+                    ByteBuf productBody = httpProductContent.content();
+                    byte[] jsonProductByte = new byte[productBody.readableBytes()];
+                    productBody.readBytes(jsonProductByte);
+                    recommendedProducts.add(mapper.readValue(jsonProductByte, Product.class));
+                }
+            }
+            productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
+            // Create product views
+            for (Product recommendedProduct : recommendedProducts) {
+                Long id = recommendedProduct.id();
+                advertisements.add(
+                        new ProductView(
+                                id,
+                                recommendedProduct.categoryId(),
+                                productImageDataMap.get(id),
+                                recommendedProduct.name(),
+                                recommendedProduct.listPriceInCents(),
+                                recommendedProduct.description(),
+                                "/api/web/cartaction/addtocart?productId=" + id
+                        )
+                );
+            }
+            // Create product page view
             ProductPageView view = new ProductPageView(
-                    "STOREICON",
-                    "Order",
-                    // TODO
-                    new ArrayList<>(),
-                    product,
-                    new ArrayList<>()
-                    /*
-                    mapper.readValue(
-                            getPersistenceCategories(),
-                            new TypeReference<List<Category>>(){}
-                    ),
-                    product,
-                    mapper.readValue(
-                            getRecommendations(),
-                            new TypeReference<List<ProductView>>(){}
-                    ) */
+                    webImageSizeMap.get("icon"),
+                    "TeaStore Product",
+                    categories,
+                    productView,
+                    advertisements
             );
             String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
+            FullHttpResponse response = new DefaultFullHttpResponse(
                     httpVersion,
-                    OK,
+                    HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if(newSessionData != null) {
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            }
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1004,43 +1229,88 @@ public class WebAPI implements API {
      * @return Profile page view as JSON
      */
     private FullHttpResponse profileView(SessionData sessionData) {
+        // GET /api/auth/useractions/isloggedin
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
-        // TODO: Persistence, image and auth service calls
+        // GET api/persistence/categories
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?start=-1&max=-1";
+        // GET api/persistence/users
+        String persistenceEndpointUsers = PERSISTENCE_ENDPOINT + "/users?id=";
+        // GET api/persistence/users
+        String persistenceEndpointUserOrders = PERSISTENCE_ENDPOINT + "/orders?userid=";
         try {
-            long id = 1L;
-            String addToCart = "/api/web/cartaction/addtocart?productId=" + id;
-            User user = new User(
-                    id,
-                    "jsnow",
-                    "secret",
-                    "John Snow",
-                    "jsnow@teastorev2.com"
-            );
-            ProfilePageView view = new ProfilePageView(
-                    "STOREICON",
-                    "Order",
-                    // TODO
-                    new ArrayList<>(),
-                    user,
-                    new ArrayList<>()
-                    /*
-                    mapper.readValue(
-                            getPersistenceCategories(),
-                            new TypeReference<List<Category>>(){}
-                    ),
-                    user,
-                    mapper.readValue(
-                            getPersistencePreviousOrder(),
-                            new TypeReference<List<PreviousOrder>>(){}
-                    ) */
-            );
-            String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if (newSessionData == null) {
+                return loginView(sessionData);
+            } else {
+                // Get store icon
+                Map<String, String> webImageSizeMap = new HashMap<>();
+                String imageIconSize = ImageSizePreset.ICON.getSize().toString();
+                webImageSizeMap.put("icon", imageIconSize);
+                Map<String, String> webImageDataMap = getWebImages(imageEndpointWeb, webImageSizeMap);
+                // Get categories
+                List<Category> categories = getCategories(persistenceEndpointCategories);
+                // Get user
+                User user = null;
+                Long userId = newSessionData.userId();
+                request.setUri(persistenceEndpointUsers + userId);
+                request.setMethod(GET);
+                // Create client and send request
+                httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                if (handler.response instanceof HttpContent httpUserContent) {
+                    ByteBuf userBody = httpUserContent.content();
+                    byte[] jsonUserByte = new byte[userBody.readableBytes()];
+                    userBody.readBytes(jsonUserByte);
+                    user = mapper.readValue(jsonUserByte, User.class);
+                }
+                // Get user orders
+                List<Order> orders = new ArrayList<>();
+                request.setUri(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
+                request.setMethod(GET);
+                httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                if (handler.response instanceof HttpContent httpOrdersContent) {
+                    ByteBuf ordersBody = httpOrdersContent.content();
+                    byte[] jsonOrdersByte = new byte[ordersBody.readableBytes()];
+                    ordersBody.readBytes(jsonOrdersByte);
+                    orders = mapper.readValue(
+                            jsonOrdersByte,
+                            new TypeReference<List<Order>>(){}
+                    );
+                }
+                // Create previous orders
+                List<PreviousOrder> previousOrders = new ArrayList<>();
+                for (Order order: orders) {
+                    previousOrders.add(new PreviousOrder(
+                            order.id(),
+                            order.time(),
+                            order.totalPriceInCents(),
+                            order.addressName(),
+                            order.address1() + ", " + order.address2()
+                    ));
+                }
+                // Create profile page view
+                ProfilePageView view = new ProfilePageView(
+                        webImageSizeMap.get("icon"),
+                        "TeaStore Profile",
+                        categories,
+                        user,
+                        previousOrders
+                );
+                String json = mapper.writeValueAsString(view);
+                FullHttpResponse response = new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                return response;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
