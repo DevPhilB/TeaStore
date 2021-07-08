@@ -22,6 +22,5 @@ public record LoginPageView (
         String description,
         String username,
         String password,
-        String signIn,
-        String referer
+        String signIn
 ) {}
