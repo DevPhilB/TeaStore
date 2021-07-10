@@ -58,4 +58,9 @@ public record ImageSize(
 
     return new ImageSize(width, height);
   }
+
+  @Override
+  public String toString() {
+    return String.valueOf(width) + IMAGE_SIZE_DIVIDER + String.valueOf(height);
+  }
 }

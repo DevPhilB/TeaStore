@@ -196,12 +196,15 @@ public class WebAPI implements API {
             ) throws IOException {
         Map<String, String> imageWebDataMap = new HashMap<>();
         String json = mapper.writeValueAsString(imageSizeMap);
+        ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         FullHttpRequest postRequest = new DefaultFullHttpRequest(
                 request.protocolVersion(),
                 POST,
                 imageEndpoint,
-                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                postBody
         );
+        postRequest.headers().set("Content-Length", postBody.readableBytes());
+        postRequest.headers().setAll(request.headers());
         // Create client and send request
         httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
         handler = new HttpClientHandler();
@@ -221,12 +224,15 @@ public class WebAPI implements API {
     ) throws IOException {
         Map<Long, String> imageProductDataMap = new HashMap<>();
         String json = mapper.writeValueAsString(imageSizeMap);
+        ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         FullHttpRequest postRequest = new DefaultFullHttpRequest(
                 request.protocolVersion(),
                 POST,
                 imageEndpoint,
                 Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
         );
+        postRequest.headers().set("Content-Length", postBody.readableBytes());
+        postRequest.headers().setAll(request.headers());
         // Create client and send request
         httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
         handler = new HttpClientHandler();
@@ -894,6 +900,8 @@ public class WebAPI implements API {
                             authEndpointLogin,
                             body
                     );
+                    postRequest.headers().set("Content-Length", body.readableBytes());
+                    postRequest.headers().setAll(request.headers());
                     postRequest.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
                     httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();
@@ -910,6 +918,8 @@ public class WebAPI implements API {
                             authEndpointLogout,
                             body
                     );
+                    postRequest.headers().set("Content-Length", body.readableBytes());
+                    postRequest.headers().setAll(request.headers());
                     postRequest.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
                     httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();

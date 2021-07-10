@@ -325,12 +325,15 @@ public class AuthAPI implements API {
             );
             Long orderId = null;
             String orderJson = mapper.writeValueAsString(newOrder);
+            ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
             FullHttpRequest postOrderRequest = new DefaultFullHttpRequest(
                     request.protocolVersion(),
                     POST,
                     persistenceEndpointCreateOrder,
                     Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8)
             );
+            postOrderRequest.headers().set("Content-Length", postOrderBody.readableBytes());
+            postOrderRequest.headers().setAll(request.headers());
             // Create client and send request
             httpClient = new HttpClient(gatewayHost, persistencePort, postOrderRequest);
             handler = new HttpClientHandler();
@@ -346,12 +349,15 @@ public class AuthAPI implements API {
                             item.unitPriceInCents()
                     );
                     String orderItemJson = mapper.writeValueAsString(orderItem);
+                    ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
                     FullHttpRequest postOrderItemRequest = new DefaultFullHttpRequest(
                             request.protocolVersion(),
                             POST,
                             persistenceEndpointCreateOrderItem,
                             Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8)
                     );
+                    postOrderItemRequest.headers().set("Content-Length", postOrderItemBody.readableBytes());
+                    postOrderItemRequest.headers().setAll(request.headers());
                     // Create client and send request
                     httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemRequest);
                     handler = new HttpClientHandler();
