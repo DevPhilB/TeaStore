@@ -607,7 +607,7 @@ public class WebAPI implements API {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // GET api/persistence/categories
-        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories?id=" + id;
+        String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories";
         // GET api/persistence/products
         String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products";
         String persistenceEndpointCategoryProducts = PERSISTENCE_ENDPOINT + "/products?category=" + id;
@@ -960,7 +960,7 @@ public class WebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Create login page view
             LoginPageView view = new LoginPageView(
-                    webImageSizeMap.get("icon"),
+                    webImageDataMap.get("icon"),
                     "Login",
                     categories,
                     "Please enter your username and password.",
@@ -1010,7 +1010,7 @@ public class WebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Get order page view
             OrderPageView view = new OrderPageView(
-                    webImageSizeMap.get("icon"),
+                    webImageDataMap.get("icon"),
                     "TeaStore Order",
                     categories,
                     "",
@@ -1150,7 +1150,7 @@ public class WebAPI implements API {
             }
             // Create product page view
             ProductPageView view = new ProductPageView(
-                    webImageSizeMap.get("icon"),
+                    webImageDataMap.get("icon"),
                     "TeaStore Product",
                     categories,
                     productView,
@@ -1243,7 +1243,7 @@ public class WebAPI implements API {
                 }
                 // Create profile page view
                 ProfilePageView view = new ProfilePageView(
-                        webImageSizeMap.get("icon"),
+                        webImageDataMap.get("icon"),
                         "TeaStore Profile",
                         categories,
                         user,
