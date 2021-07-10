@@ -45,26 +45,29 @@ public class WebAPI implements API {
     private final HttpVersion httpVersion;
     private HttpClient httpClient;
     private HttpClientHandler handler;
-    private final String scheme;
     private final ObjectMapper mapper;
     private final String gatewayHost;
-    private final Integer webPort;
     private final Integer imagePort;
     private final Integer authPort;
-    private final Integer recommenderPort;
     private final Integer persistencePort;
     private final HttpRequest request;
 
-    public WebAPI(HttpVersion httpVersion, String scheme) {
+    public WebAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        this.scheme = scheme;
         this.mapper = new ObjectMapper();
-        this.gatewayHost = "gateway";
-        this.webPort = 80;
-        this.imagePort = 80;
-        this.authPort = 80;
-        this.recommenderPort = 80;
-        this.persistencePort = 80;
+        if(gatewayHost.isEmpty()) {
+            this.gatewayHost = "localhost";
+            this.authPort = API.DEFAULT_AUTH_PORT;
+            this.imagePort = API.DEFAULT_IMAGE_PORT;
+            this.persistencePort = API.DEFAULT_PERSISTENCE_PORT;
+            // recommender = API.DEFAULT_RECOMMENDER_PORT
+            // web = API.DEFAULT_WEB_PORT
+        } else {
+            this.gatewayHost = gatewayHost;
+            this.imagePort = gatewayPort;
+            this.authPort = gatewayPort;
+            this.persistencePort = gatewayPort;
+        }
         this.request = new DefaultFullHttpRequest(
                 this.httpVersion,
                 GET,
@@ -203,12 +206,9 @@ public class WebAPI implements API {
         httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
         handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
-        if (handler.response instanceof HttpContent httpImageContent) {
-            ByteBuf imageBody = httpImageContent.content();
-            byte[] jsonImageByte = new byte[imageBody.readableBytes()];
-            imageBody.readBytes(jsonImageByte);
+        if (!handler.jsonContent.isEmpty()) {
             imageWebDataMap = mapper.readValue(
-                    jsonImageByte,
+                    handler.jsonContent,
                     new TypeReference<Map<String, String>>(){}
             );
         }
@@ -231,12 +231,9 @@ public class WebAPI implements API {
         httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
         handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
-        if (handler.response instanceof HttpContent httpImageContent) {
-            ByteBuf imageBody = httpImageContent.content();
-            byte[] jsonImageByte = new byte[imageBody.readableBytes()];
-            imageBody.readBytes(jsonImageByte);
+        if (!handler.jsonContent.isEmpty()) {
             imageProductDataMap = mapper.readValue(
-                    jsonImageByte,
+                    handler.jsonContent,
                     new TypeReference<Map<Long, String>>(){}
             );
         }
@@ -251,12 +248,9 @@ public class WebAPI implements API {
         httpClient = new HttpClient(gatewayHost, persistencePort, request);
         handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
-        if (handler.response instanceof HttpContent httpCategoriesContent) {
-            ByteBuf categoriesBody = httpCategoriesContent.content();
-            byte[] jsonCategoriesByte = new byte[categoriesBody.readableBytes()];
-            categoriesBody.readBytes(jsonCategoriesByte);
+        if (!handler.jsonContent.isEmpty()) {
             categories = mapper.readValue(
-                    jsonCategoriesByte,
+                    handler.jsonContent,
                     new TypeReference<List<Category>>(){}
             );
         }
@@ -271,11 +265,8 @@ public class WebAPI implements API {
         handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
         SessionData newSessionData = null;
-        if (handler.response instanceof HttpContent httpSessionDataContent) {
-            ByteBuf sessionDataBody = httpSessionDataContent.content();
-            byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-            sessionDataBody.readBytes(jsonSessionDataByte);
-            newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+        if (!handler.jsonContent.isEmpty()) {
+            newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
         }
         return newSessionData;
     }
@@ -342,11 +333,8 @@ public class WebAPI implements API {
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
-            if (handler.response instanceof HttpContent httpSessionDataContent) {
-                ByteBuf sessionDataBody = httpSessionDataContent.content();
-                byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                sessionDataBody.readBytes(jsonSessionDataByte);
-                SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+            if (!handler.jsonContent.isEmpty()) {
+                SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                 response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
             }
             return response;
@@ -381,44 +369,32 @@ public class WebAPI implements API {
                     request.setUri(authEndpointAdd);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpContent httpSessionDataContent) {
-                        ByteBuf sessionDataBody = httpSessionDataContent.content();
-                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                        sessionDataBody.readBytes(jsonSessionDataByte);
-                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    if (!handler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
                 case "removeproduct":
                     request.setMethod(POST);
                     request.setUri(authEndpointRemove);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpContent httpSessionDataContent) {
-                        ByteBuf sessionDataBody = httpSessionDataContent.content();
-                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                        sessionDataBody.readBytes(jsonSessionDataByte);
-                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    if (!handler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
                 case "updatecartquantities":
                     request.setMethod(PUT);
                     request.setUri(authEndpointUpdate);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpContent httpSessionDataContent) {
-                        ByteBuf sessionDataBody = httpSessionDataContent.content();
-                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                        sessionDataBody.readBytes(jsonSessionDataByte);
-                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    if (!handler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
                 case "proceedtocheckout":
                     request.setMethod(GET);
                     request.setUri(authEndpointCheck);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpContent httpSessionDataContent) {
-                        ByteBuf sessionDataBody = httpSessionDataContent.content();
-                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                        sessionDataBody.readBytes(jsonSessionDataByte);
-                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    if (!handler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     } else {
                         return loginView(sessionData);
                     }
@@ -454,11 +430,8 @@ public class WebAPI implements API {
             );
             httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
             handler = new HttpClientHandler();
-            if (handler.response instanceof HttpContent httpSessionDataContent) {
-                ByteBuf sessionDataBody = httpSessionDataContent.content();
-                byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                sessionDataBody.readBytes(jsonSessionDataByte);
-                SessionData newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+            if (!handler.jsonContent.isEmpty()) {
+                SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                 FullHttpResponse response = profileView(newSessionData);
                 response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
                 return response;
@@ -505,11 +478,8 @@ public class WebAPI implements API {
                 httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                if (handler.response instanceof HttpContent httpProductContent) {
-                    ByteBuf productBody = httpProductContent.content();
-                    byte[] jsonProductByte = new byte[productBody.readableBytes()];
-                    productBody.readBytes(jsonProductByte);
-                    Product product = mapper.readValue(jsonProductByte, Product.class);
+                if (!handler.jsonContent.isEmpty()) {
+                    Product product = mapper.readValue(handler.jsonContent, Product.class);
                     products.put(product.id(), product);
                 }
             }
@@ -548,12 +518,9 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemsRequest);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpProductIdsContent) {
-                ByteBuf productIdsBody = httpProductIdsContent.content();
-                byte[] jsonProductIdsByte = new byte[productIdsBody.readableBytes()];
-                productIdsBody.readBytes(jsonProductIdsByte);
+            if (!handler.jsonContent.isEmpty()) {
                 productIds = mapper.readValue(
-                        jsonProductIdsByte,
+                        handler.jsonContent,
                         new TypeReference<List<Long>>(){}
                 );
             }
@@ -569,11 +536,8 @@ public class WebAPI implements API {
                 httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                if (handler.response instanceof HttpContent httpProductContent) {
-                    ByteBuf productBody = httpProductContent.content();
-                    byte[] jsonProductByte = new byte[productBody.readableBytes()];
-                    productBody.readBytes(jsonProductByte);
-                    recommendedProducts.add(mapper.readValue(jsonProductByte, Product.class));
+                if (!handler.jsonContent.isEmpty()) {
+                    recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
                 }
             }
             Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -661,12 +625,9 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpProductsContent) {
-                ByteBuf productsBody = httpProductsContent.content();
-                byte[] jsonProductsByte = new byte[productsBody.readableBytes()];
-                productsBody.readBytes(jsonProductsByte);
+            if (!handler.jsonContent.isEmpty()) {
                 products = mapper.readValue(
-                        jsonProductsByte,
+                        handler.jsonContent,
                         new TypeReference<List<Product>>(){}
                 ).size();
             }
@@ -685,12 +646,9 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpProductsContent) {
-                ByteBuf productsBody = httpProductsContent.content();
-                byte[] jsonProductsByte = new byte[productsBody.readableBytes()];
-                productsBody.readBytes(jsonProductsByte);
+            if (!handler.jsonContent.isEmpty()) {
                 productList = mapper.readValue(
-                        jsonProductsByte,
+                        handler.jsonContent,
                         new TypeReference<List<Product>>(){}
                 );
             }
@@ -763,7 +721,7 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpResponse response) {
+            if (!handler.jsonContent.isEmpty()) {
                 // And return to index view
                 return indexView(sessionData);
             } else {
@@ -940,11 +898,8 @@ public class WebAPI implements API {
                     httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpContent httpSessionDataContent) {
-                        ByteBuf sessionDataBody = httpSessionDataContent.content();
-                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                        sessionDataBody.readBytes(jsonSessionDataByte);
-                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    if (!handler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
                     return profileView(newSessionData);
                 case "logout":
@@ -959,11 +914,8 @@ public class WebAPI implements API {
                     httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpContent httpSessionDataContent) {
-                        ByteBuf sessionDataBody = httpSessionDataContent.content();
-                        byte[] jsonSessionDataByte = new byte[sessionDataBody.readableBytes()];
-                        sessionDataBody.readBytes(jsonSessionDataByte);
-                        newSessionData = mapper.readValue(jsonSessionDataByte, SessionData.class);
+                    if (!handler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
                     return indexView(newSessionData);
             }
@@ -1114,11 +1066,8 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpProductContent) {
-                ByteBuf productBody = httpProductContent.content();
-                byte[] jsonProductByte = new byte[productBody.readableBytes()];
-                productBody.readBytes(jsonProductByte);
-                product = mapper.readValue(jsonProductByte, Product.class);
+            if (!handler.jsonContent.isEmpty()) {
+                product = mapper.readValue(handler.jsonContent, Product.class);
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -1151,12 +1100,9 @@ public class WebAPI implements API {
             httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemsRequest);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpProductIdsContent) {
-                ByteBuf productIdsBody = httpProductIdsContent.content();
-                byte[] jsonProductIdsByte = new byte[productIdsBody.readableBytes()];
-                productIdsBody.readBytes(jsonProductIdsByte);
+            if (!handler.jsonContent.isEmpty()) {
                 productIds = mapper.readValue(
-                        jsonProductIdsByte,
+                        handler.jsonContent,
                         new TypeReference<List<Long>>(){}
                 );
             }
@@ -1172,11 +1118,8 @@ public class WebAPI implements API {
                 httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                if (handler.response instanceof HttpContent httpProductContent) {
-                    ByteBuf productBody = httpProductContent.content();
-                    byte[] jsonProductByte = new byte[productBody.readableBytes()];
-                    productBody.readBytes(jsonProductByte);
-                    recommendedProducts.add(mapper.readValue(jsonProductByte, Product.class));
+                if (!handler.jsonContent.isEmpty()) {
+                    recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
                 }
             }
             productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -1261,11 +1204,8 @@ public class WebAPI implements API {
                 httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                if (handler.response instanceof HttpContent httpUserContent) {
-                    ByteBuf userBody = httpUserContent.content();
-                    byte[] jsonUserByte = new byte[userBody.readableBytes()];
-                    userBody.readBytes(jsonUserByte);
-                    user = mapper.readValue(jsonUserByte, User.class);
+                if (!handler.jsonContent.isEmpty()) {
+                    user = mapper.readValue(handler.jsonContent, User.class);
                 }
                 // Get user orders
                 List<Order> orders = new ArrayList<>();
@@ -1274,12 +1214,9 @@ public class WebAPI implements API {
                 httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
                 httpClient.sendRequest(handler);
-                if (handler.response instanceof HttpContent httpOrdersContent) {
-                    ByteBuf ordersBody = httpOrdersContent.content();
-                    byte[] jsonOrdersByte = new byte[ordersBody.readableBytes()];
-                    ordersBody.readBytes(jsonOrdersByte);
+                if (!handler.jsonContent.isEmpty()) {
                     orders = mapper.readValue(
-                            jsonOrdersByte,
+                            handler.jsonContent,
                             new TypeReference<List<Order>>(){}
                     );
                 }

@@ -13,6 +13,7 @@
  */
 package web.rest.server;
 
+import io.netty.handler.codec.http.HttpVersion;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -29,6 +30,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import static utilities.rest.api.API.DEFAULT_WEB_PORT;
 import static utilities.rest.api.API.WEB_ENDPOINT;
 
 /**
@@ -37,25 +39,29 @@ import static utilities.rest.api.API.WEB_ENDPOINT;
  */
 public class HttpWebServer {
 
-    private final String httpVersion;
+    private final HttpVersion httpVersion;
     private final String scheme;
-    private final Integer port;
+    private final String gatewayHost;
+    private final Integer gatewayPort;
     private static final Logger LOG = LogManager.getLogger(HttpWebServer.class);
 
-    public HttpWebServer(String httpVersion, String scheme, Integer port) {
+    public HttpWebServer(HttpVersion httpVersion, String scheme, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
         this.scheme = scheme;
-        this.port = port;
+        this.gatewayHost = gatewayHost;
+        this.gatewayPort = gatewayPort;
     }
 
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
-        Integer port = args.length > 3 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "" : "";
+        Integer gatewayPort = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpWebServer(
-                httpVersion,
+                httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1,
                 scheme,
-                port
+                gatewayHost,
+                gatewayPort
         ).run();
     }
 
@@ -82,19 +88,22 @@ public class HttpWebServer {
                         ChannelPipeline channelPipeline = ch.pipeline();
                         channelPipeline.addLast(new HttpRequestDecoder());
                         channelPipeline.addLast(new HttpResponseEncoder());
-                        channelPipeline.addLast(new HttpWebServiceHandler());
+                        channelPipeline.addLast(new HttpWebServiceHandler(httpVersion, gatewayHost, gatewayPort));
                     }
                 });
-
-            ChannelFuture future = bootstrap.bind(port).sync();
-            String status = httpVersion + " web service is available on " +
-                    scheme + "web:" + port + WEB_ENDPOINT;
+            //
+            ChannelFuture future;
+            String status = httpVersion + " web service is available on " + scheme;
+            if(gatewayHost.isEmpty()) {
+                future = bootstrap.bind(DEFAULT_WEB_PORT).sync();
+                status += "localhost:" + DEFAULT_WEB_PORT + WEB_ENDPOINT;
+            } else {
+                future = bootstrap.bind(gatewayPort).sync();
+                status += "web:" + gatewayPort + WEB_ENDPOINT;
+            }
             LOG.info(status);
             System.err.println(status);
-            System.err.println();
-
             future.channel().closeFuture().sync();
-
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

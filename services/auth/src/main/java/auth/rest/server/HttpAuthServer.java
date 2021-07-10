@@ -31,6 +31,7 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
 import static utilities.rest.api.API.AUTH_ENDPOINT;
+import static utilities.rest.api.API.DEFAULT_AUTH_PORT;
 
 /**
  * HTTP server for auth service
@@ -41,26 +42,26 @@ public class HttpAuthServer {
     private final HttpVersion httpVersion;
     private final String scheme;
     private final String gatewayHost;
-    private final Integer authPort;
+    private final Integer gatewayPort;
     private static final Logger LOG = LogManager.getLogger(HttpAuthServer.class);
 
-    public HttpAuthServer(String httpVersion, String scheme, String gatewayHost, Integer port) {
-        this.httpVersion = new HttpVersion(httpVersion, false);
+    public HttpAuthServer(HttpVersion httpVersion, String scheme, String gatewayHost, Integer gatewayPort) {
+        this.httpVersion = httpVersion;
         this.scheme = scheme;
         this.gatewayHost = gatewayHost;
-        this.authPort = port;
+        this.gatewayPort = gatewayPort;
     }
 
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
-        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "gateway" : "gateway";
-        Integer port = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
+        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "" : "";
+        Integer gatewayPort = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpAuthServer(
-                httpVersion,
+                httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1,
                 scheme,
                 gatewayHost,
-                port
+                gatewayPort
         ).run();
     }
 
@@ -87,18 +88,22 @@ public class HttpAuthServer {
                         ChannelPipeline channelPipeline = ch.pipeline();
                         channelPipeline.addLast(new HttpRequestDecoder());
                         channelPipeline.addLast(new HttpResponseEncoder());
-                        channelPipeline.addLast(new HttpAuthServiceHandler(httpVersion));
+                        channelPipeline.addLast(new HttpAuthServiceHandler(httpVersion, gatewayHost, gatewayPort));
                     }
                 });
-
-            ChannelFuture future = bootstrap.bind(authPort).sync();
-            String status = httpVersion + " auth service is available on " +
-                    scheme + "auth:" + authPort + AUTH_ENDPOINT;
+            //
+            ChannelFuture future;
+            String status = httpVersion + " auth service is available on " + scheme;
+            if(gatewayHost.isEmpty()) {
+                future = bootstrap.bind(DEFAULT_AUTH_PORT).sync();
+                status += "localhost:" + DEFAULT_AUTH_PORT + AUTH_ENDPOINT;
+            } else {
+                future = bootstrap.bind(gatewayPort).sync();
+                status += "auth:" + gatewayPort + AUTH_ENDPOINT;
+            }
             LOG.info(status);
             System.err.println(status);
-
             future.channel().closeFuture().sync();
-
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

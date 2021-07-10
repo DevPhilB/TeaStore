@@ -33,9 +33,9 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
     private final HttpVersion httpVersion;
     private final AuthAPI api;
 
-    public HttpAuthServiceHandler(HttpVersion httpVersion) {
+    public HttpAuthServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        api = new AuthAPI(httpVersion);
+        api = new AuthAPI(httpVersion, gatewayHost, gatewayPort);
     }
 
     @Override

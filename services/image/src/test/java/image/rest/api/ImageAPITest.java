@@ -39,7 +39,7 @@ class ImageAPITest {
                 IMAGE_ENDPOINT
         );
         body = null;
-        api = new ImageAPI(version);
+        api = new ImageAPI(version, "", null);
     }
 
     @AfterEach

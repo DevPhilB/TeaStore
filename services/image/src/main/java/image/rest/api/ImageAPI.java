@@ -40,7 +40,7 @@ public class ImageAPI implements API {
     private final HttpVersion httpVersion;
     private final ObjectMapper mapper;
 
-    public ImageAPI(HttpVersion httpVersion) {
+    public ImageAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
         this.mapper = new ObjectMapper();
     }

@@ -163,7 +163,7 @@ public enum SetupController {
   ) {
     this.mapper = new ObjectMapper();
     this.scheme = scheme;
-    this.gatewayHost = gatewayHost;
+    this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
     this.persistencePort = persistencePort;
     this.request = new DefaultFullHttpRequest(
             version,
@@ -186,12 +186,9 @@ public enum SetupController {
     handler = new HttpClientHandler();
     try {
       httpClient.sendRequest(handler);
-      if (handler.response instanceof HttpContent httpContent) {
-          ByteBuf body = httpContent.content();
-          byte[] jsonByte = new byte[body.readableBytes()];
-          body.readBytes(jsonByte);
+      if (!handler.jsonContent.isEmpty()) {
           productList = mapper.readValue(
-                  jsonByte,
+                  handler.jsonContent,
                   new TypeReference<List<Product>>() {}
           );
       }
@@ -218,12 +215,9 @@ public enum SetupController {
     handler = new HttpClientHandler();
     try {
       httpClient.sendRequest(handler);
-      if (handler.response instanceof HttpContent httpContent) {
-        ByteBuf body = httpContent.content();
-        byte[] jsonByte = new byte[body.readableBytes()];
-        body.readBytes(jsonByte);
+      if (!handler.jsonContent.isEmpty()) {
         categories = mapper.readValue(
-                jsonByte,
+                handler.jsonContent,
                 new TypeReference<List<Category>>() {}
         );
       }

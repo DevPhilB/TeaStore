@@ -31,7 +31,8 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import recommender.algorithm.TrainingSynchronizer;
 
-import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
+import static utilities.rest.api.API.DEFAULT_RECOMMENDER_PORT;
+import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
 
 /**
  * HTTP server for recommender service
@@ -42,33 +43,37 @@ public class HttpRecommenderServer {
     private final HttpVersion httpVersion;
     private final String scheme;
     private final String gatewayHost;
-    private final Integer persistencePort = 80;
-    private final Integer recommenderPort;
+    private final Integer gatewayPort;
     private static final Logger LOG = LogManager.getLogger(HttpRecommenderServer.class);
 
-    public HttpRecommenderServer(String httpVersion, String scheme, String gatewayHost, Integer port) {
-        this.httpVersion = new HttpVersion(httpVersion, false);
+    public HttpRecommenderServer(
+            HttpVersion httpVersion,
+            String scheme,
+            String gatewayHost,
+            Integer gatewayPort
+    ) {
+        this.httpVersion = httpVersion;
         this.scheme = scheme;
         this.gatewayHost = gatewayHost;
-        this.recommenderPort = port;
+        this.gatewayPort = gatewayPort;
         TrainingSynchronizer.getInstance().setupHttpClient(
                 this.httpVersion,
                 this.scheme,
                 this.gatewayHost,
-                this.persistencePort
+                this.gatewayHost.isEmpty() ? 3030 : gatewayPort
         );
     }
 
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
-        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "gateway" : "gateway";
-        Integer port = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
+        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "" : "";
+        Integer gatewayPort = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpRecommenderServer(
-                httpVersion,
+                httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1,
                 scheme,
                 gatewayHost,
-                port
+                gatewayPort
         ).run();
     }
 
@@ -95,18 +100,22 @@ public class HttpRecommenderServer {
                         ChannelPipeline channelPipeline = ch.pipeline();
                         channelPipeline.addLast(new HttpRequestDecoder());
                         channelPipeline.addLast(new HttpResponseEncoder());
-                        channelPipeline.addLast(new HttpRecommenderServiceHandler(httpVersion));
+                        channelPipeline.addLast(new HttpRecommenderServiceHandler(httpVersion, gatewayHost, gatewayPort));
                     }
                 });
-
-            ChannelFuture future = bootstrap.bind(recommenderPort).sync();
-            String status = httpVersion + " recommender service is available on " +
-                    scheme + "recommender:" + recommenderPort + PERSISTENCE_ENDPOINT;
+            //
+            ChannelFuture future;
+            String status = httpVersion + " recommender service is available on " + scheme;
+            if(gatewayHost.isEmpty()) {
+                future = bootstrap.bind(DEFAULT_RECOMMENDER_PORT).sync();
+                status += "localhost:" + DEFAULT_RECOMMENDER_PORT + RECOMMENDER_ENDPOINT;
+            } else {
+                future = bootstrap.bind(gatewayPort).sync();
+                status += "recommender:" + gatewayPort + RECOMMENDER_ENDPOINT;
+            }
             LOG.info(status);
             System.err.println(status);
-
             future.channel().closeFuture().sync();
-
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

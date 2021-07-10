@@ -91,7 +91,7 @@ final class EMFManager {
 	private static HashMap<String, String> createPersistencePropertiesFromJavaEnv() {
 		HashMap<String, String> persistenceProperties = new HashMap<String, String>();
 		String url = MYSQL_URL_PREFIX;
-		url += MYSQL_DEFAULT_HOST;
+		url += System.getenv("DB_HOST") == null ? MYSQL_DEFAULT_HOST : System.getenv("DB_HOST");
 		url += ":";
 		url += MYSQL_DEFAULT_PORT;
 		url += MYSQL_URL_POSTFIX;

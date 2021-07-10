@@ -34,9 +34,9 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
     private final HttpVersion httpVersion;
     private final ImageAPI api;
 
-    public HttpImageServiceHandler(HttpVersion httpVersion) {
+    public HttpImageServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        api = new ImageAPI(httpVersion);
+        api = new ImageAPI(httpVersion, gatewayHost, gatewayPort);
     }
 
     @Override
