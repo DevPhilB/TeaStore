@@ -70,11 +70,11 @@ public class ImageAPI implements API {
                             return getProductImages(body);
                         case "/webimages":
                             return getWebImages(body);
-                        case "/setCacheSize":
+                        case "/setcachesize":
                             return setCacheSize(body);
                     };
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
             }
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);

@@ -8,7 +8,7 @@ public enum ImageSizePreset {
 	ICON(new ImageSize(64, 64)),
 	// Developer portraits
 	PORTRAIT(new ImageSize(160, 240)),
-	//Descartes logo
+	// Descartes logo
 	LOGO(new ImageSize(600, 195)),
 	// Main image
 	MAIN_IMAGE(new ImageSize(400, 310)),
