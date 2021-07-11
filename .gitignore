@@ -9,5 +9,6 @@ limbo_checkstyle.out.xml
 *.iml
 build
 target
+*.jar
 .factorypath
 images
