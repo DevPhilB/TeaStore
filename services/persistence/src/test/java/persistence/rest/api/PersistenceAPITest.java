@@ -39,7 +39,7 @@ class PersistenceAPITest {
                 PERSISTENCE_ENDPOINT
         );
         body = null;
-        api = new PersistenceAPI(version, "http:");
+        api = new PersistenceAPI(version, "", null);
     }
 
     @AfterEach

@@ -37,12 +37,10 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
  */
 public class PersistenceAPI implements API {
     private final HttpVersion httpVersion;
-    private final String scheme;
     private final ObjectMapper mapper;
 
-    public PersistenceAPI(HttpVersion httpVersion, String scheme) {
+    public PersistenceAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        this.scheme = scheme;
         this.mapper = new ObjectMapper();
     }
 

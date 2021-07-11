@@ -39,7 +39,7 @@ class RecommenderAPITest {
                 RECOMMENDER_ENDPOINT
         );
         body = null;
-        api = new RecommenderAPI(version);
+        api = new RecommenderAPI(version, "", null);
     }
 
     @AfterEach

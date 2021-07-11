@@ -39,7 +39,7 @@ class AuthAPITest {
                 AUTH_ENDPOINT
         );
         body = null;
-        api = new AuthAPI(version);
+        api = new AuthAPI(version, "", null);
     }
 
     @AfterEach

@@ -31,6 +31,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import static utilities.rest.api.API.DEFAULT_IMAGE_PORT;
 import static utilities.rest.api.API.IMAGE_ENDPOINT;
 
 /**
@@ -42,20 +43,24 @@ public class HttpImageServer {
     private final HttpVersion httpVersion;
     private final String scheme;
     private final String gatewayHost;
-    private final Integer persistencePort = 80;
-    private final Integer imagePort;
+    private final Integer gatewayPort;
     private static final Logger LOG = LogManager.getLogger(HttpImageServer.class);
 
-    public HttpImageServer(String httpVersion, String scheme, String gatewayHost, Integer port) {
-        this.httpVersion = new HttpVersion(httpVersion, false);
+    public HttpImageServer(
+            HttpVersion httpVersion,
+            String scheme,
+            String gatewayHost,
+            Integer gatewayPort
+    ) {
+        this.httpVersion = httpVersion;
         this.scheme = scheme;
         this.gatewayHost = gatewayHost;
-        this.imagePort = port;
+        this.gatewayPort = gatewayPort;
         SetupController.SETUP.setupHttpClient(
-                this.httpVersion,
-                this.scheme,
-                this.gatewayHost,
-                this.persistencePort
+                httpVersion,
+                scheme,
+                gatewayHost,
+                gatewayHost.isEmpty() ? 3030 : gatewayPort
         );
         SetupController.SETUP.startup();
     }
@@ -63,13 +68,13 @@ public class HttpImageServer {
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String scheme = args.length > 2 ? args[1] != null ? args[1] : "http://" : "http://";
-        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "gateway" : "gateway";
-        Integer port = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
+        String gatewayHost = args.length > 3 ? args[2] != null ? args[2] : "" : "";
+        Integer gatewayPort = args.length > 4 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpImageServer(
-                httpVersion,
+                httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1,
                 scheme,
                 gatewayHost,
-                port
+                gatewayPort
         ).run();
     }
 
@@ -96,18 +101,22 @@ public class HttpImageServer {
                         ChannelPipeline channelPipeline = ch.pipeline();
                         channelPipeline.addLast(new HttpRequestDecoder());
                         channelPipeline.addLast(new HttpResponseEncoder());
-                        channelPipeline.addLast(new HttpImageServiceHandler(httpVersion));
+                        channelPipeline.addLast(new HttpImageServiceHandler(httpVersion, gatewayHost, gatewayPort));
                     }
                 });
-
-            ChannelFuture future = bootstrap.bind(imagePort).sync();
-            String status = httpVersion + " image service is available on " +
-                    scheme + "image:" + imagePort + IMAGE_ENDPOINT;
+            //
+            ChannelFuture future;
+            String status = httpVersion + " image service is available on " + scheme;
+            if(gatewayHost.isEmpty()) {
+                future = bootstrap.bind(DEFAULT_IMAGE_PORT).sync();
+                status += "localhost:" + DEFAULT_IMAGE_PORT + IMAGE_ENDPOINT;
+            } else {
+                future = bootstrap.bind(gatewayPort).sync();
+                status += "image:" + gatewayPort + IMAGE_ENDPOINT;
+            }
             LOG.info(status);
             System.err.println(status);
-
             future.channel().closeFuture().sync();
-
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

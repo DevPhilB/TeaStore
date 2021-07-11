@@ -30,13 +30,11 @@ public class HttpPersistenceServiceHandler extends SimpleChannelInboundHandler<H
 
     private HttpRequest request;
     private final HttpVersion httpVersion;
-    private final String schema;
     private final PersistenceAPI api;
 
-    public HttpPersistenceServiceHandler() {
-        httpVersion = HttpVersion.HTTP_1_1;
-        schema = "http://";
-        api = new PersistenceAPI(httpVersion, schema);
+    public HttpPersistenceServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
+        this.httpVersion = httpVersion;
+        api = new PersistenceAPI(httpVersion, gatewayHost, gatewayPort);
     }
 
     @Override

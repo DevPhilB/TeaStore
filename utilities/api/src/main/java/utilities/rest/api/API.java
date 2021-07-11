@@ -26,11 +26,21 @@ import io.netty.handler.codec.http.LastHttpContent;
  *
  */
 public interface API {
-    String API_GATEWAY = "gateway";
-    String WEB_ENDPOINT = "/api/web";
-    String IMAGE_ENDPOINT = "/api/image";
+    // Auth service
+    Integer DEFAULT_AUTH_PORT = 1010;
     String AUTH_ENDPOINT = "/api/auth";
-    String RECOMMENDER_ENDPOINT = "/api/recommender";
+    // Image service
+    Integer DEFAULT_IMAGE_PORT = 2020;
+    String IMAGE_ENDPOINT = "/api/image";
+    // Persistence service
+    Integer DEFAULT_PERSISTENCE_PORT = 3030;
     String PERSISTENCE_ENDPOINT = "/api/persistence";
+    // Recommender service
+    Integer DEFAULT_RECOMMENDER_PORT = 4040;
+    String RECOMMENDER_ENDPOINT = "/api/recommender";
+    // Web service
+    Integer DEFAULT_WEB_PORT = 5050;
+    String WEB_ENDPOINT = "/api/web";
+
     FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer);
 }

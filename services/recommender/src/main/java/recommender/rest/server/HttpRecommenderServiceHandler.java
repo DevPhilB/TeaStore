@@ -33,9 +33,9 @@ public class HttpRecommenderServiceHandler extends SimpleChannelInboundHandler<H
     private final HttpVersion httpVersion;
     private final RecommenderAPI api;
 
-    public HttpRecommenderServiceHandler(HttpVersion httpVersion) {
+    public HttpRecommenderServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        api = new RecommenderAPI(httpVersion);
+        api = new RecommenderAPI(httpVersion, gatewayHost, gatewayPort);
     }
 
     @Override

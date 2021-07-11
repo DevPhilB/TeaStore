@@ -29,10 +29,10 @@ import utilities.rest.client.HttpClientHandler;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
 /**
@@ -50,14 +50,19 @@ public class AuthAPI implements API {
     private final Integer persistencePort;
     private final HttpRequest request;
 
-    public AuthAPI(HttpVersion httpVersion) {
+    public AuthAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
         this.mapper = new ObjectMapper();
-        this.gatewayHost = "gateway";
-        this.persistencePort = 80;
+        if(gatewayHost.isEmpty()) {
+            this.gatewayHost = "localhost";
+            this.persistencePort = DEFAULT_PERSISTENCE_PORT;
+        } else {
+            this.gatewayHost = gatewayHost;
+            this.persistencePort = gatewayPort;
+        }
         this.request = new DefaultFullHttpRequest(
                 this.httpVersion,
-                HttpMethod.GET,
+                GET,
                 "",
                 Unpooled.EMPTY_BUFFER
         );
@@ -151,16 +156,13 @@ public class AuthAPI implements API {
         String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
         try {
             request.setUri(persistenceEndpointProduct);
-            request.setMethod(HttpMethod.GET);
+            request.setMethod(GET);
             // Create client and send request
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpContent) {
-                ByteBuf body = httpContent.content();
-                byte[] jsonByte = new byte[body.readableBytes()];
-                body.readBytes(jsonByte);
-                product = mapper.readValue(jsonByte, Product.class);
+            if (!handler.jsonContent.isEmpty()) {
+                product = mapper.readValue(handler.jsonContent, Product.class);
                 OrderItem item = null;
                 SessionData data = null;
                 for (OrderItem orderItem : sessionData.orderItems()) {
@@ -322,35 +324,46 @@ public class AuthAPI implements API {
                     orderData.creditCardExpiryDate()
             );
             Long orderId = null;
-            request.setUri(persistenceEndpointCreateOrder);
-            request.setMethod(HttpMethod.POST);
+            String orderJson = mapper.writeValueAsString(newOrder);
+            ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
+            FullHttpRequest postOrderRequest = new DefaultFullHttpRequest(
+                    request.protocolVersion(),
+                    POST,
+                    persistenceEndpointCreateOrder,
+                    Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8)
+            );
+            postOrderRequest.headers().set("Content-Length", postOrderBody.readableBytes());
+            postOrderRequest.headers().setAll(request.headers());
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
+            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderRequest);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpContent) {
-                ByteBuf contentBody = httpContent.content();
-                byte[] jsonContentByte = new byte[contentBody.readableBytes()];
-                body.readBytes(jsonContentByte);
-                orderId = mapper.readValue(jsonContentByte, Long.class);
+            if (!handler.jsonContent.isEmpty()) {
+                orderId = mapper.readValue(handler.jsonContent, Order.class).id();
                 for (OrderItem item : sessionData.orderItems()) {
                     OrderItem orderItem = new OrderItem(
-                            null,
+                            item.id(),
                             item.productId(),
-                            item.orderId(),
+                            orderId,
                             item.quantity(),
                             item.unitPriceInCents()
                     );
-                    request.setUri(persistenceEndpointCreateOrderItem);
-                    request.setMethod(HttpMethod.POST);
+                    String orderItemJson = mapper.writeValueAsString(orderItem);
+                    ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
+                    FullHttpRequest postOrderItemRequest = new DefaultFullHttpRequest(
+                            request.protocolVersion(),
+                            POST,
+                            persistenceEndpointCreateOrderItem,
+                            Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8)
+                    );
+                    postOrderItemRequest.headers().set("Content-Length", postOrderItemBody.readableBytes());
+                    postOrderItemRequest.headers().setAll(request.headers());
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, persistencePort, request);
+                    httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemRequest);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
-                    if (handler.response instanceof HttpResponse response) {
-                        if (response.status() != OK) {
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
+                    if (handler.jsonContent.isEmpty()) {
+                        return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                     }
                     sessionData.orderItems().clear();
                     SessionData data = new SessionData(
@@ -403,16 +416,13 @@ public class AuthAPI implements API {
         String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
         try {
             request.setUri(persistenceEndpointUser);
-            request.setMethod(HttpMethod.GET);
+            request.setMethod(GET);
             // Create client and send request
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
             httpClient.sendRequest(handler);
-            if (handler.response instanceof HttpContent httpContent) {
-                ByteBuf contentBody = httpContent.content();
-                byte[] jsonContentByte = new byte[contentBody.readableBytes()];
-                contentBody.readBytes(jsonContentByte);
-                user = mapper.readValue(jsonContentByte, User.class);
+            if (!handler.jsonContent.isEmpty()) {
+                user = mapper.readValue(handler.jsonContent, User.class);
                 if(user == null) {
                     return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
                 } else if (BCryptProvider.checkPassword(password, user.password())) {

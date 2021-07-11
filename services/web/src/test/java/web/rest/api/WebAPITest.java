@@ -39,7 +39,7 @@ class WebAPITest {
                 WEB_ENDPOINT
         );
         body = null;
-        api = new WebAPI(version, "http:");
+        api = new WebAPI(version, "", null);
     }
 
     @AfterEach

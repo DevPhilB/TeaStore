@@ -43,7 +43,7 @@ public class RecommenderAPI implements API {
     private final ObjectMapper mapper;
     private static final Logger LOG = LogManager.getLogger(RecommenderAPI.class);
 
-    public RecommenderAPI(HttpVersion httpVersion) {
+    public RecommenderAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
         this.mapper = new ObjectMapper();
     }

@@ -13,16 +13,20 @@
  */
 package utilities.rest.client;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpObject;
+import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.util.CharsetUtil;
 
 /**
  * HTTP client handler for web service
  * @author Philipp Backes
  */
 public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
-    public HttpObject response;
+    public String jsonContent = "";
 
     @Override
     public void channelReadComplete(ChannelHandlerContext channelHandlerContext) {
@@ -36,8 +40,14 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext context, HttpObject response) {
-        this.response = response;
-        context.flush();
+    protected void channelRead0(ChannelHandlerContext context, HttpObject message) {
+        if(message instanceof HttpContent httpContent) {
+            if (httpContent instanceof LastHttpContent) {
+                context.close();
+            } else {
+                jsonContent += httpContent.content().toString(CharsetUtil.UTF_8);
+                context.flush();
+            }
+        }
     }
 }

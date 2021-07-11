@@ -187,12 +187,9 @@ public final class TrainingSynchronizer {
 			httpClient = new HttpClient(gatewayHost, persistencePort, request);
 			handler = new HttpClientHandler();
 			httpClient.sendRequest(handler);
-			if (handler.response instanceof HttpContent httpContent) {
-				ByteBuf body = httpContent.content();
-				byte[] jsonByte = new byte[body.readableBytes()];
-				body.readBytes(jsonByte);
+			if (!handler.jsonContent.isEmpty()) {
 				items = mapper.readValue(
-						jsonByte,
+						handler.jsonContent,
 						new TypeReference<List<OrderItem>>() {}
 				);
 				long noItems = items.size();
@@ -210,12 +207,9 @@ public final class TrainingSynchronizer {
 			httpClient = new HttpClient(gatewayHost, persistencePort, request);
 			handler = new HttpClientHandler();
 			httpClient.sendRequest(handler);
-			if (handler.response instanceof HttpContent httpContent) {
-				ByteBuf body = httpContent.content();
-				byte[] jsonByte = new byte[body.readableBytes()];
-				body.readBytes(jsonByte);
+			if (!handler.jsonContent.isEmpty()) {
 				orders = mapper.readValue(
-						jsonByte,
+						handler.jsonContent,
 						new TypeReference<List<Order>>() {}
 				);
 				long noOrders = orders.size();
