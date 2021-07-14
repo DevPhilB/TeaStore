@@ -76,7 +76,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.POST);
         header.setUri(WEB_ENDPOINT + "/cartaction/confirm");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
 
     @Test
