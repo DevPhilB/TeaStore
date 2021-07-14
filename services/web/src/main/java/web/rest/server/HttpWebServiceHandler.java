@@ -72,7 +72,7 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }

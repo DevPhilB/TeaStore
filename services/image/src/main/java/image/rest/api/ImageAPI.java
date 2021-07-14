@@ -72,7 +72,7 @@ public class ImageAPI implements API {
                             return getWebImages(body);
                         case "/setcachesize":
                             return setCacheSize(body);
-                    };
+                    }
                 default:
                     return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
             }

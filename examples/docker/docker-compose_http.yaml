@@ -59,7 +59,7 @@ services:
       HOST_NAME: "auth"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/auth`)"
+      - "traefik.http.routers.auth.rule=Host(`localhost`) && PathPrefix(`/api/auth`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
   recommender:
@@ -72,7 +72,7 @@ services:
       HOST_NAME: "recommender"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/recommender`)"
+      - "traefik.http.routers.recommender.rule=Host(`localhost`) && PathPrefix(`/api/recommender`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
   web:
