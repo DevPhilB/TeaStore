@@ -164,7 +164,7 @@ public class AuthAPI implements API {
             httpClient.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 product = mapper.readValue(handler.jsonContent, Product.class);
-                List<OrderItem> items = sessionData.orderItems();
+                List<OrderItem> items = new ArrayList<>();
                 OrderItem item = null;
                 SessionData data = null;
                 if(sessionData.orderItems().isEmpty()) {

@@ -272,7 +272,7 @@ public class WebAPI implements API {
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         request.setUri(authEndpoint);
         request.setMethod(GET);
-        request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData));
+        request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
         httpClient = new HttpClient(gatewayHost, authPort, request);
         handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
@@ -334,7 +334,7 @@ public class WebAPI implements API {
                     description
             );
             request.setUri(authEndpoint);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData));
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             request.setMethod(GET);
             httpClient = new HttpClient(gatewayHost, authPort, request);
             handler = new HttpClientHandler();
@@ -347,7 +347,10 @@ public class WebAPI implements API {
             );
             if (!handler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(
+                        HttpHeaderNames.SET_COOKIE,
+                        CookieUtil.encodeSessionData(newSessionData, gatewayHost)
+                );
             }
             return response;
         } catch (Exception e) {
@@ -374,7 +377,7 @@ public class WebAPI implements API {
         String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             SessionData newSessionData = sessionData;
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData));
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             switch (name) {
                 case "addtocart":
                     request.setMethod(POST);
@@ -429,7 +432,7 @@ public class WebAPI implements API {
                     }
             }
             FullHttpResponse response = cartView(newSessionData);
-            response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+            response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             return response;
         } catch (Exception e) {
             e.printStackTrace();
@@ -449,7 +452,7 @@ public class WebAPI implements API {
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
             request.setMethod(POST);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData));
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             // Create client and send request
             FullHttpRequest postRequest = new DefaultFullHttpRequest(
                     request.protocolVersion(),
@@ -462,7 +465,7 @@ public class WebAPI implements API {
             if (!handler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                 FullHttpResponse response = profileView(newSessionData);
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
                 return response;
             } else {
                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
@@ -607,7 +610,7 @@ public class WebAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -724,7 +727,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -836,7 +839,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -887,7 +890,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -911,7 +914,7 @@ public class WebAPI implements API {
         try {
             SessionData newSessionData = null;
             request.setMethod(POST);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData));
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             switch (action) {
                 case "login":
                     authEndpointLogin += username + "&password=" + password;
@@ -983,7 +986,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -1037,7 +1040,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -1171,7 +1174,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -1261,7 +1264,7 @@ public class WebAPI implements API {
                         HttpResponseStatus.OK,
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
                 return response;
             }
         } catch (Exception e) {
