@@ -123,8 +123,8 @@ public class WebAPI implements API {
                         case "/category":
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
-                                Integer productQuantity = 20;
-                                Integer page = 1;
+                                int productQuantity = 20;
+                                int page = 1;
                                 if (params.containsKey("productquantity")) {
                                     productQuantity = Integer.parseInt(params.get("productquantity").get(0));
                                 }
@@ -179,11 +179,7 @@ public class WebAPI implements API {
                                 return logioAction(sessionData, "logout", null, null);
                             }
                         case "/cartaction/confirm":
-                            if (params.containsKey("totalpriceincents")) {
-                                return confirmOrder(sessionData, body);
-                            } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                            }
+                            return confirmOrder(sessionData, body);
                     }
                 default:
                     return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
@@ -378,6 +374,7 @@ public class WebAPI implements API {
         try {
             SessionData newSessionData = sessionData;
             request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            FullHttpResponse response = null;
             switch (name) {
                 case "addtocart":
                     request.setMethod(POST);
@@ -388,6 +385,7 @@ public class WebAPI implements API {
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = cartView(newSessionData);
                         break;
                     } else {
                         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
@@ -401,6 +399,7 @@ public class WebAPI implements API {
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = cartView(newSessionData);
                         break;
                     } else {
                         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
@@ -414,6 +413,7 @@ public class WebAPI implements API {
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = cartView(newSessionData);
                         break;
                     } else {
                         return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
@@ -426,12 +426,12 @@ public class WebAPI implements API {
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = orderView(newSessionData);
                         break;
                     } else {
                         return loginView(sessionData);
                     }
             }
-            FullHttpResponse response = cartView(newSessionData);
             response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             return response;
         } catch (Exception e) {
@@ -451,17 +451,19 @@ public class WebAPI implements API {
         // POST /api/auth/useractions/placeorder
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
-            request.setMethod(POST);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             // Create client and send request
             FullHttpRequest postRequest = new DefaultFullHttpRequest(
                     request.protocolVersion(),
-                    request.method(),
+                    POST,
                     authEndpointPlaceOrder,
                     body
             );
+            postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            postRequest.headers().set("Content-Length", body.readableBytes());
+            postRequest.headers().setAll(request.headers());
             httpClient = new HttpClient(gatewayHost, authPort, postRequest);
             handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                 FullHttpResponse response = profileView(newSessionData);
@@ -498,12 +500,15 @@ public class WebAPI implements API {
         String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin"; // isLoggedIn
         try {
             // Get products
-            List<OrderItem> orderItems = sessionData.orderItems();
-            ArrayList<Long> ids = new ArrayList<Long>();
-            for (OrderItem orderItem : orderItems) {
-                ids.add(orderItem.productId());
+            List<OrderItem> orderItems = new ArrayList<>();
+            ArrayList<Long> ids = new ArrayList<>();
+            if (sessionData.orderItems() != null) {
+                for (OrderItem orderItem : sessionData.orderItems()) {
+                    orderItems.add(orderItem);
+                    ids.add(orderItem.productId());
+                }
             }
-            HashMap<Long, Product> products = new HashMap<Long, Product>();
+            HashMap<Long, Product> products = new HashMap<>();
             for (Long id : ids) {
                 request.setUri(persistenceEndpointProducts + "?id=" + id);
                 request.setMethod(GET);
@@ -525,7 +530,7 @@ public class WebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Create cart items
             List<CartItem> cartItems = new ArrayList<>();
-            for(OrderItem item : orderItems) {
+            for (OrderItem item : orderItems) {
                 Long productId = item.productId();
                 cartItems.add(new CartItem(
                         productId,
@@ -1255,7 +1260,9 @@ public class WebAPI implements API {
                         webImageDataMap.get("icon"),
                         "TeaStore Profile",
                         categories,
-                        user,
+                        user.userName(),
+                        user.realName(),
+                        user.email(),
                         previousOrders
                 );
                 String json = mapper.writeValueAsString(view);

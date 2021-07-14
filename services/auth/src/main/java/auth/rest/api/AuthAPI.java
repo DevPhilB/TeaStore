@@ -30,6 +30,7 @@ import utilities.rest.client.HttpClientHandler;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -164,11 +165,11 @@ public class AuthAPI implements API {
             httpClient.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 product = mapper.readValue(handler.jsonContent, Product.class);
-                List<OrderItem> items = new ArrayList<>();
+                HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
                 if(sessionData.orderItems().isEmpty()) {
-                    items.add(
+                    itemMap.put(product.id(),
                         new OrderItem(
                             null,
                             product.id(),
@@ -179,26 +180,31 @@ public class AuthAPI implements API {
                     );
                 } else {
                     for (OrderItem orderItem : sessionData.orderItems()) {
+                        if (!itemMap.containsKey(orderItem.productId())) {
+                            itemMap.put(orderItem.productId(), orderItem);
+                        }
                         if (orderItem.productId().equals(productId)) {
-                            item = new OrderItem(
+                            itemMap.put(productId, new OrderItem(
                                     orderItem.id(),
-                                    orderItem.productId(),
+                                    productId,
                                     orderItem.orderId(),
                                     orderItem.quantity() + 1,
                                     orderItem.unitPriceInCents()
+                                )
                             );
-                        } else {
-                            item = new OrderItem(
+                        } else if (!itemMap.containsKey(productId)) {
+                            itemMap.put(productId, new OrderItem(
                                     null,
-                                    product.id(),
+                                    productId,
                                     null,
                                     1,
                                     product.listPriceInCents()
+                                )
                             );
                         }
-                        items.add(item);
                     }
                 }
+                List<OrderItem> items = new ArrayList<>(itemMap.values());
                 data = new SessionData(
                         sessionData.userId(),
                         sessionData.sessionId(),
@@ -317,12 +323,16 @@ public class AuthAPI implements API {
         }
 
         try {
+            long totalPrice = 0;
+            for (OrderItem item : sessionData.orderItems()) {
+                totalPrice += item.quantity() * item.unitPriceInCents();
+            }
             orderData = mapper.readValue(jsonByte, Order.class);
             Order newOrder = new Order(
-                    sessionData.order().id(),
-                    sessionData.order().userId(),
+                    null,
+                    sessionData.userId(),
                     LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                    orderData.totalPriceInCents(),
+                    totalPrice,
                     orderData.addressName(),
                     orderData.address1(),
                     orderData.address2(),

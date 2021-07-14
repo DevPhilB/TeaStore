@@ -76,7 +76,7 @@ public class ShaSecurityProvider implements ISecurityProvider {
     }
 
     String token = data.token();
-    data = new SessionData(
+    SessionData testData = new SessionData(
             data.userId(),
             data.sessionId(),
             null,
@@ -84,8 +84,8 @@ public class ShaSecurityProvider implements ISecurityProvider {
             data.orderItems(),
             data.message()
     );
-    String dataString = dataToString(data);
-    String validationToken = getSha512(dataString);
+    String testDataString = dataToString(testData);
+    String validationToken = getSha512(testDataString);
     if (validationToken.equals(token)) {
       return data;
     }
