@@ -29,6 +29,8 @@ import utilities.rest.client.HttpClientHandler;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -85,7 +87,7 @@ public class AuthAPI implements API {
             switch (method) {
                 case "GET":
                     switch (subPath) {
-                        case "/ready":
+                        case "/isready":
                             return isReady();
                     }
                 case "POST":
@@ -97,31 +99,31 @@ public class AuthAPI implements API {
                             } else {
                                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                             }
-                    case "/cart/remove":
-                        if (params.containsKey("productid")) {
-                            Long productId = Long.parseLong(params.get("productid").get(0));
-                            return removeProductFromCart(sessionData, productId);
-                        } else {
+                        case "/cart/remove":
+                            if (params.containsKey("productid")) {
+                                Long productId = Long.parseLong(params.get("productid").get(0));
+                                return removeProductFromCart(sessionData, productId);
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
+                        case "/useractions/placeorder":
+                            if (body != null) {
+                                return placeOrder(sessionData, body);
+                            }
                             return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
+                        case "/useractions/login":
+                            if (params.containsKey("name") && params.containsKey("password")) {
+                                String name = params.get("name").get(0);
+                                String password = params.get("password").get(0);
+                                return login(sessionData, name, password);
+                            } else {
+                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            }
+                        case "/useractions/logout":
+                            return logout(sessionData);
+                        case "/useractions/isloggedin":
+                            return isLoggedIn(sessionData);
                     };
-                    case "/useractions/placeorder":
-                        if(body != null) {
-                            return placeOrder(sessionData, body);
-                        }
-                        return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                    case "/useractions/login":
-                        if (params.containsKey("name") && params.containsKey("password")) {
-                            String name = params.get("name").get(0);
-                            String password = params.get("password").get(0);
-                            return login(sessionData, name, password);
-                        } else {
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
-                        }
-                    case "/useractions/logout":
-                        return logout(sessionData);
-                    case "/useractions/isloggedin":
-                        return isLoggedIn(sessionData);
                 case "PUT":
                     switch (subPath) {
                         case "/cart/update":
@@ -134,7 +136,7 @@ public class AuthAPI implements API {
                             }
                     }
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
             }
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
@@ -163,50 +165,61 @@ public class AuthAPI implements API {
             httpClient.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 product = mapper.readValue(handler.jsonContent, Product.class);
+                HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
-                for (OrderItem orderItem : sessionData.orderItems()) {
-                    if (orderItem.productId().equals(productId)) {
-                        item = new OrderItem(
-                                orderItem.id(),
-                                orderItem.productId(),
-                                orderItem.orderId(),
-                                orderItem.quantity() + 1,
-                                orderItem.unitPriceInCents()
-                        );
-                        data = new ShaSecurityProvider().secure(sessionData);
-                        String json = mapper.writeValueAsString(data);
-                        return new DefaultFullHttpResponse(
-                                httpVersion,
-                                HttpResponseStatus.OK,
-                                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-                        );
-                    }
-                    item = new OrderItem(
+                if(sessionData.orderItems().isEmpty()) {
+                    itemMap.put(product.id(),
+                        new OrderItem(
                             null,
-                            productId,
+                            product.id(),
                             null,
                             1,
                             product.listPriceInCents()
+                        )
                     );
-                    List<OrderItem> items = sessionData.orderItems();
-                    items.add(item);
-                    data = new SessionData(
-                            sessionData.userId(),
-                            sessionData.sessionId(),
-                            sessionData.token(),
-                            sessionData.order(),
-                            items,
-                            sessionData.message()
-                    );
-                    data = new ShaSecurityProvider().secure(data);
-                    String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            httpVersion,
-                            HttpResponseStatus.OK,
-                            Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-                    );
+                } else {
+                    for (OrderItem orderItem : sessionData.orderItems()) {
+                        if (!itemMap.containsKey(orderItem.productId())) {
+                            itemMap.put(orderItem.productId(), orderItem);
+                        }
+                        if (orderItem.productId().equals(productId)) {
+                            itemMap.put(productId, new OrderItem(
+                                    orderItem.id(),
+                                    productId,
+                                    orderItem.orderId(),
+                                    orderItem.quantity() + 1,
+                                    orderItem.unitPriceInCents()
+                                )
+                            );
+                        } else if (!itemMap.containsKey(productId)) {
+                            itemMap.put(productId, new OrderItem(
+                                    null,
+                                    productId,
+                                    null,
+                                    1,
+                                    product.listPriceInCents()
+                                )
+                            );
+                        }
+                    }
                 }
+                List<OrderItem> items = new ArrayList<>(itemMap.values());
+                data = new SessionData(
+                        sessionData.userId(),
+                        sessionData.sessionId(),
+                        sessionData.token(),
+                        sessionData.order(),
+                        items,
+                        sessionData.message()
+                );
+                data = new ShaSecurityProvider().secure(data);
+                String json = mapper.writeValueAsString(data);
+                return new DefaultFullHttpResponse(
+                        httpVersion,
+                        HttpResponseStatus.OK,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -310,12 +323,16 @@ public class AuthAPI implements API {
         }
 
         try {
+            long totalPrice = 0;
+            for (OrderItem item : sessionData.orderItems()) {
+                totalPrice += item.quantity() * item.unitPriceInCents();
+            }
             orderData = mapper.readValue(jsonByte, Order.class);
             Order newOrder = new Order(
-                    sessionData.order().id(),
-                    sessionData.order().userId(),
+                    null,
+                    sessionData.userId(),
                     LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                    orderData.totalPriceInCents(),
+                    totalPrice,
                     orderData.addressName(),
                     orderData.address1(),
                     orderData.address2(),

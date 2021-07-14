@@ -52,13 +52,16 @@ public class CookieUtil {
      * @param sessionData Session data
      * @return Cookie
      */
-    public static Cookie encodeSessionData(SessionData sessionData) {
+    public static Cookie encodeSessionData(SessionData sessionData, String gatewayHost) {
         try {
             String encodedCookie = URLEncoder.encode(
                     mapper.writeValueAsString(sessionData),
                     CharsetUtil.UTF_8
             );
-            return new DefaultCookie("SessionData", encodedCookie);
+            Cookie cookie = new DefaultCookie("SessionData", encodedCookie);
+            cookie.setPath("/api");
+            cookie.setDomain(gatewayHost);
+            return cookie;
         } catch(Exception e) {
             e.printStackTrace();
         }

@@ -84,7 +84,7 @@ class AuthAPITest {
         header.setMethod(HttpMethod.POST);
         header.setUri(AUTH_ENDPOINT + "/useractions/login?name=name&password=password");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     }
 
     @Test
@@ -92,7 +92,7 @@ class AuthAPITest {
         header.setMethod(HttpMethod.POST);
         header.setUri(AUTH_ENDPOINT + "/useractions/logout");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -100,7 +100,7 @@ class AuthAPITest {
         header.setMethod(HttpMethod.POST);
         header.setUri(AUTH_ENDPOINT + "/useractions/isloggedin");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -108,6 +108,6 @@ class AuthAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(AUTH_ENDPOINT + "/isready");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.BAD_REQUEST, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 }

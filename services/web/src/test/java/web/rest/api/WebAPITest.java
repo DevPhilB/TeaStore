@@ -130,7 +130,7 @@ class WebAPITest {
     @Test
     void testLoginAction() {
         header.setMethod(HttpMethod.POST);
-        header.setUri(WEB_ENDPOINT + "/loginaction");
+        header.setUri(WEB_ENDPOINT + "/logioaction");
         body = Unpooled.buffer();
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());

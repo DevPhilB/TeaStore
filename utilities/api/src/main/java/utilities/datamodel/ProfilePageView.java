@@ -19,6 +19,8 @@ public record ProfilePageView (
         String storeIcon,
         String title,
         List<Category> categories,
-        User user,
+        String username,
+        String realname,
+        String email,
         List<PreviousOrder> orders
 ) {}

@@ -269,32 +269,23 @@ paths:
           description: "Internal Server Error"
       tags:
         - Web
-  /api/web/loginaction:
+  /api/web/logioaction:
     post:
-      summary: "Log in or out and return view 'Index'."
+      summary: "Log in (username & password) or log out (cookie) and return view 'Index'."
       parameters:
         - in: "cookie"
           name: "Session data"
           description: "Session data encoded as UTF-8 string"
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                username:
-                  type: string
-                password:
-                  type: string
-              required:
-                - name
-                - username
-                - password
+        - name: "username"
+          in: "query"
+          schema:
+            type: string
+        - name: "password"
+          in: "query"
+          schema:
+            type: string
       responses:
         "200":
           description: "OK"
@@ -641,7 +632,7 @@ paths:
         - Persistence
   /api/persistence/orderitems:
     get:
-      summary: "Return a single (id) or all order items (productId, orderId, start = startIndex, max = maxResultCount)."
+      summary: "Return a single (id) or all order items (productid, orderid, start = startIndex, max = maxResultCount)."
       parameters:
         - name: "id"
           in: "query"
@@ -730,7 +721,7 @@ paths:
         - Persistence
   /api/persistence/products:
     get:
-      summary: "Return a single (id) or all products (categoryId, start = startIndex, max = maxResultCount)."
+      summary: "Return a single (id) or all products (categoryid, start = startIndex, max = maxResultCount)."
       parameters:
         - name: "id"
           in: "query"
@@ -1105,6 +1096,14 @@ paths:
           description: "Internal Server Error"
       tags:
         - Recommender
+  /api/auth/isready:
+    get:
+      summary: "This methods checks, if the service is ready."
+      responses:
+        "200":
+          description: "OK"
+      tags:
+        - Auth
   /api/auth/cart/add:
     post:
       summary: "Add product to cart and return updated session data."

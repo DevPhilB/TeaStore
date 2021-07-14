@@ -123,8 +123,8 @@ public class WebAPI implements API {
                         case "/category":
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
-                                Integer productQuantity = 20;
-                                Integer page = 1;
+                                int productQuantity = 20;
+                                int page = 1;
                                 if (params.containsKey("productquantity")) {
                                     productQuantity = Integer.parseInt(params.get("productquantity").get(0));
                                 }
@@ -170,17 +170,19 @@ public class WebAPI implements API {
                     }
                 case "POST":
                     switch (subPath) {
-                        case "/loginaction":
-                            return loginAction(sessionData, body);
-                        case "/cartaction/confirm":
-                            if (params.containsKey("totalpriceincents")) {
-                                return confirmOrder(sessionData, body);
+                        case "/logioaction":
+                            if (params.containsKey("username") && params.containsKey("password")) {
+                                String username = params.get("username").get(0);
+                                String password = params.get("password").get(0);
+                                return logioAction(sessionData, "login", username, password);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return logioAction(sessionData, "logout", null, null);
                             }
+                        case "/cartaction/confirm":
+                            return confirmOrder(sessionData, body);
                     }
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
             }
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
@@ -266,7 +268,7 @@ public class WebAPI implements API {
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         request.setUri(authEndpoint);
         request.setMethod(GET);
-        request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+        request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
         httpClient = new HttpClient(gatewayHost, authPort, request);
         handler = new HttpClientHandler();
         httpClient.sendRequest(handler);
@@ -328,7 +330,7 @@ public class WebAPI implements API {
                     description
             );
             request.setUri(authEndpoint);
-            request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             request.setMethod(GET);
             httpClient = new HttpClient(gatewayHost, authPort, request);
             handler = new HttpClientHandler();
@@ -341,7 +343,10 @@ public class WebAPI implements API {
             );
             if (!handler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(
+                        HttpHeaderNames.SET_COOKIE,
+                        CookieUtil.encodeSessionData(newSessionData, gatewayHost)
+                );
             }
             return response;
         } catch (Exception e) {
@@ -368,45 +373,66 @@ public class WebAPI implements API {
         String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             SessionData newSessionData = sessionData;
-            request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            FullHttpResponse response = null;
             switch (name) {
                 case "addtocart":
                     request.setMethod(POST);
                     request.setUri(authEndpointAdd);
+                    // Create client and send request
+                    httpClient = new HttpClient(gatewayHost, authPort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = cartView(newSessionData);
+                        break;
+                    } else {
+                        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
                     }
                 case "removeproduct":
                     request.setMethod(POST);
                     request.setUri(authEndpointRemove);
+                    // Create client and send request
+                    httpClient = new HttpClient(gatewayHost, authPort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = cartView(newSessionData);
+                        break;
+                    } else {
+                        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
                     }
                 case "updatecartquantities":
                     request.setMethod(PUT);
                     request.setUri(authEndpointUpdate);
+                    // Create client and send request
+                    httpClient = new HttpClient(gatewayHost, authPort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = cartView(newSessionData);
+                        break;
+                    } else {
+                        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
                     }
                 case "proceedtocheckout":
                     request.setMethod(GET);
                     request.setUri(authEndpointCheck);
+                    httpClient = new HttpClient(gatewayHost, authPort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                        response = orderView(newSessionData);
+                        break;
                     } else {
                         return loginView(sessionData);
                     }
             }
-            FullHttpResponse response = cartView(newSessionData);
-            response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+            response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             return response;
         } catch (Exception e) {
             e.printStackTrace();
@@ -425,21 +451,23 @@ public class WebAPI implements API {
         // POST /api/auth/useractions/placeorder
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
-            request.setMethod(POST);
-            request.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
             // Create client and send request
             FullHttpRequest postRequest = new DefaultFullHttpRequest(
                     request.protocolVersion(),
-                    request.method(),
+                    POST,
                     authEndpointPlaceOrder,
                     body
             );
-            httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
+            postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            postRequest.headers().set("Content-Length", body.readableBytes());
+            postRequest.headers().setAll(request.headers());
+            httpClient = new HttpClient(gatewayHost, authPort, postRequest);
             handler = new HttpClientHandler();
+            httpClient.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                 FullHttpResponse response = profileView(newSessionData);
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
                 return response;
             } else {
                 return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
@@ -472,14 +500,18 @@ public class WebAPI implements API {
         String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin"; // isLoggedIn
         try {
             // Get products
-            List<OrderItem> orderItems = sessionData.orderItems();
-            ArrayList<Long> ids = new ArrayList<Long>();
-            for (OrderItem orderItem : orderItems) {
-                ids.add(orderItem.productId());
+            List<OrderItem> orderItems = new ArrayList<>();
+            ArrayList<Long> ids = new ArrayList<>();
+            if (sessionData.orderItems() != null) {
+                for (OrderItem orderItem : sessionData.orderItems()) {
+                    orderItems.add(orderItem);
+                    ids.add(orderItem.productId());
+                }
             }
-            HashMap<Long, Product> products = new HashMap<Long, Product>();
+            HashMap<Long, Product> products = new HashMap<>();
             for (Long id : ids) {
                 request.setUri(persistenceEndpointProducts + "?id=" + id);
+                request.setMethod(GET);
                 // Create client and send request
                 httpClient = new HttpClient(gatewayHost, persistencePort, request);
                 handler = new HttpClientHandler();
@@ -498,7 +530,7 @@ public class WebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Create cart items
             List<CartItem> cartItems = new ArrayList<>();
-            for(OrderItem item : orderItems) {
+            for (OrderItem item : orderItems) {
                 Long productId = item.productId();
                 cartItems.add(new CartItem(
                         productId,
@@ -583,7 +615,7 @@ public class WebAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -700,7 +732,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -716,13 +748,13 @@ public class WebAPI implements API {
      *
      * @return Index page view as JSON
      */
-    private FullHttpResponse databaseAction(SessionData sessionData, int categories, Integer products, Integer users, Integer orders) {
+    private FullHttpResponse databaseAction(SessionData sessionData, Integer categories, Integer products, Integer users, Integer orders) {
         // GET api/persistence/generatedb
-        String authEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
+        String persistenceEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
                 "?categories=" + categories + "&products=" + products +
                 "&users=" + users + "&orders=" + orders;
         try {
-            request.setUri(authEndpoint);
+            request.setUri(persistenceEndpoint);
             // Create client and send request
             httpClient = new HttpClient(gatewayHost, persistencePort, request);
             handler = new HttpClientHandler();
@@ -812,7 +844,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -863,7 +895,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -873,37 +905,27 @@ public class WebAPI implements API {
     }
 
     /**
-     * POST /loginaction
+     * POST /logioaction
      *
      * User login or logout
      *
-     * @return Index page view as JSON
+     * @return Profile or index page view as JSON
      */
-    private FullHttpResponse loginAction(SessionData sessionData, ByteBuf body) {
-        LoginAction action = null;
-        byte[] jsonByte = new byte[body.readableBytes()];
-        body.readBytes(jsonByte);
-        //
-        String authEndpointLogin = AUTH_ENDPOINT + "/useractions/login?name="; // POST
-        String authEndpointLogout = AUTH_ENDPOINT + "/useractions/logout"; // POST
+    private FullHttpResponse logioAction(SessionData sessionData, String action, String username, String password) {
+        // POST api/auth/useractions/login?name=
+        String authEndpointLogin = AUTH_ENDPOINT + "/useractions/login?name=";
+        // POST api/auth/useractions/logout
+        String authEndpointLogout = AUTH_ENDPOINT + "/useractions/logout";
         try {
-            action = mapper.readValue(jsonByte, LoginAction.class);
-            FullHttpRequest postRequest = null;
             SessionData newSessionData = null;
-            switch (action.name()) {
+            request.setMethod(POST);
+            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            switch (action) {
                 case "login":
-                    authEndpointLogin += action.username() + "&password=" + action.password();
+                    authEndpointLogin += username + "&password=" + password;
+                    request.setUri(authEndpointLogin);
                     // Create client and send request
-                    postRequest = new DefaultFullHttpRequest(
-                            request.protocolVersion(),
-                            POST,
-                            authEndpointLogin,
-                            body
-                    );
-                    postRequest.headers().set("Content-Length", body.readableBytes());
-                    postRequest.headers().setAll(request.headers());
-                    postRequest.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
-                    httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
+                    httpClient = new HttpClient(gatewayHost, authPort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
@@ -911,17 +933,9 @@ public class WebAPI implements API {
                     }
                     return profileView(newSessionData);
                 case "logout":
+                    request.setUri(authEndpointLogout);
                     // Create client and send request
-                    postRequest = new DefaultFullHttpRequest(
-                            request.protocolVersion(),
-                            POST,
-                            authEndpointLogout,
-                            body
-                    );
-                    postRequest.headers().set("Content-Length", body.readableBytes());
-                    postRequest.headers().setAll(request.headers());
-                    postRequest.headers().add("Cookie", CookieUtil.encodeSessionData(sessionData));
-                    httpClient = new HttpClient(gatewayHost, persistencePort, postRequest);
+                    httpClient = new HttpClient(gatewayHost, authPort, request);
                     handler = new HttpClientHandler();
                     httpClient.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
@@ -977,7 +991,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -1031,7 +1045,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -1165,7 +1179,7 @@ public class WebAPI implements API {
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if(newSessionData != null) {
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
@@ -1246,7 +1260,9 @@ public class WebAPI implements API {
                         webImageDataMap.get("icon"),
                         "TeaStore Profile",
                         categories,
-                        user,
+                        user.userName(),
+                        user.realName(),
+                        user.email(),
                         previousOrders
                 );
                 String json = mapper.writeValueAsString(view);
@@ -1255,7 +1271,7 @@ public class WebAPI implements API {
                         HttpResponseStatus.OK,
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
-                response.headers().set("Set-Cookie", CookieUtil.encodeSessionData(newSessionData));
+                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
                 return response;
             }
         } catch (Exception e) {
