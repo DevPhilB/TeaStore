@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import image.cache.entry.AbstractEntry;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
