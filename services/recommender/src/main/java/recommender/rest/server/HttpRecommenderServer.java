@@ -56,12 +56,14 @@ public class HttpRecommenderServer {
         this.scheme = scheme;
         this.gatewayHost = gatewayHost;
         this.gatewayPort = gatewayPort;
+        // Setup and start training
         TrainingSynchronizer.getInstance().setupHttpClient(
                 this.httpVersion,
                 this.scheme,
                 this.gatewayHost,
                 this.gatewayHost.isEmpty() ? 3030 : gatewayPort
         );
+        TrainingSynchronizer.getInstance().retrieveDataAndRetrain();
     }
 
     public static void main(String[] args) throws Exception {
