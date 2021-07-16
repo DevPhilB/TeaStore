@@ -24,7 +24,6 @@ import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -47,7 +46,6 @@ public class ImageAPI implements API {
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
         QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
-        Map<String, List<String>> params = queryStringDecoder.parameters();
         String method = header.method().name();
         String path = queryStringDecoder.path();
 
@@ -79,6 +77,7 @@ public class ImageAPI implements API {
         }
         return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
     }
+
 
     /**
      * POST /productimages
