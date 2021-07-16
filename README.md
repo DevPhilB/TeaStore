@@ -39,7 +39,7 @@ Waiting for the database is already included.
 - [Image](https://hub.docker.com/r/tvsjsdock/teastore-image)
 - [Recommender](https://hub.docker.com/r/tvsjsdock/teastore-recommender)
  ```sh
-docker-compose -f ./examples/docker/docker-compose_http.yaml up -d
+docker-compose -f ./examples/docker/docker-compose_http.yaml up
  ```
 
 ## Changes (WIP)

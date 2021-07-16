@@ -15,7 +15,6 @@ jobs:
         with:
           java-version: '16'
       - run: mvn clean install
-
   push-docker:
     runs-on: ubuntu-latest
     needs: [build]
@@ -30,26 +29,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Build and push auth
-        uses: docker/build-push-action@v2
-        with:
-          context: services/auth/Dockerfile
-          push: true
-          tags: tvsjsdock/teastore-auth:v2
-      -
         name: Build and push database
         uses: docker/build-push-action@v2
         with:
           context: database/Dockerfile
           push: true
           tags: tvsjsdock/teastore-db:v2
-      -
-        name: Build and push image
-        uses: docker/build-push-action@v2
-        with:
-          context: services/image/Dockerfile
-          push: true
-          tags: tvsjsdock/teastore-image:v2
       -
         name: Build and push persistence
         uses: docker/build-push-action@v2
@@ -58,12 +43,12 @@ jobs:
           push: true
           tags: tvsjsdock/teastore-persistence:v2
       -
-        name: Build and push recommender
+        name: Build and push auth
         uses: docker/build-push-action@v2
         with:
-          context: services/recommender/Dockerfile
+          context: services/auth/Dockerfile
           push: true
-          tags: tvsjsdock/teastore-recommender:v2
+          tags: tvsjsdock/teastore-auth:v2
       -
         name: Build and push web
         uses: docker/build-push-action@v2
@@ -71,3 +56,17 @@ jobs:
           context: .
           push: true
           tags: tvsjsdock/teastore-web:v2
+      -
+        name: Build and push image
+        uses: docker/build-push-action@v2
+        with:
+          context: services/image/Dockerfile
+          push: true
+          tags: tvsjsdock/teastore-image:v2
+      -
+        name: Build and push recommender
+        uses: docker/build-push-action@v2
+        with:
+          context: services/recommender/Dockerfile
+          push: true
+          tags: tvsjsdock/teastore-recommender:v2
