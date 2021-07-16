@@ -61,19 +61,6 @@ public final class TrainingSynchronizer {
 	 */
 	public static final long DEFAULT_MAX_TIME_VALUE = Long.MIN_VALUE;
 
-	// Longest wait period before querying the persistence again if it is finished
-	// creating entries
-	private static final int PERSISTENCE_CREATION_MAX_WAIT_TIME = 120000;
-	// Wait time in ms before checking again for an existing persistence service
-	private static final List<Integer> PERSISTENCE_CREATION_WAIT_TIME = Arrays.asList(
-			1000,
-			2000,
-			5000,
-			10000,
-			30000,
-			60000
-	);
-
 	private static TrainingSynchronizer instance;
 
 	private boolean isReady = false;
@@ -106,7 +93,7 @@ public final class TrainingSynchronizer {
 	) {
 		this.mapper = new ObjectMapper();
 		this.scheme = scheme;
-		this.gatewayHost = gatewayHost;
+		this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
 		this.persistencePort = persistencePort;
 		this.request = new DefaultFullHttpRequest(
 				version,
@@ -176,11 +163,9 @@ public final class TrainingSynchronizer {
 		List<OrderItem> items = new ArrayList<>();
 		List<Order> orders = new ArrayList<>();
 		// GET api/persistence/orderitems
-		String persistenceEndpointOrderItems = PERSISTENCE_ENDPOINT +
-				"/orderitems?start=-1&max=-1";
+		String persistenceEndpointOrderItems = PERSISTENCE_ENDPOINT + "/orderitems?start=-1&max=-1";
 		// GET api/persistence/orders
-		String persistenceEndpointOrders = PERSISTENCE_ENDPOINT +
-				"/orders?start=-1&max=-1";
+		String persistenceEndpointOrders = PERSISTENCE_ENDPOINT + "/orders?start=-1&max=-1";
 		// Retrieve order items
 		try {
 			request.setUri(persistenceEndpointOrderItems);

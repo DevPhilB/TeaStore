@@ -15,74 +15,79 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
   db:
-    build: ../database
-    # image: tvsjsdock/teastore-db:v2
-    # TODO: Ports and traefik configuration for dbs, testing
-    expose:
-      - "3306"
+    image: tvsjsdock/teastore-db:v2
+    ports:
+      - "3306:3306"
     labels:
-      - "traefik.http.routers.db.rule=Host(`localhost`) && PathPrefix(`/db`)"
-      - "traefik.port=3306"
-      - "traefik.protocol=http"
+      - "traefik.enable=false"
   persistence:
-    build: ../../services/persistence
+    image: tvsjsdock/teastore-persistence:v2
+    depends_on:
+      - db
     # image: tvsjsdock/teastore-persistence:v2
     expose:
       - "80"
     environment:
       HOST_NAME: "persistence"
       GATEWAY_HOST: "gateway"
-      DB_HOST: "gateway/db"
+      DB_HOST: "db"
       DB_PORT: "3306"
     labels:
-      - "traefik.http.routers.persistence.rule=Host(`localhost`) && PathPrefix(`/persistence`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
-  auth:
-    build: ../../services/auth
-    # image: tvsjsdock/teastore-auth:v2
-    expose:
-      - "80"
-    environment:
-      HOST_NAME: "auth"
-      GATEWAY_HOST: "gateway"
-    labels:
-      - "traefik.http.routers.auth.rule=Host(`localhost`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.persistence.rule=Host(`localhost`) && PathPrefix(`/api/persistence`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
   image:
-    build: ../../services/image
-    # image: tvsjsdock/teastore-image:v2
+    image: tvsjsdock/teastore-image:v2
+      depends_on:
+        - db
     expose:
       - "80"
     environment:
       HOST_NAME: "image"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/image`)"
+      - "traefik.http.routers.image.rule=Host(`localhost`) && PathPrefix(`/api/image`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  auth:
+    image: tvsjsdock/teastore-auth:v2
+    depends_on:
+      - db
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "auth"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.auth.rule=Host(`localhost`) && PathPrefix(`/api/auth`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
   recommender:
-    build: ../../services/recommender
-    # image: tvsjsdock/teastore-recommender:v2
+    image: tvsjsdock/teastore-recommender:v2
+    depends_on:
+      - db
     expose:
       - "80"
     environment:
       HOST_NAME: "recommender"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.recommender.rule=Host(`localhost`) && PathPrefix(`/recommender`)"
+      - "traefik.http.routers.recommender.rule=Host(`localhost`) && PathPrefix(`/api/recommender`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
   web:
-    build: ../../services/web
-    # image: tvsjsdock/teastore-web:v2
+    image: tvsjsdock/teastore-web:v2
+    depends_on:
+      - persistence
+      - image
+      - auth
+      - recommender
     expose:
       - "80"
     environment:
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/web`)"
+      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
       - "traefik.port=80"
       - "traefik.protocol=http"

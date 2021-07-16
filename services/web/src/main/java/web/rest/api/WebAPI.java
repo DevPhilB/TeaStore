@@ -50,6 +50,7 @@ public class WebAPI implements API {
     private final Integer imagePort;
     private final Integer authPort;
     private final Integer persistencePort;
+    private final Integer recommenderPort;
     private final HttpRequest request;
 
     public WebAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
@@ -60,13 +61,13 @@ public class WebAPI implements API {
             this.authPort = API.DEFAULT_AUTH_PORT;
             this.imagePort = API.DEFAULT_IMAGE_PORT;
             this.persistencePort = API.DEFAULT_PERSISTENCE_PORT;
-            // recommender = API.DEFAULT_RECOMMENDER_PORT
-            // web = API.DEFAULT_WEB_PORT
+            this.recommenderPort = API.DEFAULT_RECOMMENDER_PORT;
         } else {
             this.gatewayHost = gatewayHost;
             this.imagePort = gatewayPort;
             this.authPort = gatewayPort;
             this.persistencePort = gatewayPort;
+            this.recommenderPort = gatewayPort;
         }
         this.request = new DefaultFullHttpRequest(
                 this.httpVersion,
@@ -546,21 +547,26 @@ public class WebAPI implements API {
             List<ProductView> advertisements = new ArrayList<>();
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
-            String orderItemsJson = mapper.writeValueAsString(orderItems);
-            FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    GET,
-                    recommenderEndpoint + "?userid=" + sessionData.userId(),
-                    Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
-            );
-            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemsRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                productIds = mapper.readValue(
-                        handler.jsonContent,
-                        new TypeReference<List<Long>>(){}
+            // Recommendations works only with user id
+            if(sessionData.userId() != null) {
+                String orderItemsJson = mapper.writeValueAsString(orderItems);
+                FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
+                        request.protocolVersion(),
+                        POST,
+                        recommenderEndpoint + "?userid=" + sessionData.userId(),
+                        Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
                 );
+                postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
+                postOrderItemsRequest.headers().setAll(request.headers());
+                httpClient = new HttpClient(gatewayHost, recommenderPort, postOrderItemsRequest);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                if (!handler.jsonContent.isEmpty()) {
+                    productIds = mapper.readValue(
+                            handler.jsonContent,
+                            new TypeReference<List<Long>>(){}
+                    );
+                }
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -1114,21 +1120,26 @@ public class WebAPI implements API {
             List<OrderItem> orderItems = sessionData.orderItems();
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
-            String orderItemsJson = mapper.writeValueAsString(orderItems);
-            FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    GET,
-                    recommenderEndpoint + "?userid=" + sessionData.userId(),
-                    Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
-            );
-            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemsRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                productIds = mapper.readValue(
-                        handler.jsonContent,
-                        new TypeReference<List<Long>>(){}
+            // Recommendations works only with user id
+            if(sessionData.userId() != null) {
+                String orderItemsJson = mapper.writeValueAsString(orderItems);
+                FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
+                        request.protocolVersion(),
+                        POST,
+                        recommenderEndpoint + "?userid=" + sessionData.userId(),
+                        Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
                 );
+                postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
+                postOrderItemsRequest.headers().setAll(request.headers());
+                httpClient = new HttpClient(gatewayHost, recommenderPort, postOrderItemsRequest);
+                handler = new HttpClientHandler();
+                httpClient.sendRequest(handler);
+                if (!handler.jsonContent.isEmpty()) {
+                    productIds = mapper.readValue(
+                            handler.jsonContent,
+                            new TypeReference<List<Long>>(){}
+                    );
+                }
             }
             // Get product images
             productImageSizeMap = new HashMap<>();

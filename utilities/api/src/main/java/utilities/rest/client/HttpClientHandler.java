@@ -13,7 +13,6 @@
  */
 package utilities.rest.client;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpContent;
@@ -43,6 +42,7 @@ public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
     protected void channelRead0(ChannelHandlerContext context, HttpObject message) {
         if(message instanceof HttpContent httpContent) {
             if (httpContent instanceof LastHttpContent) {
+                jsonContent += httpContent.content().toString(CharsetUtil.UTF_8);
                 context.close();
             } else {
                 jsonContent += httpContent.content().toString(CharsetUtil.UTF_8);

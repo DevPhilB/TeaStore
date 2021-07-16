@@ -1,7 +1,13 @@
 FROM openjdk:17-jdk
 
-# copy the packaged jar file into our docker image
-COPY target/recommender.jar /recommender.jar
+WORKDIR /service
 
-# set the startup command to execute the jar
-CMD ["java", "-jar", "/recommender.jar"]
+# copy shell script
+COPY start.sh /service/start.sh
+RUN chmod +x /service/start.sh
+
+# copy the packaged jar file into our docker image
+COPY target/recommender.jar /service/recommender.jar
+
+# run the shell script
+CMD ["/service/start.sh"]

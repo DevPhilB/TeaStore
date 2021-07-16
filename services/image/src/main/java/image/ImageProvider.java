@@ -26,8 +26,9 @@ import image.setup.ImageIDFactory;
 import image.storage.IDataStorage;
 
 /**
- * The actual image provider class containing the mapping between products, web interface static images, the 
- * cache and underlying storage. Only one instance of an image provider can exist.
+ * The actual image provider class containing the mapping between products,
+ * web interface static images, the cache and underlying storage.
+ * Only one instance of an image provider can exist.
  * @author Norbert Schmitt
  */
 public enum ImageProvider {
@@ -46,28 +47,27 @@ public enum ImageProvider {
   private IDataStorage<StoreImage> storage;
   private static final Logger LOG = LogManager.getLogger(ImageProvider.class);
 
-  private ImageProvider() {
-
-  }
+  private ImageProvider() {}
 
   /**
    * Assign the image provider the mapping between products and web interface static images.
    * @param imgDB Image database, mapping between products and web interface static images.
    */
   public void setImageDB(ImageDB imgDB) {
-	if (imgDB != null) {
-	  db = imgDB;
-	}
+    if (imgDB != null) {
+      db = imgDB;
+    }
   }
 
   /**
-   * Assign the storage containing all available images. This can either be a cache or the actual hard drive storage.
+   * Assign the storage containing all available images.
+   * This can either be a cache or the actual hard drive storage.
    * @param imgStorage Image storage containing all available images.
    */
   public void setStorage(IDataStorage<StoreImage> imgStorage) {
-	if (imgStorage != null) {
-      storage = imgStorage;
-	}
+    if (imgStorage != null) {
+        storage = imgStorage;
+    }
   }
 
   /**
@@ -158,7 +158,6 @@ public enum ImageProvider {
         }
       }
     }
-
     return storedImg.toString();
   }
 
