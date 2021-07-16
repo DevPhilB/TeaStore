@@ -16,17 +16,12 @@ package image.setup;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -40,7 +35,6 @@ import javax.imageio.ImageIO;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import org.apache.logging.log4j.Logger;
@@ -89,21 +83,10 @@ public enum SetupController {
    */
   private interface SetupControllerConstants {
 
-	/**
-	 * Standard working directory in which the images are stored.
-	 */
+    /**
+     * Standard working directory in which the images are stored.
+     */
     public static final Path STD_WORKING_DIR = Paths.get("images");
-
-    /**
-     * Longest wait period before querying the persistence again if it is finished creating entries.
-     */
-    public final int PERSISTENCE_CREATION_MAX_WAIT_TIME = 120000;
-
-    /**
-     * Wait time in ms before checking again for an existing persistence service.
-     */
-    public static final List<Integer> PERSISTENCE_CREATION_WAIT_TIME = Arrays.asList(1000, 2000,
-        5000, 10000, 30000, 60000);
 
     /**
      * Number of available logical cpus for image creation.
@@ -120,6 +103,7 @@ public enum SetupController {
      * image provider service registered.
      */
     public static final long CREATION_THREAD_POOL_WAIT_PER_IMG_NR = 70;
+
   }
   // HTTP client
   private String scheme;
@@ -287,16 +271,9 @@ public enum SetupController {
   public void detectCategoryImages() {
     LOG.info("Trying to find images that indicate categories in generated images.");
 
-    String resPath = "categoryimg" + File.separator + "black-tea.png";
-    File dir = getPathToResource(resPath).toFile();
-
-    if (dir != null) {
-      LOG.info("Found resource directory with category images at {}.",
-          dir.toPath().toAbsolutePath().toString());
-    } else {
-      LOG.info("Resource path {} not found.", resPath);
-      return;
-    }
+    String path = File.separator + "service" + File.separator + "categoryimg" + File.separator + "black-tea.png";
+    File imageFile = new File(path);
+    File dir = new File(imageFile.getParent());
 
     nrOfImagesForCategory = 0;
     if (dir.exists() && dir.isDirectory()) {
@@ -340,30 +317,6 @@ public enum SetupController {
   }
 
   /**
-   * Returns the path to a given resource, category image or web interface image.
-   * @param resource Resource to find path.
-   * @return Path to the given resource or NULL if the resource could not be found.
-   */
-  public Path getPathToResource(String resource) {
-    // Rework the code piece fetching the existing images until the next
-    // comment
-    URL url = this.getClass().getResource(resource);
-    Path dir = null;
-    String path = "";
-    try {
-      path = URLDecoder.decode(url.getPath(), "UTF-8");
-      if (path.contains(":")) {
-        path = path.substring(3);
-      }
-      dir = Paths.get(path).getParent();
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("The resource path \"" + path + "\" could not be decoded with UTF-8.");
-    }
-    // End of rework
-    return dir;
-  }
-
-  /**
    * Search for web interface images and add them to the existing image database.
    */
   public void detectExistingImages() {
@@ -380,21 +333,12 @@ public enum SetupController {
       throw new NullPointerException("The supplied image database is null.");
     }
 
-    String resPath = "existingimg" + File.separator + "front.png";
-    Path dir = getPathToResource(resPath);
+    String path = File.separator + "service" + File.separator + "existingimg" + File.separator + "front.png";
+    File imageFile = new File(path);
+    File dir = new File(imageFile.getParent());
 
-    if (dir != null) {
-      LOG.info("Found resource directory with existing images at {}.",
-          dir.toAbsolutePath().toString());
-    } else {
-      LOG.info("Resource path {} not found.", resPath);
-      return;
-    }
-
-    File currentDir = dir.toFile();
-
-    if (currentDir.exists() && currentDir.isDirectory()) {
-      File[] fileList = currentDir.listFiles();
+    if (dir.exists() && dir.isDirectory()) {
+      File[] fileList = dir.listFiles();
       if (fileList == null) {
     	  return;
       }
@@ -440,7 +384,7 @@ public enum SetupController {
     }
 
     LOG.info("Scanned path {} for existing images. {} images found.",
-        dir.toAbsolutePath().toString(), nrOfImagesExisting);
+        dir.toPath().toAbsolutePath().toString(), nrOfImagesExisting);
   }
 
   /**
