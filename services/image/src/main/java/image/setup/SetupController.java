@@ -271,7 +271,11 @@ public enum SetupController {
   public void detectCategoryImages() {
     LOG.info("Trying to find images that indicate categories in generated images.");
 
-    String path = File.separator + "service" + File.separator + "categoryimg" + File.separator + "black-tea.png";
+    String path = "categoryimg" + File.separator + "black-tea.png";
+    if (!gatewayHost.equals("localhost")) {
+      path = File.separator + "service" + File.separator + path;
+    }
+    
     File imageFile = new File(path);
     File dir = new File(imageFile.getParent());
 
@@ -333,7 +337,10 @@ public enum SetupController {
       throw new NullPointerException("The supplied image database is null.");
     }
 
-    String path = File.separator + "service" + File.separator + "existingimg" + File.separator + "front.png";
+    String path = "existingimg" + File.separator + "front.png";
+    if (!gatewayHost.equals("localhost")) {
+      path = File.separator + "service" + File.separator + path;
+    }
     File imageFile = new File(path);
     File dir = new File(imageFile.getParent());
 
