@@ -16,7 +16,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
   db:
     build: database
-    # image: tvsjsdock/teastore-db:v2
     ports:
       - "3306:3306"
     labels:
@@ -25,7 +24,6 @@ services:
     build: services/persistence
     depends_on:
       - db
-    # image: tvsjsdock/teastore-persistence:v2
     expose:
       - "80"
     environment:
@@ -37,26 +35,10 @@ services:
       - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
-  image:
-    build: services/image
-    depends_on:
-      - db
-      - persistence
-    # image: tvsjsdock/teastore-image:v2
-    expose:
-      - "80"
-    environment:
-      HOST_NAME: "image"
-      GATEWAY_HOST: "gateway"
-    labels:
-      - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
   auth:
     build: services/auth
     depends_on:
-      - db
-    # image: tvsjsdock/teastore-auth:v2
+      - persistence
     expose:
       - "80"
     environment:
@@ -66,28 +48,10 @@ services:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
-  recommender:
-    build: services/recommender
-    depends_on:
-      - db
-    # image: tvsjsdock/teastore-recommender:v2
-    expose:
-      - "80"
-    environment:
-      HOST_NAME: "recommender"
-      GATEWAY_HOST: "gateway"
-    labels:
-      - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
   web:
     build: services/web
     depends_on:
-      - persistence
-      - image
       - auth
-      - recommender
-    # image: tvsjsdock/teastore-web:v2
     expose:
       - "80"
     environment:
@@ -95,5 +59,31 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  image:
+    build: services/image
+    depends_on:
+      - persistence
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "image"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+  recommender:
+    build: services/recommender
+    depends_on:
+      - persistence
+    expose:
+      - "80"
+    environment:
+      HOST_NAME: "recommender"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
       - "traefik.port=80"
       - "traefik.protocol=http"
