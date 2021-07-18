@@ -21,10 +21,10 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.CharsetUtil;
 
 /**
- * HTTP client handler for web service
+ * HTTP/1.1 client object handler for inter-service communication
  * @author Philipp Backes
  */
-public class HttpClientHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
     public String jsonContent = "";
 
     @Override

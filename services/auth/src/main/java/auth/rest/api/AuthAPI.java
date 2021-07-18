@@ -24,8 +24,8 @@ import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.client.Http1Client;
+import utilities.rest.client.Http1ClientHandler;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,8 +45,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
  */
 public class AuthAPI implements API {
     private final HttpVersion httpVersion;
-    private HttpClient httpClient;
-    private HttpClientHandler handler;
+    private Http1Client http1Client;
+    private Http1ClientHandler handler;
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer persistencePort;
@@ -160,9 +160,9 @@ public class AuthAPI implements API {
             request.setUri(persistenceEndpointProduct);
             request.setMethod(GET);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 product = mapper.readValue(handler.jsonContent, Product.class);
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
@@ -352,9 +352,9 @@ public class AuthAPI implements API {
             postOrderRequest.headers().set("Content-Length", postOrderBody.readableBytes());
             postOrderRequest.headers().setAll(request.headers());
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, postOrderRequest);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 orderId = mapper.readValue(handler.jsonContent, Order.class).id();
                 for (OrderItem item : sessionData.orderItems()) {
@@ -376,9 +376,9 @@ public class AuthAPI implements API {
                     postOrderItemRequest.headers().set("Content-Length", postOrderItemBody.readableBytes());
                     postOrderItemRequest.headers().setAll(request.headers());
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemRequest);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, persistencePort, postOrderItemRequest);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (handler.jsonContent.isEmpty()) {
                         return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
                     }
@@ -435,9 +435,9 @@ public class AuthAPI implements API {
             request.setUri(persistenceEndpointUser);
             request.setMethod(GET);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 user = mapper.readValue(handler.jsonContent, User.class);
                 if(user == null) {

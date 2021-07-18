@@ -59,8 +59,8 @@ import image.storage.DriveStorage;
 import image.storage.IDataStorage;
 import image.storage.rules.StoreAll;
 import image.storage.rules.StoreLargeImages;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.client.Http1Client;
+import utilities.rest.client.Http1ClientHandler;
 
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
@@ -110,8 +110,8 @@ public enum SetupController {
   private String gatewayHost;
   private Integer persistencePort;
   private HttpRequest request;
-  private HttpClient httpClient;
-  private HttpClientHandler handler;
+  private Http1Client http1Client;
+  private Http1ClientHandler handler;
   private ObjectMapper mapper;
 
   private StorageRule storageRule = StorageRule.STD_STORAGE_RULE;
@@ -166,10 +166,10 @@ public enum SetupController {
     String persistenceEndpointProducts = PERSISTENCE_ENDPOINT +
             "/products?categoryid=" + category.id() + "&" + "start=0&max=-1";
     request.setUri(persistenceEndpointProducts);
-    httpClient = new HttpClient(gatewayHost, persistencePort, request);
-    handler = new HttpClientHandler();
+    http1Client = new Http1Client(gatewayHost, persistencePort, request);
+    handler = new Http1ClientHandler();
     try {
-      httpClient.sendRequest(handler);
+      http1Client.sendRequest(handler);
       if (!handler.jsonContent.isEmpty()) {
           productList = mapper.readValue(
                   handler.jsonContent,
@@ -195,10 +195,10 @@ public enum SetupController {
     // GET api/persistence/categories
     String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories";
     request.setUri(persistenceEndpointCategories);
-    httpClient = new HttpClient(gatewayHost, persistencePort, request);
-    handler = new HttpClientHandler();
+    http1Client = new Http1Client(gatewayHost, persistencePort, request);
+    handler = new Http1ClientHandler();
     try {
-      httpClient.sendRequest(handler);
+      http1Client.sendRequest(handler);
       if (!handler.jsonContent.isEmpty()) {
         categories = mapper.readValue(
                 handler.jsonContent,

@@ -23,22 +23,22 @@ import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpRequest;
 
 /**
- * HTTP client for web service
+ * HTTP/1.1 client for inter-service communication
  * @author Philipp Backes
  */
-public class HttpClient {
+public class Http1Client {
 
     private final String host;
     private final Integer port;
     private final HttpRequest httpRequest;
 
-    public HttpClient(String host, Integer port, HttpRequest httpRequest) {
+    public Http1Client(String host, Integer port, HttpRequest httpRequest) {
         this.host = host;
         this.port = port;
         this.httpRequest = httpRequest;
     }
 
-    public void sendRequest(HttpClientHandler handler) {
+    public void sendRequest(Http1ClientHandler handler) {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
@@ -56,7 +56,7 @@ public class HttpClient {
 
             // Make the connection attempt
             Channel channel = bootstrap.connect(host, port).sync().channel();
-            // Send the HTTP request
+            // Send the HTTP/1.1 request
             channel.writeAndFlush(httpRequest);
             // Wait until the connection is closed
             channel.closeFuture().sync();

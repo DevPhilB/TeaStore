@@ -23,8 +23,8 @@ import utilities.datamodel.*;
 import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.client.Http1Client;
+import utilities.rest.client.Http1ClientHandler;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,8 +43,8 @@ import static io.netty.handler.codec.http.HttpMethod.*;
  */
 public class WebAPI implements API {
     private final HttpVersion httpVersion;
-    private HttpClient httpClient;
-    private HttpClientHandler handler;
+    private Http1Client http1Client;
+    private Http1ClientHandler handler;
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer imagePort;
@@ -53,8 +53,8 @@ public class WebAPI implements API {
     private final Integer recommenderPort;
     private final HttpRequest request;
 
-    public WebAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
+    public WebAPI(String httpVersion, String gatewayHost, Integer gatewayPort) {
+        this.httpVersion = httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1;
         this.mapper = new ObjectMapper();
         if(gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
@@ -209,9 +209,9 @@ public class WebAPI implements API {
         postRequest.headers().set("Content-Length", postBody.readableBytes());
         postRequest.headers().setAll(request.headers());
         // Create client and send request
-        httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
-        handler = new HttpClientHandler();
-        httpClient.sendRequest(handler);
+        http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
+        handler = new Http1ClientHandler();
+        http1Client.sendRequest(handler);
         if (!handler.jsonContent.isEmpty()) {
             imageWebDataMap = mapper.readValue(
                     handler.jsonContent,
@@ -237,9 +237,9 @@ public class WebAPI implements API {
         postRequest.headers().set("Content-Length", postBody.readableBytes());
         postRequest.headers().setAll(request.headers());
         // Create client and send request
-        httpClient = new HttpClient(gatewayHost, imagePort, postRequest);
-        handler = new HttpClientHandler();
-        httpClient.sendRequest(handler);
+        http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
+        handler = new Http1ClientHandler();
+        http1Client.sendRequest(handler);
         if (!handler.jsonContent.isEmpty()) {
             imageProductDataMap = mapper.readValue(
                     handler.jsonContent,
@@ -254,9 +254,9 @@ public class WebAPI implements API {
         request.setUri(persistenceEndpointCategories);
         request.setMethod(GET);
         // Create client and send request
-        httpClient = new HttpClient(gatewayHost, persistencePort, request);
-        handler = new HttpClientHandler();
-        httpClient.sendRequest(handler);
+        http1Client = new Http1Client(gatewayHost, persistencePort, request);
+        handler = new Http1ClientHandler();
+        http1Client.sendRequest(handler);
         if (!handler.jsonContent.isEmpty()) {
             categories = mapper.readValue(
                     handler.jsonContent,
@@ -270,9 +270,9 @@ public class WebAPI implements API {
         request.setUri(authEndpoint);
         request.setMethod(GET);
         request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-        httpClient = new HttpClient(gatewayHost, authPort, request);
-        handler = new HttpClientHandler();
-        httpClient.sendRequest(handler);
+        http1Client = new Http1Client(gatewayHost, authPort, request);
+        handler = new Http1ClientHandler();
+        http1Client.sendRequest(handler);
         SessionData newSessionData = null;
         if (!handler.jsonContent.isEmpty()) {
             newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
@@ -333,9 +333,9 @@ public class WebAPI implements API {
             request.setUri(authEndpoint);
             request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             request.setMethod(GET);
-            httpClient = new HttpClient(gatewayHost, authPort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, authPort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             String json = mapper.writeValueAsString(view);
             DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                     httpVersion,
@@ -381,9 +381,9 @@ public class WebAPI implements API {
                     request.setMethod(POST);
                     request.setUri(authEndpointAdd);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, authPort, request);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, authPort, request);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                         response = cartView(newSessionData);
@@ -395,9 +395,9 @@ public class WebAPI implements API {
                     request.setMethod(POST);
                     request.setUri(authEndpointRemove);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, authPort, request);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, authPort, request);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                         response = cartView(newSessionData);
@@ -409,9 +409,9 @@ public class WebAPI implements API {
                     request.setMethod(PUT);
                     request.setUri(authEndpointUpdate);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, authPort, request);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, authPort, request);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                         response = cartView(newSessionData);
@@ -422,9 +422,9 @@ public class WebAPI implements API {
                 case "proceedtocheckout":
                     request.setMethod(GET);
                     request.setUri(authEndpointCheck);
-                    httpClient = new HttpClient(gatewayHost, authPort, request);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, authPort, request);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                         response = orderView(newSessionData);
@@ -462,9 +462,9 @@ public class WebAPI implements API {
             postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             postRequest.headers().set("Content-Length", body.readableBytes());
             postRequest.headers().setAll(request.headers());
-            httpClient = new HttpClient(gatewayHost, authPort, postRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, authPort, postRequest);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                 FullHttpResponse response = profileView(newSessionData);
@@ -514,9 +514,9 @@ public class WebAPI implements API {
                 request.setUri(persistenceEndpointProducts + "?id=" + id);
                 request.setMethod(GET);
                 // Create client and send request
-                httpClient = new HttpClient(gatewayHost, persistencePort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, persistencePort, request);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     Product product = mapper.readValue(handler.jsonContent, Product.class);
                     products.put(product.id(), product);
@@ -558,9 +558,9 @@ public class WebAPI implements API {
                 );
                 postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
                 postOrderItemsRequest.headers().setAll(request.headers());
-                httpClient = new HttpClient(gatewayHost, recommenderPort, postOrderItemsRequest);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     productIds = mapper.readValue(
                             handler.jsonContent,
@@ -577,9 +577,9 @@ public class WebAPI implements API {
                 //
                 request.setUri(persistenceEndpointProducts + "?id=" + productId);
                 // Create client and send request
-                httpClient = new HttpClient(gatewayHost, persistencePort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, persistencePort, request);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
                 }
@@ -666,9 +666,9 @@ public class WebAPI implements API {
             request.setUri(persistenceEndpointProducts);
             request.setMethod(GET);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 products = mapper.readValue(
                         handler.jsonContent,
@@ -687,9 +687,9 @@ public class WebAPI implements API {
             request.setUri(persistenceEndpointCategoryProducts);
             request.setMethod(GET);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 productList = mapper.readValue(
                         handler.jsonContent,
@@ -762,9 +762,9 @@ public class WebAPI implements API {
         try {
             request.setUri(persistenceEndpoint);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 // And return to index view
                 return indexView(sessionData);
@@ -931,9 +931,9 @@ public class WebAPI implements API {
                     authEndpointLogin += username + "&password=" + password;
                     request.setUri(authEndpointLogin);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, authPort, request);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, authPort, request);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
@@ -941,9 +941,9 @@ public class WebAPI implements API {
                 case "logout":
                     request.setUri(authEndpointLogout);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, authPort, request);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
+                    http1Client = new Http1Client(gatewayHost, authPort, request);
+                    handler = new Http1ClientHandler();
+                    http1Client.sendRequest(handler);
                     if (!handler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
                     }
@@ -1093,9 +1093,9 @@ public class WebAPI implements API {
             request.setUri(persistenceEndpointProducts + "?id=" + productId);
             request.setMethod(GET);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
+            http1Client = new Http1Client(gatewayHost, persistencePort, request);
+            handler = new Http1ClientHandler();
+            http1Client.sendRequest(handler);
             if (!handler.jsonContent.isEmpty()) {
                 product = mapper.readValue(handler.jsonContent, Product.class);
             }
@@ -1131,9 +1131,9 @@ public class WebAPI implements API {
                 );
                 postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
                 postOrderItemsRequest.headers().setAll(request.headers());
-                httpClient = new HttpClient(gatewayHost, recommenderPort, postOrderItemsRequest);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     productIds = mapper.readValue(
                             handler.jsonContent,
@@ -1150,9 +1150,9 @@ public class WebAPI implements API {
                 //
                 request.setUri(persistenceEndpointProducts + "?id=" + id);
                 // Create client and send request
-                httpClient = new HttpClient(gatewayHost, persistencePort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, persistencePort, request);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
                 }
@@ -1236,9 +1236,9 @@ public class WebAPI implements API {
                 request.setUri(persistenceEndpointUsers + userId);
                 request.setMethod(GET);
                 // Create client and send request
-                httpClient = new HttpClient(gatewayHost, persistencePort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, persistencePort, request);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     user = mapper.readValue(handler.jsonContent, User.class);
                 }
@@ -1246,9 +1246,9 @@ public class WebAPI implements API {
                 List<Order> orders = new ArrayList<>();
                 request.setUri(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
                 request.setMethod(GET);
-                httpClient = new HttpClient(gatewayHost, persistencePort, request);
-                handler = new HttpClientHandler();
-                httpClient.sendRequest(handler);
+                http1Client = new Http1Client(gatewayHost, persistencePort, request);
+                handler = new Http1ClientHandler();
+                http1Client.sendRequest(handler);
                 if (!handler.jsonContent.isEmpty()) {
                     orders = mapper.readValue(
                             handler.jsonContent,

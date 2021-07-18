@@ -20,21 +20,18 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.*;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.client.Http1Client;
+import utilities.rest.client.Http1ClientHandler;
 
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
@@ -52,8 +49,8 @@ public final class TrainingSynchronizer {
 	private String gatewayHost;
 	private Integer persistencePort;
 	private HttpRequest request;
-	private HttpClient httpClient;
-	private HttpClientHandler handler;
+	private Http1Client http1Client;
+	private Http1ClientHandler handler;
 	private ObjectMapper mapper;
 
 	/**
@@ -169,9 +166,9 @@ public final class TrainingSynchronizer {
 		// Retrieve order items
 		try {
 			request.setUri(persistenceEndpointOrderItems);
-			httpClient = new HttpClient(gatewayHost, persistencePort, request);
-			handler = new HttpClientHandler();
-			httpClient.sendRequest(handler);
+			http1Client = new Http1Client(gatewayHost, persistencePort, request);
+			handler = new Http1ClientHandler();
+			http1Client.sendRequest(handler);
 			if (!handler.jsonContent.isEmpty()) {
 				items = mapper.readValue(
 						handler.jsonContent,
@@ -189,9 +186,9 @@ public final class TrainingSynchronizer {
 		// Retrieve orders
 		try {
 			request.setUri(persistenceEndpointOrders);
-			httpClient = new HttpClient(gatewayHost, persistencePort, request);
-			handler = new HttpClientHandler();
-			httpClient.sendRequest(handler);
+			http1Client = new Http1Client(gatewayHost, persistencePort, request);
+			handler = new Http1ClientHandler();
+			http1Client.sendRequest(handler);
 			if (!handler.jsonContent.isEmpty()) {
 				orders = mapper.readValue(
 						handler.jsonContent,
