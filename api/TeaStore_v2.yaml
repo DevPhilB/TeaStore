@@ -384,7 +384,7 @@ paths:
         - Persistence
   /api/persistence/emf:
     delete:
-      summary: "Return view 'Profile'."
+      summary: "Closes and resets the entity manager factory (EMF)."
       responses:
         "200":
           description: "OK"
