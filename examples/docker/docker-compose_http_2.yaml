@@ -1,0 +1,99 @@
+version: '3'
+
+services:
+  gateway:
+    # The official v2 Traefik docker image
+    image: traefik:v2.5
+    # Enables the web UI and tells Traefik to listen to docker
+    command: --api.insecure=true --providers.docker --entryPoints.https.address=:443
+    ports:
+      # The HTTPS port
+      - "443:443"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+  db:
+    image: tvsjsdock/teastore-db:v2
+    ports:
+      - "3306:3306"
+    labels:
+      - "traefik.enable=false"
+  persistence:
+    image: tvsjsdock/teastore-persistence:v2
+    depends_on:
+      - db
+    expose:
+      - "443"
+    environment:
+      HOST_NAME: "persistence"
+      GATEWAY_HOST: "gateway"
+      DB_HOST: "db"
+      DB_PORT: "3306"
+    labels:
+      - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
+      - "traefik.http.routers.persistence.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.persistence.tls=true"
+      - "traefik.protocol=https"
+  auth:
+    image: tvsjsdock/teastore-auth:v2
+    depends_on:
+      - persistence
+    expose:
+      - "443"
+    environment:
+      HOST_NAME: "auth"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
+      - "traefik.http.routers.auth.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.auth.tls=true"
+      - "traefik.protocol=https"
+  web:
+    image: tvsjsdock/teastore-web:v2
+    depends_on:
+      - auth
+    expose:
+      - "443"
+    environment:
+      HOST_NAME: "web"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+      - "traefik.http.routers.web.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.web.tls=true"
+      - "traefik.protocol=https"
+  image:
+    image: tvsjsdock/teastore-image:v2
+    depends_on:
+      - persistence
+    expose:
+      - "443"
+    environment:
+      HOST_NAME: "image"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
+      - "traefik.http.routers.image.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.image.tls=true"
+      - "traefik.protocol=https"
+  recommender:
+    image: tvsjsdock/teastore-recommender:v2
+    depends_on:
+      - persistence
+    expose:
+      - "443"
+    environment:
+      HOST_NAME: "recommender"
+      GATEWAY_HOST: "gateway"
+    labels:
+      - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
+      - "traefik.http.routers.recommender.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.recommender.tls=true"
+      - "traefik.protocol=https"
