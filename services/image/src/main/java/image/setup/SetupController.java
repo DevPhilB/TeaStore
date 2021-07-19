@@ -106,6 +106,7 @@ public enum SetupController {
 
   }
   // HTTP client
+  private Integer hVersion;
   private String scheme;
   private String gatewayHost;
   private Integer persistencePort;
@@ -131,7 +132,7 @@ public enum SetupController {
   private ScheduledThreadPoolExecutor imgCreationPool = new ScheduledThreadPoolExecutor(
       SetupControllerConstants.CREATION_THREAD_POOL_SIZE
   );
-  private static final Logger LOG = LogManager.getLogger(SetupController.class);
+  private static final Logger LOG = LogManager.getLogger();
   private AtomicBoolean isFinished = new AtomicBoolean();
 
   private SetupController() {}
@@ -140,17 +141,18 @@ public enum SetupController {
    * Set up HTTP client for persistence queries
    */
   public void setupHttpClient(
-          HttpVersion version,
+          String httpVersion,
           String scheme,
           String gatewayHost,
           Integer persistencePort
   ) {
+    this.hVersion = httpVersion.equals("HTTP/1.1") ? 1 : httpVersion.equals("HTTP/2") ? 2 : 3;
     this.mapper = new ObjectMapper();
     this.scheme = scheme;
     this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
     this.persistencePort = persistencePort;
     this.request = new DefaultFullHttpRequest(
-            version,
+            HttpVersion.HTTP_1_1,
             HttpMethod.GET,
             "",
             Unpooled.EMPTY_BUFFER

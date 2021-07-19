@@ -45,7 +45,7 @@ public enum ImageProvider {
 
   private ImageDB db;
   private IDataStorage<StoreImage> storage;
-  private static final Logger LOG = LogManager.getLogger(ImageProvider.class);
+  private static final Logger LOG = LogManager.getLogger();
 
   private ImageProvider() {}
 

@@ -28,7 +28,7 @@ import org.apache.logging.log4j.LogManager;
 public abstract class AbstractEntry<D extends ICachable<D>> implements ICacheEntry<D> {
 
   private D data;
-  private static final Logger LOG = LogManager.getLogger(AbstractEntry.class);
+  private static final Logger LOG = LogManager.getLogger();
 
   /**
    * Basic constructor storing the cachable data. If the cachable data supplied is

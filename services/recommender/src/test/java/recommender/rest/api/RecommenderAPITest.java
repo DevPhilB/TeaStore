@@ -25,7 +25,6 @@ import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
 
 class RecommenderAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
@@ -34,12 +33,12 @@ class RecommenderAPITest {
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
+                HttpVersion.HTTP_1_1,
                 HttpMethod.GET,
                 RECOMMENDER_ENDPOINT
         );
         body = null;
-        api = new RecommenderAPI(version, "", null);
+        api = new RecommenderAPI("HTTP/1.1", "", null);
     }
 
     @AfterEach

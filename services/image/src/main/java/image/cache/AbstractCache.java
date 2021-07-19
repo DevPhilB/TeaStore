@@ -18,7 +18,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 
-import image.cache.entry.AbstractEntry;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -43,7 +42,7 @@ public abstract class AbstractCache<S extends Collection<F>, T extends ICachable
   private long maxCacheSize;
   private long currentCacheSize;
   private Predicate<T> cachingRule;
-  private static final Logger LOG = LogManager.getLogger(AbstractCache.class);
+  private static final Logger LOG = LogManager.getLogger();
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**

@@ -25,7 +25,6 @@ import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
 class PersistenceAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
@@ -34,12 +33,12 @@ class PersistenceAPITest {
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
+                HttpVersion.HTTP_1_1,
                 HttpMethod.GET,
                 PERSISTENCE_ENDPOINT
         );
         body = null;
-        api = new PersistenceAPI(version, "", null);
+        api = new PersistenceAPI("HTTP/1.1", "", null);
     }
 
     @AfterEach

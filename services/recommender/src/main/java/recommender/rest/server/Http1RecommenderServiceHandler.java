@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package persistence.rest.server;
+package recommender.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
@@ -20,21 +20,20 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import persistence.rest.api.PersistenceAPI;
+import recommender.rest.api.RecommenderAPI;
 
 /**
- * HTTP server handler for persistence service
+ * HTTP/1.1 server handler for recommender service
  * @author Philipp Backes
  */
-public class HttpPersistenceServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1RecommenderServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final PersistenceAPI api;
+    private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
+    private final RecommenderAPI api;
 
-    public HttpPersistenceServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new PersistenceAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1RecommenderServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new RecommenderAPI("HTTP/1.1", gatewayHost, gatewayPort);
     }
 
     @Override
@@ -54,9 +53,7 @@ public class HttpPersistenceServiceHandler extends SimpleChannelInboundHandler<H
             this.request = request;
             // Check HTTP method
             if (request.method() != HttpMethod.GET
-                && request.method() != HttpMethod.POST
-                && request.method() != HttpMethod.PUT
-                && request.method() != HttpMethod.DELETE) {
+                && request.method() != HttpMethod.POST) {
                 writeStatusResponse(context, METHOD_NOT_ALLOWED);
             }
             if (HttpUtil.is100ContinueExpected(request)) {
@@ -74,7 +71,7 @@ public class HttpPersistenceServiceHandler extends SimpleChannelInboundHandler<H
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }

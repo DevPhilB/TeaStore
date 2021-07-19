@@ -34,7 +34,7 @@ import utilities.datamodel.ImageSize;
  */
 public final class ImageScaler {
 
-  private static final Logger LOG = LogManager.getLogger(ImageScaler.class);
+  private static final Logger LOG = LogManager.getLogger();
 
   private ImageScaler() {
 	  

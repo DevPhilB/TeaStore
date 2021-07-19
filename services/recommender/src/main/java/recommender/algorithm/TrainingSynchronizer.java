@@ -45,6 +45,7 @@ import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 public final class TrainingSynchronizer {
 
 	// HTTP client
+	private Integer hVersion;
 	private String scheme;
 	private String gatewayHost;
 	private Integer persistencePort;
@@ -83,17 +84,18 @@ public final class TrainingSynchronizer {
 	 * Set up HTTP client for persistence queries
 	 */
 	public void setupHttpClient(
-			HttpVersion version,
+			String httpVersion,
 			String scheme,
 			String gatewayHost,
 			Integer persistencePort
 	) {
+		this.hVersion = httpVersion.equals("HTTP/1.1") ? 1 : httpVersion.equals("HTTP/2") ? 2 : 3;
 		this.mapper = new ObjectMapper();
 		this.scheme = scheme;
 		this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
 		this.persistencePort = persistencePort;
 		this.request = new DefaultFullHttpRequest(
-				version,
+				HttpVersion.HTTP_1_1,
 				HttpMethod.GET,
 				"",
 				Unpooled.EMPTY_BUFFER
@@ -115,7 +117,7 @@ public final class TrainingSynchronizer {
 		return instance;
 	}
 
-	private static final Logger LOG = LogManager.getLogger(TrainingSynchronizer.class);
+	private static final Logger LOG = LogManager.getLogger();
 
 	/**
 	 * The maximum considered time in milliseconds. DEFAULT_MAX_TIME_VALUE signals

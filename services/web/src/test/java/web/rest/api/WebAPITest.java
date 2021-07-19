@@ -34,7 +34,7 @@ class WebAPITest {
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
+                HttpVersion.HTTP_1_1,
                 HttpMethod.GET,
                 WEB_ENDPOINT
         );

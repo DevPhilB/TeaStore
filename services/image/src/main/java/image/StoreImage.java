@@ -57,7 +57,7 @@ public class StoreImage implements ICachable<StoreImage> {
   private final long id;
   private byte[] data;
   private ImageSize size;
-  private static final Logger LOG = LogManager.getLogger(StoreImage.class);
+  private static final Logger LOG = LogManager.getLogger();
 
   /**
    * Creates a new store image with a given id and size. The image is converted

@@ -34,12 +34,12 @@ class ImageAPITest {
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
+                HttpVersion.HTTP_1_1,
                 HttpMethod.GET,
                 IMAGE_ENDPOINT
         );
         body = null;
-        api = new ImageAPI(version, "", null);
+        api = new ImageAPI("HTTP/1.1", "", null);
     }
 
     @AfterEach

@@ -20,22 +20,20 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-
 import auth.rest.api.AuthAPI;
 
 /**
- * HTTP server handler for auth service
+ * HTTP/1.1 server handler for web service
  * @author Philipp Backes
  */
-public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1AuthServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
+    private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
     private final AuthAPI api;
 
-    public HttpAuthServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new AuthAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new AuthAPI("HTTP/1.1", gatewayHost, gatewayPort);
     }
 
     @Override
@@ -55,8 +53,8 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
             this.request = request;
             // Check HTTP method
             if (request.method() != HttpMethod.GET
-                && request.method() != HttpMethod.POST
-                && request.method() != HttpMethod.PUT) {
+                    && request.method() != HttpMethod.POST
+                    && request.method() != HttpMethod.PUT) {
                 writeStatusResponse(context, METHOD_NOT_ALLOWED);
             }
             if (HttpUtil.is100ContinueExpected(request)) {
@@ -74,7 +72,7 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }

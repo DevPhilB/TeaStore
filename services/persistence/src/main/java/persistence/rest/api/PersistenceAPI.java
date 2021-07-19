@@ -36,11 +36,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
  * @author Philipp Backes
  */
 public class PersistenceAPI implements API {
+    private final Integer hVersion;
     private final HttpVersion httpVersion;
     private final ObjectMapper mapper;
 
-    public PersistenceAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
+    public PersistenceAPI(String httpVersion, String gatewayHost, Integer gatewayPort) {
+        this.hVersion = httpVersion.equals("HTTP/1.1") ? 1 : httpVersion.equals("HTTP/2") ? 2 : 3;
+        this.httpVersion = httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1;
         this.mapper = new ObjectMapper();
     }
 

@@ -25,7 +25,6 @@ import static utilities.rest.api.API.AUTH_ENDPOINT;
 
 class AuthAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
@@ -34,12 +33,12 @@ class AuthAPITest {
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
+                HttpVersion.HTTP_1_1,
                 HttpMethod.GET,
                 AUTH_ENDPOINT
         );
         body = null;
-        api = new AuthAPI(version, "", null);
+        api = new AuthAPI("HTTP/1.1", "", null);
     }
 
     @AfterEach

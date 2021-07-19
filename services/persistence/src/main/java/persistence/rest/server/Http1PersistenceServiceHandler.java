@@ -11,32 +11,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package image.rest.server;
+package persistence.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
-import image.setup.SetupController;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-
-import image.rest.api.ImageAPI;
+import persistence.rest.api.PersistenceAPI;
 
 /**
- * HTTP server handler for image service
+ * HTTP/1.1 server handler for persistence service
  * @author Philipp Backes
  */
-public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1PersistenceServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final ImageAPI api;
+    private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
+    private final PersistenceAPI api;
 
-    public HttpImageServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new ImageAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new PersistenceAPI("HTTP/1.1", gatewayHost, gatewayPort);
     }
 
     @Override
@@ -56,7 +53,9 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
             this.request = request;
             // Check HTTP method
             if (request.method() != HttpMethod.GET
-                && request.method() != HttpMethod.POST) {
+                    && request.method() != HttpMethod.POST
+                    && request.method() != HttpMethod.PUT
+                    && request.method() != HttpMethod.DELETE) {
                 writeStatusResponse(context, METHOD_NOT_ALLOWED);
             }
             if (HttpUtil.is100ContinueExpected(request)) {
@@ -74,7 +73,7 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }

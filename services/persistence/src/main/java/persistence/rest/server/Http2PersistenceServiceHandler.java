@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package web.rest.server;
+package persistence.rest.server;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -27,21 +27,23 @@ import io.netty.handler.codec.http2.Http2FrameStream;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.util.CharsetUtil;
-import web.rest.api.WebAPI;
+import persistence.rest.api.PersistenceAPI;
 
+import static io.netty.buffer.Unpooled.copiedBuffer;
+import static io.netty.buffer.Unpooled.unreleasableBuffer;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
 /**
- * HTTP/2 server handler for web service
+ * HTTP/2 server handler for persistence service
  * @author Philipp Backes
  */
-public class Http2WebServiceHandler extends ChannelDuplexHandler {
+public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
 
     private Http2DataFrame dataFrame;
-    private final WebAPI api;
+    private final PersistenceAPI api;
 
-    public Http2WebServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new WebAPI("HTTP/2", gatewayHost, gatewayPort);
+    public Http2PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new PersistenceAPI("HTTP/2", gatewayHost, gatewayPort);
     }
 
     @Override
@@ -68,7 +70,7 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
     }
 
     /**
-     * If receive a frame with end-of-stream set, send a pre-canned response.
+     * If receive a frame with end-of-stream set, send a pre-canned response
      */
     private static void onDataRead(ChannelHandlerContext ctx, Http2DataFrame data) throws Exception {
         Http2FrameStream stream = data.stream();
@@ -80,12 +82,12 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
             data.release();
         }
 
-        // Update the flowcontroller
+        // Update the flow controller
         ctx.write(new DefaultHttp2WindowUpdateFrame(data.initialFlowControlledBytes()).stream(stream));
     }
 
     /**
-     * If receive a frame with end-of-stream set, send a pre-canned response.
+     * If receive a frame with end-of-stream set, send a pre-canned response
      */
     private static void onHeadersRead(ChannelHandlerContext ctx, Http2HeadersFrame headers)
             throws Exception {
@@ -98,10 +100,10 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
     }
 
     /**
-     * Sends a DATA frame to the client.
+     * Sends DATA frame to the client
      */
     private static void sendResponse(ChannelHandlerContext ctx, Http2FrameStream stream, ByteBuf payload) {
-        // TODO: Check for method, only allow GET & POST
+        // TODO: Check for method, only allow GET, POST, PUT & DELETE
         // Send a frame for the response status
         Http2Headers headers = new DefaultHttp2Headers().status(OK.codeAsText());
         ctx.write(new DefaultHttp2HeadersFrame(headers).stream(stream));

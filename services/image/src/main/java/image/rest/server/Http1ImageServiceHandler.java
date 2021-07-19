@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package recommender.rest.server;
+package image.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
@@ -20,22 +20,20 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-
-import recommender.rest.api.RecommenderAPI;
+import image.rest.api.ImageAPI;
 
 /**
- * HTTP server handler for recommender service
+ * HTTP/1.1 server handler for image service
  * @author Philipp Backes
  */
-public class HttpRecommenderServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1ImageServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final RecommenderAPI api;
+    private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
+    private final ImageAPI api;
 
-    public HttpRecommenderServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new RecommenderAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new ImageAPI("HTTP/1.1", gatewayHost, gatewayPort);
     }
 
     @Override
@@ -73,7 +71,7 @@ public class HttpRecommenderServiceHandler extends SimpleChannelInboundHandler<H
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }

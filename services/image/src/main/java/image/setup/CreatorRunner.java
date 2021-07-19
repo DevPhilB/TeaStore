@@ -36,7 +36,7 @@ public class CreatorRunner implements Runnable {
   private final BufferedImage categoryImage;
   private final AtomicLong nrOfImagesGenerated;
 
-  private static final Logger LOG = LogManager.getLogger(CreatorRunner.class);
+  private static final Logger LOG = LogManager.getLogger();
 
   /**
    * Creates a new runnable object to generate a single image.

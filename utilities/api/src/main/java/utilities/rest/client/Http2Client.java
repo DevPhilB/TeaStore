@@ -21,6 +21,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http2.*;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
 import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
@@ -82,7 +84,8 @@ public class Http2Client {
                 .handler(new ChannelInitializer<Channel> () {
                 @Override
                 public void initChannel(Channel channel) throws Exception {
-                    channel.pipeline().addFirst(sslCtx.newHandler(channel.alloc()));
+                    channel.pipeline().addFirst(new LoggingHandler(LogLevel.INFO));
+                    channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
                     channel.pipeline().addLast(http2FrameCodec);
                     channel.pipeline().addLast(handler);
                 }

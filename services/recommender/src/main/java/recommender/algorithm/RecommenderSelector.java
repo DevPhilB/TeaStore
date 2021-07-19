@@ -57,7 +57,7 @@ public final class RecommenderSelector implements IRecommender {
 	 */
 	private static final Class<? extends IRecommender> DEFAULT_RECOMMENDER = SlopeOneRecommender.class;
 
-	private static final Logger LOG = LogManager.getLogger(RecommenderSelector.class);
+	private static final Logger LOG = LogManager.getLogger();
 
 	private static RecommenderSelector instance;
 

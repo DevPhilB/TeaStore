@@ -21,6 +21,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 /**
  * HTTP/1.1 client for inter-service communication
@@ -48,6 +50,7 @@ public class Http1Client {
                 .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel channel) throws Exception {
+                    channel.pipeline().addFirst(new LoggingHandler(LogLevel.INFO));
                     channel.pipeline().addLast(new HttpClientCodec());
                     channel.pipeline().addLast(new HttpContentDecompressor());
                     channel.pipeline().addLast(handler);

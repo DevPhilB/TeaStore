@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package web.rest.server;
+package auth.rest.server;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -27,21 +27,21 @@ import io.netty.handler.codec.http2.Http2FrameStream;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.util.CharsetUtil;
-import web.rest.api.WebAPI;
+import auth.rest.api.AuthAPI;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 
 /**
- * HTTP/2 server handler for web service
+ * HTTP/2 server handler for auth service
  * @author Philipp Backes
  */
-public class Http2WebServiceHandler extends ChannelDuplexHandler {
+public class Http2AuthServiceHandler extends ChannelDuplexHandler {
 
     private Http2DataFrame dataFrame;
-    private final WebAPI api;
+    private final AuthAPI api;
 
-    public Http2WebServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new WebAPI("HTTP/2", gatewayHost, gatewayPort);
+    public Http2AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new AuthAPI("HTTP/2", gatewayHost, gatewayPort);
     }
 
     @Override
@@ -68,27 +68,26 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
     }
 
     /**
-     * If receive a frame with end-of-stream set, send a pre-canned response.
+     * If receive a frame with end-of-stream set, send a pre-canned response
      */
-    private static void onDataRead(ChannelHandlerContext ctx, Http2DataFrame data) throws Exception {
+    private static void onDataRead(ChannelHandlerContext ctx, Http2DataFrame data) {
         Http2FrameStream stream = data.stream();
 
         if (data.isEndStream()) {
             sendResponse(ctx, stream, data.content());
         } else {
-            // We do not send back the response to the remote-peer, so we need to release it.
+            // We do not send back the response to the remote-peer, so we need to release it
             data.release();
         }
 
-        // Update the flowcontroller
+        // Update the flow controller
         ctx.write(new DefaultHttp2WindowUpdateFrame(data.initialFlowControlledBytes()).stream(stream));
     }
 
     /**
-     * If receive a frame with end-of-stream set, send a pre-canned response.
+     * If receive a frame with end-of-stream set, send a pre-canned response
      */
-    private static void onHeadersRead(ChannelHandlerContext ctx, Http2HeadersFrame headers)
-            throws Exception {
+    private static void onHeadersRead(ChannelHandlerContext ctx, Http2HeadersFrame headers) {
         if (headers.isEndStream()) {
             ByteBuf content = ctx.alloc().buffer();
             content.writeBytes(Unpooled.copiedBuffer("{}", CharsetUtil.UTF_8));
@@ -98,10 +97,10 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
     }
 
     /**
-     * Sends a DATA frame to the client.
+     * Send DATA frame to the client
      */
     private static void sendResponse(ChannelHandlerContext ctx, Http2FrameStream stream, ByteBuf payload) {
-        // TODO: Check for method, only allow GET & POST
+        // TODO: Check for method, only allow GET, POST & PUT
         // Send a frame for the response status
         Http2Headers headers = new DefaultHttp2Headers().status(OK.codeAsText());
         ctx.write(new DefaultHttp2HeadersFrame(headers).stream(stream));

@@ -30,6 +30,8 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.util.ServiceLoader;
+
 import static utilities.rest.api.API.DEFAULT_WEB_PORT;
 import static utilities.rest.api.API.WEB_ENDPOINT;
 
@@ -43,7 +45,7 @@ public class HttpWebServer {
     private final String scheme;
     private final String gatewayHost;
     private final Integer gatewayPort;
-    private static final Logger LOG = LogManager.getLogger(HttpWebServer.class);
+    private static final Logger LOG = LogManager.getLogger();
 
     public HttpWebServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
@@ -74,7 +76,7 @@ public class HttpWebServer {
             status += "web:" + gatewayPort + WEB_ENDPOINT;
         }
         LOG.info(status);
-        System.err.println(status);
+
         channel.closeFuture().sync();
     }
 

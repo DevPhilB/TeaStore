@@ -38,7 +38,7 @@ public class DriveStorage implements IDataStorage<StoreImage> {
   private Path workingDir;
   private ImageDB imgDB;
   private Predicate<StoreImage> storageRule;
-  private static final Logger LOG = LogManager.getLogger(DriveStorage.class);
+  private static final Logger LOG = LogManager.getLogger();
 
   private final HashMap<Long, ReadWriteLock> lockedIDs = new HashMap<>();
   private final ReadWriteLock mapLock = new ReentrantReadWriteLock();
