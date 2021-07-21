@@ -19,13 +19,17 @@ import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * HTTP/1.1 client object handler for inter-service communication
  * @author Philipp Backes
  */
 public class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
+
     public String jsonContent = "";
+    private static final Logger LOG = LogManager.getLogger();
 
     @Override
     public void channelReadComplete(ChannelHandlerContext channelHandlerContext) {
@@ -34,6 +38,7 @@ public class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> 
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
+        LOG.error(cause.getMessage());
         cause.printStackTrace();
         context.close();
     }

@@ -43,14 +43,12 @@ import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
 public class HttpRecommenderServer {
 
     private final String httpVersion;
-    private final String scheme;
     private final String gatewayHost;
     private final Integer gatewayPort;
     private static final Logger LOG = LogManager.getLogger();
 
     public HttpRecommenderServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        this.scheme = httpVersion.equals("HTTP/1.1") ? "http://" : "https://";
         this.gatewayHost = gatewayHost;
         this.gatewayPort = gatewayPort;
         // Setup and start training
@@ -63,9 +61,9 @@ public class HttpRecommenderServer {
     }
 
     public static void main(String[] args) throws Exception {
-        String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/2" : "HTTP/2";
-        String gatewayHost = args.length > 2 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 3 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
+        String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
+        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
         new HttpRecommenderServer(
                 httpVersion,
                 gatewayHost,
@@ -75,7 +73,8 @@ public class HttpRecommenderServer {
 
     private void bindAndSync(ServerBootstrap bootstrap) throws InterruptedException {
         Channel channel;
-        String status = httpVersion + " recommender service is available on " + scheme;
+        String status = httpVersion + " recommender service is available on " +
+                (httpVersion.equals("HTTP/1.1") ? "http://" : "https://");
         if (gatewayHost.isEmpty()) {
             channel = bootstrap.bind(DEFAULT_RECOMMENDER_PORT).sync().channel();
             status += "localhost:" + DEFAULT_RECOMMENDER_PORT + RECOMMENDER_ENDPOINT;

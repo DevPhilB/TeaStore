@@ -23,6 +23,8 @@ import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * HTTP/1.1 client for inter-service communication
@@ -33,6 +35,7 @@ public class Http1Client {
     private final String host;
     private final Integer port;
     private final HttpRequest httpRequest;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http1Client(String host, Integer port, HttpRequest httpRequest) {
         this.host = host;
@@ -50,8 +53,7 @@ public class Http1Client {
                 .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel channel) throws Exception {
-                    channel.pipeline().addFirst(new LoggingHandler(LogLevel.INFO));
-                    channel.pipeline().addLast(new HttpClientCodec());
+                    channel.pipeline().addFirst(new HttpClientCodec());
                     channel.pipeline().addLast(new HttpContentDecompressor());
                     channel.pipeline().addLast(handler);
                 }
@@ -59,6 +61,7 @@ public class Http1Client {
 
             // Make the connection attempt
             Channel channel = bootstrap.connect(host, port).sync().channel();
+            LOG.info("Connected to [" + host + ':' + port + ']');
             // Send the HTTP/1.1 request
             channel.writeAndFlush(httpRequest);
             // Wait until the connection is closed

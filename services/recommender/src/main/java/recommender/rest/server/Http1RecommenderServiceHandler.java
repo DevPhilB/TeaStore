@@ -14,6 +14,7 @@
 package recommender.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -29,7 +30,6 @@ import recommender.rest.api.Http1RecommenderAPI;
 public class Http1RecommenderServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
     private final Http1RecommenderAPI api;
 
     public Http1RecommenderServiceHandler(String gatewayHost, Integer gatewayPort) {
@@ -77,12 +77,12 @@ public class Http1RecommenderServiceHandler extends SimpleChannelInboundHandler<
     }
 
     private void writeStatusResponse(ChannelHandlerContext context, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
         context.write(response);
     }
 
     private void writeContinueResponse(ChannelHandlerContext context) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, CONTINUE, Unpooled.EMPTY_BUFFER);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, CONTINUE, Unpooled.EMPTY_BUFFER);
         context.write(response);
     }
 

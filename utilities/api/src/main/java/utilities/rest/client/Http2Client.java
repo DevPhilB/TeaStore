@@ -33,6 +33,8 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * HTTP/2 client for inter-service communication
@@ -44,6 +46,7 @@ public class Http2Client {
     private final Integer port;
     private final Http2Headers header;
     private final Http2DataFrame body;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http2Client(String host, Integer port, Http2Headers header, Http2DataFrame body) {
         this.host = host;
@@ -64,9 +67,9 @@ public class Http2Client {
                     // TODO: Need to be changed for production
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .applicationProtocolConfig(new ApplicationProtocolConfig(
-                            Protocol.ALPN,
-                            SelectorFailureBehavior.NO_ADVERTISE,
-                            SelectedListenerFailureBehavior.ACCEPT,
+                            ApplicationProtocolConfig.Protocol.ALPN,
+                            ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                            ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
                             ApplicationProtocolNames.HTTP_2))
                     .build();
 
@@ -82,8 +85,7 @@ public class Http2Client {
                 .handler(new ChannelInitializer<Channel> () {
                 @Override
                 public void initChannel(Channel channel) throws Exception {
-                    channel.pipeline().addFirst(new LoggingHandler(LogLevel.INFO));
-                    channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
+                    channel.pipeline().addFirst(sslCtx.newHandler(channel.alloc()));
                     channel.pipeline().addLast(http2FrameCodec);
                     channel.pipeline().addLast(handler);
                 }
@@ -91,7 +93,7 @@ public class Http2Client {
 
             // Start the client
             final Channel channel = bootstrap.connect().syncUninterruptibly().channel();
-            System.out.println("Connected to [" + host + ':' + port + ']');
+            LOG.info("Connected to [" + host + ':' + port + ']');
             // Send HTTP/2 request
             channel.writeAndFlush(header);
             if (body != null) channel.writeAndFlush(body);

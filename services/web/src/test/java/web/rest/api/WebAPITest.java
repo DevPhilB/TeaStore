@@ -20,6 +20,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import static org.junit.jupiter.api.Assertions.*;
 import static utilities.rest.api.API.WEB_ENDPOINT;
 
@@ -33,8 +35,8 @@ class WebAPITest {
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                HttpVersion.HTTP_1_1,
-                HttpMethod.GET,
+                HTTP_1_1,
+                GET,
                 WEB_ENDPOINT
         );
         body = null;

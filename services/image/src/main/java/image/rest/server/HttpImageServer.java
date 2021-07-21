@@ -41,14 +41,12 @@ import static utilities.rest.api.API.IMAGE_ENDPOINT;
 public class HttpImageServer {
 
     private final String httpVersion;
-    private final String scheme;
     private final String gatewayHost;
     private final Integer gatewayPort;
     private static final Logger LOG = LogManager.getLogger();
 
     public HttpImageServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        this.scheme = httpVersion.equals("HTTP/1.1") ? "http://" : "https://";
         this.gatewayHost = gatewayHost;
         this.gatewayPort = gatewayPort;
         SetupController.SETUP.setupHttpClient(
@@ -60,9 +58,9 @@ public class HttpImageServer {
     }
 
     public static void main(String[] args) throws Exception {
-        String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/2" : "HTTP/2";
-        String gatewayHost = args.length > 2 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 3 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
+        String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
+        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
         new HttpImageServer(
                 httpVersion,
                 gatewayHost,
@@ -72,7 +70,8 @@ public class HttpImageServer {
 
     private void bindAndSync(ServerBootstrap bootstrap) throws InterruptedException {
         Channel channel;
-        String status = httpVersion + " web service is available on " + scheme;
+        String status = httpVersion + " web service is available on " +
+                (httpVersion.equals("HTTP/1.1") ? "http://" : "https://");
         if (gatewayHost.isEmpty()) {
             channel = bootstrap.bind(DEFAULT_IMAGE_PORT).sync().channel();
             status += "localhost:" + DEFAULT_IMAGE_PORT + IMAGE_ENDPOINT;

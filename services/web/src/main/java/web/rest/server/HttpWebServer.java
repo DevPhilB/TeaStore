@@ -55,9 +55,9 @@ public class HttpWebServer {
     }
 
     public static void main(String[] args) throws Exception {
-        String httpVersion = args.length > 1 ? args[0] != null ? args[0] : "HTTP/2" : "HTTP/2";
-        String gatewayHost = args.length > 2 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 3 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
+        String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
+        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
         new HttpWebServer(
                 httpVersion,
                 gatewayHost,
@@ -67,7 +67,8 @@ public class HttpWebServer {
 
     private void bindAndSync(ServerBootstrap bootstrap) throws InterruptedException {
         Channel channel;
-        String status = httpVersion + " web service is available on " + scheme;
+        String status = httpVersion + " web service is available on " +
+                (httpVersion.equals("HTTP/1.1") ? "http://" : "https://");
         if (gatewayHost.isEmpty()) {
             channel = bootstrap.bind(DEFAULT_WEB_PORT).sync().channel();
             status += "localhost:" + DEFAULT_WEB_PORT + WEB_ENDPOINT;

@@ -27,7 +27,7 @@ public class RandomSessionIdGenerator implements ISessionIdGenerator {
 
   @Override
   public String getSessionId() {
-    return "" + random.nextInt();
+    return String.valueOf(random.nextInt());
   }
 
 }

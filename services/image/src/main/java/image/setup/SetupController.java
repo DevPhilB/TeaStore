@@ -16,6 +16,8 @@ package image.setup;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -69,6 +71,7 @@ import utilities.rest.client.Http2ClientStreamFrameHandler;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import static utilities.rest.api.API.HTTPS;
 import static utilities.rest.api.API.DEFAULT_PERSISTENCE_PORT;
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
@@ -176,7 +179,7 @@ public enum SetupController {
     request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
     request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     // HTTP/2
-    http2Header = new DefaultHttp2Headers();
+    http2Header = new DefaultHttp2Headers().scheme(HTTPS);
     http2Header.add(HttpHeaderNames.HOST, this.gatewayHost);
     http2Header.add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
     http2Header.add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
@@ -350,12 +353,14 @@ public enum SetupController {
   public void detectCategoryImages() {
     LOG.info("Trying to find images that indicate categories in generated images.");
 
-    String path = "categoryimg" + File.separator + "black-tea.png";
+    String path = "categoryimg/black-tea.png";
+    File imageFile = null;
     if (!gatewayHost.equals("localhost")) {
-      path = File.separator + "service" + File.separator + path;
+      path = "service/" + path;
+      imageFile = new File(path);
+    } else {
+      imageFile = new File(getClass().getResource(path).getPath());
     }
-    
-    File imageFile = new File(path);
     File dir = new File(imageFile.getParent());
 
     nrOfImagesForCategory = 0;
@@ -416,11 +421,14 @@ public enum SetupController {
       throw new NullPointerException("The supplied image database is null.");
     }
 
-    String path = "existingimg" + File.separator + "front.png";
+    String path = "existingimg/front.png";
+    File imageFile = null;
     if (!gatewayHost.equals("localhost")) {
-      path = File.separator + "service" + File.separator + path;
+      path = "service/" + path;
+      imageFile = new File(path);
+    } else {
+      imageFile = new File(getClass().getResource(path).getPath());
     }
-    File imageFile = new File(path);
     File dir = new File(imageFile.getParent());
 
     if (dir.exists() && dir.isDirectory()) {
@@ -468,7 +476,6 @@ public enum SetupController {
         }
       }
     }
-
     LOG.info("Scanned path {} for existing images. {} images found.",
         dir.toPath().toAbsolutePath().toString(), nrOfImagesExisting);
   }

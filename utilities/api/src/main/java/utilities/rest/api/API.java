@@ -35,4 +35,6 @@ public interface API {
     // Web service
     Integer DEFAULT_WEB_PORT = 5050;
     String WEB_ENDPOINT = "/api/web";
+    // HTTPS
+    CharSequence HTTPS = "https";
 }

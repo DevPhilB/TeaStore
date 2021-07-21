@@ -61,7 +61,7 @@ public class Http2AuthAPI implements API {
             this.gatewayHost = gatewayHost;
             this.persistencePort = gatewayPort;
         }
-        http2Header = new DefaultHttp2Headers();
+        http2Header = new DefaultHttp2Headers().scheme(HTTPS);
         http2Header.add(HttpHeaderNames.HOST, this.gatewayHost);
         http2Header.add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
         http2Header.add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
@@ -334,7 +334,7 @@ public class Http2AuthAPI implements API {
             String orderJson = mapper.writeValueAsString(newOrder);
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
             http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
-            http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postOrderBody.readableBytes()));
+            http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderBody.readableBytes()));
             http2DataFrame = new DefaultHttp2DataFrame(postOrderBody);
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, http2DataFrame);
@@ -354,7 +354,7 @@ public class Http2AuthAPI implements API {
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
                     http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody);
                     http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
-                    http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postOrderItemBody.readableBytes()));
+                    http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderItemBody.readableBytes()));
                     http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody);
                     // Create client and send request
                     httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, http2DataFrame);

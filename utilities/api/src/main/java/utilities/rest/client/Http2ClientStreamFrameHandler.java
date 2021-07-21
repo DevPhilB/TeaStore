@@ -19,24 +19,26 @@ import io.netty.handler.codec.http2.Http2DataFrame;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.handler.codec.http2.Http2StreamFrame;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * HTTP/2 client stream frame handler for inter-service communication
  * @author Philipp Backes
  */
 public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<Http2StreamFrame> {
+
     public String jsonContent = "";
+    private static final Logger LOG = LogManager.getLogger();
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Http2StreamFrame message) throws Exception {
-        System.out.println("Received HTTP/2 'stream' frame: " + message);
-
-        // isEndStream() is not from a common interface, so we currently must check both
+        LOG.info("Received HTTP/2 'stream' frame: " + message);
         if (message instanceof Http2DataFrame dataFrame && dataFrame.isEndStream()) {
-            System.out.println("Received HTTP/2 header frame: " + dataFrame.toString());
+            LOG.info("Received HTTP/2 data frame: " + dataFrame);
             jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
         } else if (message instanceof Http2HeadersFrame headersFrame && headersFrame.isEndStream()) {
-            System.out.println("Received HTTP/2 header frame: " + headersFrame.toString());
+            LOG.info("Received HTTP/2 header frame: " + headersFrame);
         }
     }
 }
