@@ -197,7 +197,7 @@ public class Http2WebAPI implements API {
         String json = mapper.writeValueAsString(imageSizeMap);
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http2Header.method(POST.asciiName()).path(imageEndpoint);
-        http2Header.set("Content-Length", String.valueOf(postBody.readableBytes()));
+        http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postBody.readableBytes()));
         http2DataFrame = new DefaultHttp2DataFrame(postBody);
         // Create client and send request
         httpClient = new Http2Client(gatewayHost, imagePort, http2Header, http2DataFrame);
@@ -220,7 +220,7 @@ public class Http2WebAPI implements API {
         String json = mapper.writeValueAsString(imageSizeMap);
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http2Header.method(POST.asciiName()).path(imageEndpoint);
-        http2Header.set("Content-Length", String.valueOf(postBody.readableBytes()));
+        http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postBody.readableBytes()));
         http2DataFrame = new DefaultHttp2DataFrame(postBody);
         // Create client and send request
         httpClient = new Http2Client(gatewayHost, imagePort, http2Header, http2DataFrame);
@@ -442,7 +442,7 @@ public class Http2WebAPI implements API {
         try {
             http2Header.method(POST.asciiName()).path(authEndpointPlaceOrder);
             http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
-            http2Header.set("Content-Length", String.valueOf(body.readableBytes()));
+            http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(body.readableBytes()));
             http2DataFrame = new DefaultHttp2DataFrame(body);
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, authPort, http2Header, http2DataFrame);
@@ -537,7 +537,7 @@ public class Http2WebAPI implements API {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http2Header.method(POST.asciiName()).path(recommenderEndpoint + "?userid=" + sessionData.userId());
-                http2Header.set("Content-Length", String.valueOf(postOrderItemsBody.readableBytes()));
+                http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postOrderItemsBody.readableBytes()));
                 http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody);
                 // Create client and send request
                 httpClient = new Http2Client(gatewayHost, recommenderPort, http2Header, http2DataFrame);
@@ -1139,7 +1139,7 @@ public class Http2WebAPI implements API {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http2Header.method(POST.asciiName()).path(recommenderEndpoint + "?userid=" + sessionData.userId());
-                http2Header.set("Content-Length", String.valueOf(postOrderItemsBody.readableBytes()));
+                http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postOrderItemsBody.readableBytes()));
                 http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody);
                 // Create client and send request
                 httpClient = new Http2Client(gatewayHost, recommenderPort, http2Header, http2DataFrame);

@@ -334,7 +334,7 @@ public class Http2AuthAPI implements API {
             String orderJson = mapper.writeValueAsString(newOrder);
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
             http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
-            http2Header.set("Content-Length", String.valueOf(postOrderBody.readableBytes()));
+            http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postOrderBody.readableBytes()));
             http2DataFrame = new DefaultHttp2DataFrame(postOrderBody);
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, http2DataFrame);
@@ -354,7 +354,7 @@ public class Http2AuthAPI implements API {
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
                     http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody);
                     http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
-                    http2Header.set("Content-Length", String.valueOf(postOrderItemBody.readableBytes()));
+                    http2Header.set(HttpHeaderNames.CONTENT_TYPE, String.valueOf(postOrderItemBody.readableBytes()));
                     http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody);
                     // Create client and send request
                     httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, http2DataFrame);

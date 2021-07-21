@@ -347,7 +347,7 @@ public class Http1AuthAPI implements API {
                     persistenceEndpointCreateOrder,
                     Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8)
             );
-            postOrderRequest.headers().set("Content-Length", postOrderBody.readableBytes());
+            postOrderRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, postOrderBody.readableBytes());
             postOrderRequest.headers().setAll(request.headers());
             // Create client and send request
             httpClient = new Http1Client(gatewayHost, persistencePort, postOrderRequest);
@@ -371,7 +371,7 @@ public class Http1AuthAPI implements API {
                             persistenceEndpointCreateOrderItem,
                             Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8)
                     );
-                    postOrderItemRequest.headers().set("Content-Length", postOrderItemBody.readableBytes());
+                    postOrderItemRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, postOrderItemBody.readableBytes());
                     postOrderItemRequest.headers().setAll(request.headers());
                     // Create client and send request
                     httpClient = new Http1Client(gatewayHost, persistencePort, postOrderItemRequest);

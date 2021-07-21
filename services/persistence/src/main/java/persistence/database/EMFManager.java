@@ -44,7 +44,7 @@ final class EMFManager {
 
 	private static final String MYSQL_URL_PREFIX = "jdbc:mysql://";
 	private static final String MYSQL_URL_POSTFIX = "/teastore";
-	private static final String MYSQL_DEFAULT_HOST = "db";
+	private static final String MYSQL_DEFAULT_HOST = "localhost";
 	private static final String MYSQL_DEFAULT_PORT = "3306";
 	
 	private EMFManager() {}

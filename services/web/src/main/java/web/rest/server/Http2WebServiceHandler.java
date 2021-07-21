@@ -99,8 +99,12 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
             Http2Response response
     ) {
         // Send response frames
-        context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
-        context.write(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
+        if(response.body() == null) {
+            context.write(new DefaultHttp2HeadersFrame(response.headers(), true).stream(stream));
+        } else {
+            context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
+            context.write(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
+        }
         // Close connection
         context.close();
     }

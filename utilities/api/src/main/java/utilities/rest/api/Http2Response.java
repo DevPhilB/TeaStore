@@ -12,23 +12,23 @@ public record Http2Response (
         ByteBuf body
 ) {
     public static Http2Response okResponse() {
-        return new Http2Response(new DefaultHttp2Headers().status(OK.codeAsText()),null);
+        return new Http2Response(new DefaultHttp2Headers().status(OK.codeAsText()), null);
     }
 
     public static Http2Response badRequestResponse() {
-        return new Http2Response(new DefaultHttp2Headers().status(BAD_REQUEST.codeAsText()),null);
+        return new Http2Response(new DefaultHttp2Headers().status(BAD_REQUEST.codeAsText()), null);
     }
 
     public static Http2Response notFoundResponse() {
-        return new Http2Response(new DefaultHttp2Headers().status(NOT_FOUND.codeAsText()),null);
+        return new Http2Response(new DefaultHttp2Headers().status(NOT_FOUND.codeAsText()), null);
     }
 
     public static Http2Response internalServerErrorResponse() {
-        return new Http2Response(new DefaultHttp2Headers().status(INTERNAL_SERVER_ERROR.codeAsText()),null);
+        return new Http2Response(new DefaultHttp2Headers().status(INTERNAL_SERVER_ERROR.codeAsText()), null);
     }
 
     public static Http2Response serviceUnavailableErrorResponse() {
-        return new Http2Response(new DefaultHttp2Headers().status(SERVICE_UNAVAILABLE.codeAsText()),null);
+        return new Http2Response(new DefaultHttp2Headers().status(SERVICE_UNAVAILABLE.codeAsText()), null);
     }
 
     public static Http2Headers okJsonHeader(int contentLength) {

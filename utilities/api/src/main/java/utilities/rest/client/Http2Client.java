@@ -58,10 +58,8 @@ public class Http2Client {
         try {
             // Configure SSL.
             final SslContext sslCtx;
-            final SslProvider provider =
-                    SslProvider.isAlpnSupported(SslProvider.OPENSSL)? SslProvider.OPENSSL : SslProvider.JDK;
             sslCtx = SslContextBuilder.forClient()
-                    .sslProvider(provider)
+                    .sslProvider(SslProvider.JDK)
                     .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                     // TODO: Need to be changed for production
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)

@@ -202,7 +202,7 @@ public class Http1WebAPI implements API {
                 imageEndpoint,
                 postBody
         );
-        postRequest.headers().set("Content-Length", postBody.readableBytes());
+        postRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, postBody.readableBytes());
         postRequest.headers().setAll(request.headers());
         // Create client and send request
         http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
@@ -230,7 +230,7 @@ public class Http1WebAPI implements API {
                 imageEndpoint,
                 Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
         );
-        postRequest.headers().set("Content-Length", postBody.readableBytes());
+        postRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, postBody.readableBytes());
         postRequest.headers().setAll(request.headers());
         // Create client and send request
         http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
@@ -456,7 +456,7 @@ public class Http1WebAPI implements API {
                     body
             );
             postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-            postRequest.headers().set("Content-Length", body.readableBytes());
+            postRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, body.readableBytes());
             postRequest.headers().setAll(request.headers());
             http1Client = new Http1Client(gatewayHost, authPort, postRequest);
             handler = new Http1ClientHandler();
@@ -552,7 +552,7 @@ public class Http1WebAPI implements API {
                         recommenderEndpoint + "?userid=" + sessionData.userId(),
                         Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
                 );
-                postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
+                postOrderItemsRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, orderItemsJson.getBytes().length);
                 postOrderItemsRequest.headers().setAll(request.headers());
                 http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
                 handler = new Http1ClientHandler();
@@ -1125,7 +1125,7 @@ public class Http1WebAPI implements API {
                         recommenderEndpoint + "?userid=" + sessionData.userId(),
                         Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
                 );
-                postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
+                postOrderItemsRequest.headers().set(HttpHeaderNames.CONTENT_TYPE, orderItemsJson.getBytes().length);
                 postOrderItemsRequest.headers().setAll(request.headers());
                 http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
                 handler = new Http1ClientHandler();
