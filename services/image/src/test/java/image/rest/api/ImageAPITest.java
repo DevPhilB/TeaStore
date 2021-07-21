@@ -25,11 +25,10 @@ import static utilities.rest.api.API.IMAGE_ENDPOINT;
 
 class ImageAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private ImageAPI api;
+    private Http1ImageAPI api;
 
     @BeforeEach
     void setUp() {
@@ -39,7 +38,7 @@ class ImageAPITest {
                 IMAGE_ENDPOINT
         );
         body = null;
-        api = new ImageAPI("HTTP/1.1", "", null);
+        api = new Http1ImageAPI("", null);
     }
 
     @AfterEach

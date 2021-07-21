@@ -37,6 +37,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.DefaultHttp2Headers;
+import io.netty.handler.codec.http2.Http2DataFrame;
+import io.netty.handler.codec.http2.Http2Headers;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -61,7 +64,12 @@ import image.storage.rules.StoreAll;
 import image.storage.rules.StoreLargeImages;
 import utilities.rest.client.Http1Client;
 import utilities.rest.client.Http1ClientHandler;
+import utilities.rest.client.Http2Client;
+import utilities.rest.client.Http2ClientStreamFrameHandler;
 
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import static utilities.rest.api.API.DEFAULT_PERSISTENCE_PORT;
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
 /**
@@ -106,14 +114,17 @@ public enum SetupController {
 
   }
   // HTTP client
-  private Integer hVersion;
-  private String scheme;
+  private String httpVersion;
+  private ObjectMapper mapper;
   private String gatewayHost;
   private Integer persistencePort;
   private HttpRequest request;
   private Http1Client http1Client;
-  private Http1ClientHandler handler;
-  private ObjectMapper mapper;
+  private Http1ClientHandler http1Handler;
+  private Http2Client http2Client;
+  private Http2ClientStreamFrameHandler http2FrameHandler;
+  private Http2Headers http2Header;
+
 
   private StorageRule storageRule = StorageRule.STD_STORAGE_RULE;
   private CachingRule cachingRule = CachingRule.STD_CACHING_RULE;
@@ -142,24 +153,33 @@ public enum SetupController {
    */
   public void setupHttpClient(
           String httpVersion,
-          String scheme,
           String gatewayHost,
-          Integer persistencePort
+          Integer gatewayPort
   ) {
-    this.hVersion = httpVersion.equals("HTTP/1.1") ? 1 : httpVersion.equals("HTTP/2") ? 2 : 3;
-    this.mapper = new ObjectMapper();
-    this.scheme = scheme;
-    this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
-    this.persistencePort = persistencePort;
-    this.request = new DefaultFullHttpRequest(
-            HttpVersion.HTTP_1_1,
-            HttpMethod.GET,
+    this.httpVersion = httpVersion;
+    mapper = new ObjectMapper();
+    if(gatewayHost.isEmpty()) {
+      this.gatewayHost = "localhost";
+      persistencePort = DEFAULT_PERSISTENCE_PORT;
+    } else {
+      this.gatewayHost = gatewayHost;
+      persistencePort = gatewayPort;
+    }
+    // HTTP/1.1
+    request = new DefaultFullHttpRequest(
+            HTTP_1_1,
+            GET,
             "",
             Unpooled.EMPTY_BUFFER
     );
-    this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-    this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-    this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+    request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+    request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+    request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+    // HTTP/2
+    http2Header = new DefaultHttp2Headers();
+    http2Header.add(HttpHeaderNames.HOST, this.gatewayHost);
+    http2Header.add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+    http2Header.add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
   }
 
   private void fetchProductsForCategory(Category category, HashMap<Category, List<Long>> products) {
@@ -167,19 +187,46 @@ public enum SetupController {
     // GET api/persistence/products
     String persistenceEndpointProducts = PERSISTENCE_ENDPOINT +
             "/products?categoryid=" + category.id() + "&" + "start=0&max=-1";
-    request.setUri(persistenceEndpointProducts);
-    http1Client = new Http1Client(gatewayHost, persistencePort, request);
-    handler = new Http1ClientHandler();
-    try {
-      http1Client.sendRequest(handler);
-      if (!handler.jsonContent.isEmpty()) {
-          productList = mapper.readValue(
-                  handler.jsonContent,
-                  new TypeReference<List<Product>>() {}
-          );
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+    // Switch between http versions
+    switch (httpVersion) {
+      case "HTTP/1.1":
+        request.setUri(persistenceEndpointProducts);
+        http1Client = new Http1Client(gatewayHost, persistencePort, request);
+        http1Handler = new Http1ClientHandler();
+        try {
+          http1Client.sendRequest(http1Handler);
+          if (!http1Handler.jsonContent.isEmpty()) {
+            productList = mapper.readValue(
+                    http1Handler.jsonContent,
+                    new TypeReference<List<Product>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/2":
+        http2Header.method(GET.asciiName()).path(persistenceEndpointProducts);
+        http2Client = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+        http2FrameHandler = new Http2ClientStreamFrameHandler();
+        try {
+          http2Client.sendRequest(http2FrameHandler);
+          if (!http2FrameHandler.jsonContent.isEmpty()) {
+            productList = mapper.readValue(
+                    http2FrameHandler.jsonContent,
+                    new TypeReference<List<Product>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/3":
+        // TODO
+        LOG.info("HTTP/3!");
+        break;
+      default:
+        break;
     }
     //
     if(productList == null) {
@@ -196,20 +243,50 @@ public enum SetupController {
     List<Category> categories = null;
     // GET api/persistence/categories
     String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories";
-    request.setUri(persistenceEndpointCategories);
-    http1Client = new Http1Client(gatewayHost, persistencePort, request);
-    handler = new Http1ClientHandler();
-    try {
-      http1Client.sendRequest(handler);
-      if (!handler.jsonContent.isEmpty()) {
-        categories = mapper.readValue(
-                handler.jsonContent,
-                new TypeReference<List<Category>>() {}
-        );
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+
+    // Switch between http versions
+    switch (httpVersion) {
+      case "HTTP/1.1":
+        request.setUri(persistenceEndpointCategories);
+        http1Client = new Http1Client(gatewayHost, persistencePort, request);
+        http1Handler = new Http1ClientHandler();
+        try {
+          http1Client.sendRequest(http1Handler);
+          if (!http1Handler.jsonContent.isEmpty()) {
+            categories = mapper.readValue(
+                    http1Handler.jsonContent,
+                    new TypeReference<List<Category>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/2":
+        http2Header.method(GET.asciiName()).path(persistenceEndpointCategories);
+        // Create client and send request
+        http2Client = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+        http2FrameHandler = new Http2ClientStreamFrameHandler();
+        try {
+          http2Client.sendRequest(http2FrameHandler);
+          if (!http2FrameHandler.jsonContent.isEmpty()) {
+            categories = mapper.readValue(
+                    http2FrameHandler.jsonContent,
+                    new TypeReference<List<Category>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/3":
+        // TODO
+        LOG.info("HTTP/3!");
+        break;
+      default:
+        break;
     }
+    //
     if (categories == null) {
       return new ArrayList<Category>();
     }

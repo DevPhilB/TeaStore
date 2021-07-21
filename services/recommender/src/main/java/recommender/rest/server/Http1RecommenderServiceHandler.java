@@ -20,7 +20,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import recommender.rest.api.RecommenderAPI;
+import recommender.rest.api.Http1RecommenderAPI;
 
 /**
  * HTTP/1.1 server handler for recommender service
@@ -30,10 +30,10 @@ public class Http1RecommenderServiceHandler extends SimpleChannelInboundHandler<
 
     private HttpRequest request;
     private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
-    private final RecommenderAPI api;
+    private final Http1RecommenderAPI api;
 
     public Http1RecommenderServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new RecommenderAPI("HTTP/1.1", gatewayHost, gatewayPort);
+        api = new Http1RecommenderAPI(gatewayHost, gatewayPort);
     }
 
     @Override

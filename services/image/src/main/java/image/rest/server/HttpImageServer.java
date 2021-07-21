@@ -53,9 +53,8 @@ public class HttpImageServer {
         this.gatewayPort = gatewayPort;
         SetupController.SETUP.setupHttpClient(
                 httpVersion,
-                scheme,
                 gatewayHost,
-                gatewayHost.isEmpty() ? 3030 : gatewayPort
+                gatewayPort
         );
         SetupController.SETUP.startup();
     }
@@ -157,7 +156,7 @@ public class HttpImageServer {
                 break;
             case "HTTP/3":
                 // TODO
-                LOG.info("TODO");
+                LOG.info("HTTP/3!");
                 break;
         }
     }

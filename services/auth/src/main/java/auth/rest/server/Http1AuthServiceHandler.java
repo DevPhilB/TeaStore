@@ -20,7 +20,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import auth.rest.api.AuthAPI;
+import auth.rest.api.Http1AuthAPI;
 
 /**
  * HTTP/1.1 server handler for web service
@@ -30,10 +30,10 @@ public class Http1AuthServiceHandler extends SimpleChannelInboundHandler<HttpObj
 
     private HttpRequest request;
     private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
-    private final AuthAPI api;
+    private final Http1AuthAPI api;
 
     public Http1AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new AuthAPI("HTTP/1.1", gatewayHost, gatewayPort);
+        api = new Http1AuthAPI(gatewayHost, gatewayPort);
     }
 
     @Override

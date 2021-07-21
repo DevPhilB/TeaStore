@@ -17,39 +17,36 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
 import persistence.database.*;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
+import utilities.rest.api.Http2Response;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
-
+;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for web service
- * /api/web
+ * API for persistence service
+ * /api/persistence
  *
  * @author Philipp Backes
  */
-public class PersistenceAPI implements API {
-    private final Integer hVersion;
-    private final HttpVersion httpVersion;
+public class Http2PersistenceAPI implements API {
     private final ObjectMapper mapper;
 
-    public PersistenceAPI(String httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.hVersion = httpVersion.equals("HTTP/1.1") ? 1 : httpVersion.equals("HTTP/2") ? 2 : 3;
-        this.httpVersion = httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1;
+    public Http2PersistenceAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
     }
 
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
+    public Http2Response handle(Http2Headers headers, ByteBuf body) {
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(headers.path().toString());
         Map<String, List<String>> params = queryStringDecoder.parameters();
-        String method = header.method().name();
+        String method = headers.method().toString();
         String path = queryStringDecoder.path();
 
         // Select endpoint
@@ -81,7 +78,7 @@ public class PersistenceAPI implements API {
                                 Integer orders = Integer.parseInt(params.get("orders").get(0));
                                 return generateDatabase(categories, products, users, orders);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/generatedb/finished":
                             return generateDatabaseFinishFlag();
@@ -157,7 +154,7 @@ public class PersistenceAPI implements API {
                                 Long categoryId = Long.parseLong(params.get("categoryid").get(0));
                                 return getProductCountForCategory(categoryId);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/users":
                             if (params.containsKey("id")) {
@@ -175,7 +172,7 @@ public class PersistenceAPI implements API {
                                 String name = params.get("name").get(0);
                                 return getUserByName(name);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                     }
                 case "POST":
@@ -222,42 +219,42 @@ public class PersistenceAPI implements API {
                                 Long id = Long.parseLong(params.get("id").get(0));
                                 return deleteCategory(id);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/orders":
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
                                 return deleteOrder(id);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/orderitems":
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
                                 return deleteOrderItem(id);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/products":
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
                                 return deleteProduct(id);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/users":
                             if (params.containsKey("id")) {
                                 Long id = Long.parseLong(params.get("id").get(0));
                                 return deleteUser(id);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                     };
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                    break;
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 
     /**
@@ -265,7 +262,7 @@ public class PersistenceAPI implements API {
      *
      * @return Status code 200 or 404
      */
-    private FullHttpResponse clearCache(String className) {
+    private Http2Response clearCache(String className) {
         if (className == null) {
             CacheManager.MANAGER.clearLocalCacheOnly();
         } else {
@@ -274,10 +271,10 @@ public class PersistenceAPI implements API {
                 CacheManager.MANAGER.clearLocalCacheOnly(entityClass);
             } catch (Exception e) {
                 e.printStackTrace();
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, OK);
+        return Http2Response.okResponse();
     }
 
     /**
@@ -285,9 +282,9 @@ public class PersistenceAPI implements API {
      *
      * @return Status code 200
      */
-    private FullHttpResponse clearEMF() {
+    private Http2Response clearEMF() {
         CacheManager.MANAGER.resetLocalEMF();
-        return new DefaultFullHttpResponse(httpVersion, OK);
+        return Http2Response.okResponse();
     }
 
     /**
@@ -296,23 +293,22 @@ public class PersistenceAPI implements API {
      * @param id Required category Id
      * @return Category or NOT_FOUND
      */
-    private FullHttpResponse getCategory(Long id) {
+    private Http2Response getCategory(Long id) {
         PersistenceCategory persistenceEntity = CategoryRepository.REPOSITORY.getEntity(id);
         if (persistenceEntity == null) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
         Category category = persistenceEntity.toRecord();
         try {
             String json = mapper.writeValueAsString(category);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -322,7 +318,7 @@ public class PersistenceAPI implements API {
      * @param maxResultCount Optional max result count
      * @return Category or NOT_FOUND
      */
-    private FullHttpResponse getAllCategories(Integer startIndex, Integer maxResultCount) {
+    private Http2Response getAllCategories(Integer startIndex, Integer maxResultCount) {
         List<PersistenceCategory> persistenceEntities = null;
         if (startIndex == null || maxResultCount == null) {
             persistenceEntities = CategoryRepository.REPOSITORY.getAllEntities();
@@ -335,15 +331,14 @@ public class PersistenceAPI implements API {
         }
         try {
             String json = mapper.writeValueAsString(categories);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -352,9 +347,9 @@ public class PersistenceAPI implements API {
      * @param body Category as JSON
      * @return Created element as JSON
      */
-    private FullHttpResponse createCategory(ByteBuf body) {
+    private Http2Response createCategory(ByteBuf body) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         Category category = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -365,17 +360,16 @@ public class PersistenceAPI implements API {
             Category newCategory = CategoryRepository.REPOSITORY.getEntity(newId).toRecord();
             String json = mapper.writeValueAsString(newCategory);
             if (newCategory != null) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -384,27 +378,27 @@ public class PersistenceAPI implements API {
      * @param body Category as JSON
      * @return Updated element as JSON
      */
-    private FullHttpResponse updateCategory(ByteBuf body) {
+    private Http2Response updateCategory(ByteBuf body) {
         Category category = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             category = mapper.readValue(jsonByte, Category.class);
             if (CategoryRepository.REPOSITORY.getEntity(category.id()) == null) {
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
             if (CategoryRepository.REPOSITORY.updateEntity(category.id(), category)) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(body)
+                String json = mapper.writeValueAsString(category);
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -412,14 +406,14 @@ public class PersistenceAPI implements API {
      *
      * @return OK or NOT_FOUND
      */
-    private FullHttpResponse deleteCategory(Long id) {
+    private Http2Response deleteCategory(Long id) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         if (CategoryRepository.REPOSITORY.removeEntity(id)) {
-            return new DefaultFullHttpResponse(httpVersion, OK);
+            return Http2Response.okResponse();
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
 
     }
 
@@ -432,9 +426,9 @@ public class PersistenceAPI implements API {
      * @param orders Maximum order per user
      * @return OK or INTERNAL_SERVER_ERROR
      */
-    private FullHttpResponse generateDatabase(Integer categories, Integer products, Integer users, Integer orders) {
+    private Http2Response generateDatabase(Integer categories, Integer products, Integer users, Integer orders) {
         if (DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+            return Http2Response.internalServerErrorResponse();
         }
         DataGenerator.GENERATOR.setMaintenanceModeGlobal(true);
         DataGenerator.GENERATOR.dropAndCreateTables();
@@ -448,7 +442,7 @@ public class PersistenceAPI implements API {
             CacheManager.MANAGER.resetRemoteEMFs();
             DataGenerator.GENERATOR.setMaintenanceModeGlobal(false);
         });
-        return new DefaultFullHttpResponse(httpVersion, OK);
+        return Http2Response.okResponse();
     }
 
     /**
@@ -456,19 +450,18 @@ public class PersistenceAPI implements API {
      *
      * @return True or false
      */
-    private FullHttpResponse generateDatabaseFinishFlag() {
+    private Http2Response generateDatabaseFinishFlag() {
         Boolean finished = DataGenerator.GENERATOR.getGenerationFinishedFlag();
         try {
             String json = mapper.writeValueAsString(finished);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -477,18 +470,18 @@ public class PersistenceAPI implements API {
      * @param body New maintenance mode (Boolean)
      * @return OK or INTERNAL_SERVER_ERROR
      */
-    private FullHttpResponse generateDatabaseToggleMaintenance(ByteBuf body) {
+    private Http2Response generateDatabaseToggleMaintenance(ByteBuf body) {
         Boolean maintenanceMode = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             maintenanceMode = mapper.readValue(jsonByte, Boolean.class);
             DataGenerator.GENERATOR.setMaintenanceModeInternal(maintenanceMode);
-            return new DefaultFullHttpResponse(httpVersion, OK);
+            return Http2Response.okResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -496,19 +489,18 @@ public class PersistenceAPI implements API {
      *
      * @return True or false
      */
-    private FullHttpResponse generateDatabaseMaintenanceFlag() {
+    private Http2Response generateDatabaseMaintenanceFlag() {
         Boolean isMaintenanceMode = DataGenerator.GENERATOR.isMaintenanceMode();
         try {
             String json = mapper.writeValueAsString(isMaintenanceMode);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -517,23 +509,22 @@ public class PersistenceAPI implements API {
      * @param id Required order Id
      * @return Order or NOT_FOUND
      */
-    private FullHttpResponse getOrder(Long id) {
+    private Http2Response getOrder(Long id) {
         PersistenceOrder persistenceEntity = OrderRepository.REPOSITORY.getEntity(id);
         if (persistenceEntity == null) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
         Order order = persistenceEntity.toRecord();
         try {
             String json = mapper.writeValueAsString(order);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -544,7 +535,7 @@ public class PersistenceAPI implements API {
      * @param maxResultCount Optional max result count
      * @return All orders
      */
-    private FullHttpResponse getAllOrders(Long userId, Integer startIndex, Integer maxResultCount) {
+    private Http2Response getAllOrders(Long userId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceOrder> persistenceEntities = null;
         if(userId != null) {
             persistenceEntities = OrderRepository.REPOSITORY.getAllEntitiesWithUser(
@@ -563,15 +554,14 @@ public class PersistenceAPI implements API {
         }
         try {
             String json = mapper.writeValueAsString(orders);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -580,9 +570,9 @@ public class PersistenceAPI implements API {
      * @param body Order as JSON
      * @return Created element as JSON
      */
-    private FullHttpResponse createOrder(ByteBuf body) {
+    private Http2Response createOrder(ByteBuf body) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         Order order = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -593,17 +583,16 @@ public class PersistenceAPI implements API {
             Order newOrder = OrderRepository.REPOSITORY.getEntity(newId).toRecord();
             String json = mapper.writeValueAsString(newOrder);
             if (newOrder != null) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -612,27 +601,27 @@ public class PersistenceAPI implements API {
      * @param body Order item as JSON
      * @return Updated element as JSON
      */
-    private FullHttpResponse updateOrder(ByteBuf body) {
+    private Http2Response updateOrder(ByteBuf body) {
         Order order = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             order = mapper.readValue(jsonByte, Order.class);
             if (OrderRepository.REPOSITORY.getEntity(order.id()) == null) {
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
             if (OrderRepository.REPOSITORY.updateEntity(order.id(), order)) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(body)
+                String json = mapper.writeValueAsString(order);
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -641,14 +630,14 @@ public class PersistenceAPI implements API {
      * @param id Order id
      * @return OK or NOT_FOUND
      */
-    private FullHttpResponse deleteOrder(Long id) {
+    private Http2Response deleteOrder(Long id) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         if (OrderRepository.REPOSITORY.removeEntity(id)) {
-            return new DefaultFullHttpResponse(httpVersion, OK);
+            return Http2Response.okResponse();
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 
     /**
@@ -657,23 +646,22 @@ public class PersistenceAPI implements API {
      * @param id Required order item Id
      * @return Order item or NOT_FOUND
      */
-    private FullHttpResponse getOrderItem(Long id) {
+    private Http2Response getOrderItem(Long id) {
         PersistenceOrderItem persistenceEntity = OrderItemRepository.REPOSITORY.getEntity(id);
         if (persistenceEntity == null) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
         OrderItem orderItem = persistenceEntity.toRecord();
         try {
             String json = mapper.writeValueAsString(orderItem);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -685,7 +673,7 @@ public class PersistenceAPI implements API {
      * @param maxResultCount Optional max result count
      * @return All order items
      */
-    private FullHttpResponse getAllOrderItems(Long productId, Long orderId, Integer startIndex, Integer maxResultCount) {
+    private Http2Response getAllOrderItems(Long productId, Long orderId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceOrderItem> persistenceEntities = null;
         if(productId != null) {
             persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntitiesWithProduct(
@@ -710,15 +698,14 @@ public class PersistenceAPI implements API {
         }
         try {
             String json = mapper.writeValueAsString(orderItems);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -727,9 +714,9 @@ public class PersistenceAPI implements API {
      * @param body Order item as JSON
      * @return Created element as JSON
      */
-    private FullHttpResponse createOrderItem(ByteBuf body) {
+    private Http2Response createOrderItem(ByteBuf body) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         OrderItem orderItem = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -740,17 +727,16 @@ public class PersistenceAPI implements API {
             OrderItem newOrderItem = OrderItemRepository.REPOSITORY.getEntity(newId).toRecord();
             String json = mapper.writeValueAsString(newOrderItem);
             if (newOrderItem != null) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -759,27 +745,27 @@ public class PersistenceAPI implements API {
      * @param body Order item as JSON
      * @return Updated element as JSON
      */
-    private FullHttpResponse updateOrderItem(ByteBuf body) {
+    private Http2Response updateOrderItem(ByteBuf body) {
         OrderItem orderItem = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             orderItem = mapper.readValue(jsonByte, OrderItem.class);
             if (OrderItemRepository.REPOSITORY.getEntity(orderItem.id()) == null) {
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
             if (OrderItemRepository.REPOSITORY.updateEntity(orderItem.id(), orderItem)) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(body)
+                String json = mapper.writeValueAsString(orderItem);
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -788,14 +774,14 @@ public class PersistenceAPI implements API {
      * @param id Order item id
      * @return OK or NOT_FOUND
      */
-    private FullHttpResponse deleteOrderItem(Long id) {
+    private Http2Response deleteOrderItem(Long id) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         if (OrderItemRepository.REPOSITORY.removeEntity(id)) {
-            return new DefaultFullHttpResponse(httpVersion, OK);
+            return Http2Response.okResponse();
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 
     /**
@@ -804,23 +790,22 @@ public class PersistenceAPI implements API {
      * @param id Required product Id
      * @return Product or NOT_FOUND
      */
-    private FullHttpResponse getProduct(Long id) {
+    private Http2Response getProduct(Long id) {
         PersistenceProduct persistenceEntity = ProductRepository.REPOSITORY.getEntity(id);
         if (persistenceEntity == null) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
         Product product = persistenceEntity.toRecord();
         try {
             String json = mapper.writeValueAsString(product);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -831,7 +816,7 @@ public class PersistenceAPI implements API {
      * @param maxResultCount Optional max result count
      * @return All products
      */
-    private FullHttpResponse getAllProducts(Long categoryId, Integer startIndex, Integer maxResultCount) {
+    private Http2Response getAllProducts(Long categoryId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceProduct> persistenceEntities = null;
         if(categoryId != null) {
             persistenceEntities = ProductRepository.REPOSITORY.getAllEntities(
@@ -853,15 +838,14 @@ public class PersistenceAPI implements API {
         }
         try {
             String json = mapper.writeValueAsString(products);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
 
@@ -871,19 +855,18 @@ public class PersistenceAPI implements API {
      * @param categoryId Required category id
      * @return Number of products in a category
      */
-    private FullHttpResponse getProductCountForCategory(Long categoryId) {
+    private Http2Response getProductCountForCategory(Long categoryId) {
         Long productCount = ProductRepository.REPOSITORY.getProductCount(categoryId);
         try {
             String json = mapper.writeValueAsString(productCount);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -892,9 +875,9 @@ public class PersistenceAPI implements API {
      * @param body Product as JSON
      * @return Created element as JSON
      */
-    private FullHttpResponse createProduct(ByteBuf body) {
+    private Http2Response createProduct(ByteBuf body) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         Product product = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -905,17 +888,16 @@ public class PersistenceAPI implements API {
             Product newProduct = ProductRepository.REPOSITORY.getEntity(newId).toRecord();
             String json = mapper.writeValueAsString(newProduct);
             if (newProduct != null) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -924,27 +906,27 @@ public class PersistenceAPI implements API {
      * @param body Product as JSON
      * @return Updated element as JSON
      */
-    private FullHttpResponse updateProduct(ByteBuf body) {
+    private Http2Response updateProduct(ByteBuf body) {
         Product product = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             product = mapper.readValue(jsonByte, Product.class);
             if (ProductRepository.REPOSITORY.getEntity(product.id()) == null) {
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
             if (ProductRepository.REPOSITORY.updateEntity(product.id(), product)) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(body)
+                String json = mapper.writeValueAsString(product);
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -953,14 +935,14 @@ public class PersistenceAPI implements API {
      * @param id Product item id
      * @return OK or NOT_FOUND
      */
-    private FullHttpResponse deleteProduct(Long id) {
+    private Http2Response deleteProduct(Long id) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         if (ProductRepository.REPOSITORY.removeEntity(id)) {
-            return new DefaultFullHttpResponse(httpVersion, OK);
+            return Http2Response.okResponse();
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 
     /**
@@ -969,23 +951,22 @@ public class PersistenceAPI implements API {
      * @param id Required user Id
      * @return User or NOT_FOUND
      */
-    private FullHttpResponse getUserById(Long id) {
+    private Http2Response getUserById(Long id) {
         PersistenceUser persistenceEntity = UserRepository.REPOSITORY.getEntity(id);
         if (persistenceEntity == null) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
         User user = persistenceEntity.toRecord();
         try {
             String json = mapper.writeValueAsString(user);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -994,23 +975,22 @@ public class PersistenceAPI implements API {
      * @param name Required user name
      * @return User or NOT_FOUND
      */
-    private FullHttpResponse getUserByName(String name) {
+    private Http2Response getUserByName(String name) {
         PersistenceUser persistenceEntity = UserRepository.REPOSITORY.getUserByName(name);
         if (persistenceEntity == null) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
         User user = persistenceEntity.toRecord();
         try {
             String json = mapper.writeValueAsString(user);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1020,7 +1000,7 @@ public class PersistenceAPI implements API {
      * @param maxResultCount Optional max result count
      * @return All users
      */
-    private FullHttpResponse getAllUsers(Integer startIndex, Integer maxResultCount) {
+    private Http2Response getAllUsers(Integer startIndex, Integer maxResultCount) {
         List<PersistenceUser> persistenceEntities = null;
         if (startIndex == null || maxResultCount == null) {
             persistenceEntities = UserRepository.REPOSITORY.getAllEntities();
@@ -1033,15 +1013,14 @@ public class PersistenceAPI implements API {
         }
         try {
             String json = mapper.writeValueAsString(users);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1050,9 +1029,9 @@ public class PersistenceAPI implements API {
      * @param body User as JSON
      * @return Created element as JSON
      */
-    private FullHttpResponse createUser(ByteBuf body) {
+    private Http2Response createUser(ByteBuf body) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
         }
         User user = null;
         byte[] jsonByte = new byte[body.readableBytes()];
@@ -1063,17 +1042,16 @@ public class PersistenceAPI implements API {
             User newUser = UserRepository.REPOSITORY.getEntity(newId).toRecord();
             String json = mapper.writeValueAsString(newUser);
             if (newUser != null) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1082,27 +1060,27 @@ public class PersistenceAPI implements API {
      * @param body User as JSON
      * @return Updated element as JSON
      */
-    private FullHttpResponse updateUser(ByteBuf body) {
+    private Http2Response updateUser(ByteBuf body) {
         User user = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             user = mapper.readValue(jsonByte, User.class);
             if (UserRepository.REPOSITORY.getEntity(user.id()) == null) {
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
             if (UserRepository.REPOSITORY.updateEntity(user.id(), user)) {
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
-                        Unpooled.copiedBuffer(body)
+                String json = mapper.writeValueAsString(user);
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1111,13 +1089,14 @@ public class PersistenceAPI implements API {
      * @param id User item id
      * @return OK or NOT_FOUND
      */
-    private FullHttpResponse deleteUser(Long id) {
+    private Http2Response deleteUser(Long id) {
         if(DataGenerator.GENERATOR.isMaintenanceMode()) {
-            return new DefaultFullHttpResponse(httpVersion, SERVICE_UNAVAILABLE);
+            return Http2Response.serviceUnavailableErrorResponse();
+
         }
         if (UserRepository.REPOSITORY.removeEntity(id)) {
-            return new DefaultFullHttpResponse(httpVersion, OK);
+            return Http2Response.okResponse();
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 }

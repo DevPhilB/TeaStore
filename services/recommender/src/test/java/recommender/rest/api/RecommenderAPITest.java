@@ -28,7 +28,7 @@ class RecommenderAPITest {
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private RecommenderAPI api;
+    private Http1RecommenderAPI api;
 
     @BeforeEach
     void setUp() {
@@ -38,7 +38,7 @@ class RecommenderAPITest {
                 RECOMMENDER_ENDPOINT
         );
         body = null;
-        api = new RecommenderAPI("HTTP/1.1", "", null);
+        api = new Http1RecommenderAPI("", null);
     }
 
     @AfterEach
@@ -57,7 +57,7 @@ class RecommenderAPITest {
 
     @Test
     void testTrain() {
-        header.setMethod(HttpMethod.POST);
+        header.setMethod(HttpMethod.GET);
         header.setUri(RECOMMENDER_ENDPOINT + "/train");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
@@ -65,7 +65,7 @@ class RecommenderAPITest {
 
     @Test
     void testGetTimeStamp() {
-        header.setMethod(HttpMethod.POST);
+        header.setMethod(HttpMethod.GET);
         header.setUri(RECOMMENDER_ENDPOINT + "/train/timestamp");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
@@ -73,9 +73,9 @@ class RecommenderAPITest {
 
     @Test
     void testIsReady() {
-        header.setMethod(HttpMethod.POST);
+        header.setMethod(HttpMethod.GET);
         header.setUri(RECOMMENDER_ENDPOINT + "/train/isready");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 }

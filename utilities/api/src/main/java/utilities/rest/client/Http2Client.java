@@ -33,7 +33,6 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.codec.http.HttpRequest;
 
 /**
  * HTTP/2 client for inter-service communication
@@ -43,12 +42,14 @@ public class Http2Client {
 
     private final String host;
     private final Integer port;
-    private final HttpRequest httpRequest;
+    private final Http2Headers header;
+    private final Http2DataFrame body;
 
-    public Http2Client(String host, Integer port, HttpRequest httpRequest) {
+    public Http2Client(String host, Integer port, Http2Headers header, Http2DataFrame body) {
         this.host = host;
         this.port = port;
-        this.httpRequest = httpRequest;
+        this.header = header;
+        this.body = body;
     }
 
     public void sendRequest(Http2ClientStreamFrameHandler handler) {
@@ -68,8 +69,7 @@ public class Http2Client {
                             Protocol.ALPN,
                             SelectorFailureBehavior.NO_ADVERTISE,
                             SelectedListenerFailureBehavior.ACCEPT,
-                            ApplicationProtocolNames.HTTP_2,
-                            ApplicationProtocolNames.HTTP_1_1))
+                            ApplicationProtocolNames.HTTP_2))
                     .build();
 
             final Http2FrameCodec http2FrameCodec = Http2FrameCodecBuilder.forClient()
@@ -94,8 +94,9 @@ public class Http2Client {
             // Start the client
             final Channel channel = bootstrap.connect().syncUninterruptibly().channel();
             System.out.println("Connected to [" + host + ':' + port + ']');
-            // Send the HTTP/2 request
-            channel.writeAndFlush(httpRequest);
+            // Send HTTP/2 request
+            channel.writeAndFlush(header);
+            if (body != null) channel.writeAndFlush(body);
             // Wait until the connection is closed
             channel.close().syncUninterruptibly();
         } catch(Exception e) {

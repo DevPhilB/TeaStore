@@ -18,22 +18,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
+import utilities.rest.api.Http2Response;
 import utilities.rest.client.Http1Client;
 import utilities.rest.client.Http1ClientHandler;
+import utilities.rest.client.Http2Client;
+import utilities.rest.client.Http2ClientStreamFrameHandler;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpMethod.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * API for web service
@@ -41,20 +42,19 @@ import static io.netty.handler.codec.http.HttpMethod.*;
  *
  * @author Philipp Backes
  */
-public class WebAPI implements API {
-    private final HttpVersion httpVersion;
-    private Http1Client http1Client;
-    private Http1ClientHandler handler;
+public class Http2WebAPI implements API {
+    private Http2Client httpClient;
+    private Http2ClientStreamFrameHandler frameHandler;
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer imagePort;
     private final Integer authPort;
     private final Integer persistencePort;
     private final Integer recommenderPort;
-    private final HttpRequest request;
+    private Http2Headers http2Header;
+    private Http2DataFrame http2DataFrame;
 
-    public WebAPI(String httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1;
+    public Http2WebAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
         if(gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
@@ -69,23 +69,19 @@ public class WebAPI implements API {
             this.persistencePort = gatewayPort;
             this.recommenderPort = gatewayPort;
         }
-        this.request = new DefaultFullHttpRequest(
-                this.httpVersion,
-                GET,
-                "",
-                Unpooled.EMPTY_BUFFER
-        );
-        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+        http2Header = new DefaultHttp2Headers();
+        http2Header.add(HttpHeaderNames.HOST, this.gatewayHost);
+        http2Header.add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        http2Header.add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
+    public Http2Response handle(Http2Headers headers, ByteBuf body) {
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(headers.path().toString());
         Map<String, List<String>> params = queryStringDecoder.parameters();
-        String method = header.method().name();
+        String method = headers.method().toString();
         String path = queryStringDecoder.path();
-        String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
+        String cookieValue = headers.get(HttpHeaderNames.COOKIE) != null
+                ? headers.get(HttpHeaderNames.COOKIE).toString() : null;
         SessionData sessionData = CookieUtil.decodeCookie(cookieValue);
 
         // Select endpoint
@@ -105,7 +101,7 @@ public class WebAPI implements API {
                                 Long productId = Long.parseLong(params.get("productid").get(0));
                                 return cartAction(sessionData, action, productId, null);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/cartaction/updatecartquantities":
                             if (params.containsKey("productid") && params.containsKey("quantity")) {
@@ -114,7 +110,7 @@ public class WebAPI implements API {
                                 Long quantity = Long.parseLong(params.get("quantity").get(0));
                                 return cartAction(sessionData, action, productId, quantity);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/cartaction/proceedtocheckout":
                             String action = subPath.substring("/cartaction/".length());
@@ -134,7 +130,7 @@ public class WebAPI implements API {
                                 }
                                 return categoryView(sessionData, id, productQuantity, page);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/databaseaction":
                             if (params.containsKey("categories")
@@ -148,7 +144,7 @@ public class WebAPI implements API {
                                 Integer orders = Integer.parseInt(params.get("orders").get(0));
                                 return databaseAction(sessionData, categories, products, users, orders);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/database":
                             return databaseView();
@@ -164,7 +160,7 @@ public class WebAPI implements API {
                             if (params.containsKey("id")) {
                                 return productView(sessionData, Long.parseLong(params.get("id").get(0)));
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/profile":
                             return profileView(sessionData);
@@ -183,10 +179,10 @@ public class WebAPI implements API {
                             return confirmOrder(sessionData, body);
                     }
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                    break;
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 
     //
@@ -196,25 +192,20 @@ public class WebAPI implements API {
     private Map<String, String> getWebImages(
             String imageEndpoint,
             Map<String, String> imageSizeMap
-            ) throws IOException {
+    ) throws IOException {
         Map<String, String> imageWebDataMap = new HashMap<>();
         String json = mapper.writeValueAsString(imageSizeMap);
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
-        FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                request.protocolVersion(),
-                POST,
-                imageEndpoint,
-                postBody
-        );
-        postRequest.headers().set("Content-Length", postBody.readableBytes());
-        postRequest.headers().setAll(request.headers());
+        http2Header.method(POST.asciiName()).path(imageEndpoint);
+        http2Header.set("Content-Length", String.valueOf(postBody.readableBytes()));
+        http2DataFrame = new DefaultHttp2DataFrame(postBody);
         // Create client and send request
-        http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
+        httpClient = new Http2Client(gatewayHost, imagePort, http2Header, http2DataFrame);
+        frameHandler = new Http2ClientStreamFrameHandler();
+        httpClient.sendRequest(frameHandler);
+        if (!frameHandler.jsonContent.isEmpty()) {
             imageWebDataMap = mapper.readValue(
-                    handler.jsonContent,
+                    frameHandler.jsonContent,
                     new TypeReference<Map<String, String>>(){}
             );
         }
@@ -228,21 +219,16 @@ public class WebAPI implements API {
         Map<Long, String> imageProductDataMap = new HashMap<>();
         String json = mapper.writeValueAsString(imageSizeMap);
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
-        FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                request.protocolVersion(),
-                POST,
-                imageEndpoint,
-                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-        );
-        postRequest.headers().set("Content-Length", postBody.readableBytes());
-        postRequest.headers().setAll(request.headers());
+        http2Header.method(POST.asciiName()).path(imageEndpoint);
+        http2Header.set("Content-Length", String.valueOf(postBody.readableBytes()));
+        http2DataFrame = new DefaultHttp2DataFrame(postBody);
         // Create client and send request
-        http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
+        httpClient = new Http2Client(gatewayHost, imagePort, http2Header, http2DataFrame);
+        frameHandler = new Http2ClientStreamFrameHandler();
+        httpClient.sendRequest(frameHandler);
+        if (!frameHandler.jsonContent.isEmpty()) {
             imageProductDataMap = mapper.readValue(
-                    handler.jsonContent,
+                    frameHandler.jsonContent,
                     new TypeReference<Map<Long, String>>(){}
             );
         }
@@ -251,15 +237,14 @@ public class WebAPI implements API {
 
     private List<Category> getCategories(String persistenceEndpointCategories) throws IOException {
         List<Category> categories = new ArrayList<>();
-        request.setUri(persistenceEndpointCategories);
-        request.setMethod(GET);
+        http2Header.method(GET.asciiName()).path(persistenceEndpointCategories);
         // Create client and send request
-        http1Client = new Http1Client(gatewayHost, persistencePort, request);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
+        httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+        frameHandler = new Http2ClientStreamFrameHandler();
+        httpClient.sendRequest(frameHandler);
+        if (!frameHandler.jsonContent.isEmpty()) {
             categories = mapper.readValue(
-                    handler.jsonContent,
+                    frameHandler.jsonContent,
                     new TypeReference<List<Category>>(){}
             );
         }
@@ -267,15 +252,15 @@ public class WebAPI implements API {
     }
 
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
-        request.setUri(authEndpoint);
-        request.setMethod(GET);
-        request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-        http1Client = new Http1Client(gatewayHost, authPort, request);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
         SessionData newSessionData = null;
-        if (!handler.jsonContent.isEmpty()) {
-            newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+        http2Header.method(GET.asciiName()).path(authEndpoint);
+        http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+        // Create client and send request
+        httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+        frameHandler = new Http2ClientStreamFrameHandler();
+        httpClient.sendRequest(frameHandler);
+        if (!frameHandler.jsonContent.isEmpty()) {
+            newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
         }
         return newSessionData;
     }
@@ -289,8 +274,8 @@ public class WebAPI implements API {
      *
      * @return Service status
      */
-    private FullHttpResponse isReady() {
-        return new DefaultFullHttpResponse(httpVersion, OK);
+    private Http2Response isReady() {
+        return Http2Response.okResponse();
     }
 
     /**
@@ -300,7 +285,7 @@ public class WebAPI implements API {
      *
      * @return About page view as JSON
      */
-    private FullHttpResponse aboutView(SessionData sessionData) {
+    private Http2Response aboutView(SessionData sessionData) {
         // POST api/image/getWebImages
         String imageEndpoint = IMAGE_ENDPOINT + "/webimages";
         String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
@@ -330,30 +315,33 @@ public class WebAPI implements API {
                     descartesLogo,
                     description
             );
-            request.setUri(authEndpoint);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-            request.setMethod(GET);
-            http1Client = new Http1Client(gatewayHost, authPort, request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
+            http2Header.method(GET.asciiName()).path(authEndpoint);
+            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            // Create client and send request
+            httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
             String json = mapper.writeValueAsString(view);
-            DefaultFullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
-            if (!handler.jsonContent.isEmpty()) {
-                SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                response.headers().set(
-                        HttpHeaderNames.SET_COOKIE,
-                        CookieUtil.encodeSessionData(newSessionData, gatewayHost)
+            if (!frameHandler.jsonContent.isEmpty()) {
+                SessionData newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -363,7 +351,7 @@ public class WebAPI implements API {
      *
      * @return Page view depending on cart action
      */
-    private FullHttpResponse cartAction(SessionData sessionData, String name, Long productId, Long quantity) {
+    private Http2Response cartAction(SessionData sessionData, String name, Long productId, Long quantity) {
         // POST /api/auth/cart/add?productid=
         String authEndpointAdd = AUTH_ENDPOINT + "/cart/add?productid=" + productId;
         // POST /api/auth/cart/remove?productid=
@@ -374,71 +362,71 @@ public class WebAPI implements API {
         String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             SessionData newSessionData = sessionData;
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-            FullHttpResponse response = null;
+            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            Http2Response response = null;
             switch (name) {
                 case "addtocart":
-                    request.setMethod(POST);
-                    request.setUri(authEndpointAdd);
+                    http2Header.method(POST.asciiName()).path(authEndpointAdd);
                     // Create client and send request
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    frameHandler = new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (!frameHandler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                         response = cartView(newSessionData);
                         break;
                     } else {
-                        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                        return Http2Response.internalServerErrorResponse();
                     }
                 case "removeproduct":
-                    request.setMethod(POST);
-                    request.setUri(authEndpointRemove);
+                    http2Header.method(POST.asciiName()).path(authEndpointRemove);
                     // Create client and send request
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    frameHandler = new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (!frameHandler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                         response = cartView(newSessionData);
                         break;
                     } else {
-                        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                        return Http2Response.internalServerErrorResponse();
                     }
                 case "updatecartquantities":
-                    request.setMethod(PUT);
-                    request.setUri(authEndpointUpdate);
+                    http2Header.method(PUT.asciiName()).path(authEndpointUpdate);
                     // Create client and send request
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    frameHandler = new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (!frameHandler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                         response = cartView(newSessionData);
                         break;
                     } else {
-                        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                        return Http2Response.internalServerErrorResponse();
                     }
                 case "proceedtocheckout":
-                    request.setMethod(GET);
-                    request.setUri(authEndpointCheck);
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    http2Header.method(GET.asciiName()).path(authEndpointCheck);
+                    // Create client and send request
+                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    frameHandler = new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (!frameHandler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                         response = orderView(newSessionData);
                         break;
                     } else {
                         return loginView(sessionData);
                     }
             }
-            response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            response.headers().set(
+                    HttpHeaderNames.SET_COOKIE,
+                    CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+            );
             return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -448,35 +436,33 @@ public class WebAPI implements API {
      *
      * @return Profile page view as JSON
      */
-    private FullHttpResponse confirmOrder(SessionData sessionData, ByteBuf body) {
+    private Http2Response confirmOrder(SessionData sessionData, ByteBuf body) {
         // POST /api/auth/useractions/placeorder
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
+            http2Header.method(POST.asciiName()).path(authEndpointPlaceOrder);
+            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            http2Header.set("Content-Length", String.valueOf(body.readableBytes()));
+            http2DataFrame = new DefaultHttp2DataFrame(body);
             // Create client and send request
-            FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    POST,
-                    authEndpointPlaceOrder,
-                    body
-            );
-            postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-            postRequest.headers().set("Content-Length", body.readableBytes());
-            postRequest.headers().setAll(request.headers());
-            http1Client = new Http1Client(gatewayHost, authPort, postRequest);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                FullHttpResponse response = profileView(newSessionData);
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            httpClient = new Http2Client(gatewayHost, authPort, http2Header, http2DataFrame);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                SessionData newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+                Http2Response response = profileView(newSessionData);
+                response.headers().set(
+                        HttpHeaderNames.SET_COOKIE,
+                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                );
                 return response;
             } else {
-                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                return Http2Response.badRequestResponse();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -486,7 +472,7 @@ public class WebAPI implements API {
      *
      * @return Cart page view as JSON
      */
-    private FullHttpResponse cartView(SessionData sessionData) {
+    private Http2Response cartView(SessionData sessionData) {
         // GET products & advertisements
         String persistenceEndpointProducts = PERSISTENCE_ENDPOINT + "/products"; // products
         // POST api/image/getWebImages
@@ -511,14 +497,13 @@ public class WebAPI implements API {
             }
             HashMap<Long, Product> products = new HashMap<>();
             for (Long id : ids) {
-                request.setUri(persistenceEndpointProducts + "?id=" + id);
-                request.setMethod(GET);
+                http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + id);
                 // Create client and send request
-                http1Client = new Http1Client(gatewayHost, persistencePort, request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    Product product = mapper.readValue(handler.jsonContent, Product.class);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
+                    Product product = mapper.readValue(frameHandler.jsonContent, Product.class);
                     products.put(product.id(), product);
                 }
             }
@@ -550,20 +535,17 @@ public class WebAPI implements API {
             // Recommendations works only with user id
             if(sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
-                FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
-                        request.protocolVersion(),
-                        POST,
-                        recommenderEndpoint + "?userid=" + sessionData.userId(),
-                        Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
-                );
-                postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
-                postOrderItemsRequest.headers().setAll(request.headers());
-                http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
+                ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
+                http2Header.method(POST.asciiName()).path(recommenderEndpoint + "?userid=" + sessionData.userId());
+                http2Header.set("Content-Length", String.valueOf(postOrderItemsBody.readableBytes()));
+                http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody);
+                // Create client and send request
+                httpClient = new Http2Client(gatewayHost, recommenderPort, http2Header, http2DataFrame);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
                     productIds = mapper.readValue(
-                            handler.jsonContent,
+                            frameHandler.jsonContent,
                             new TypeReference<List<Long>>(){}
                     );
                 }
@@ -575,13 +557,13 @@ public class WebAPI implements API {
             for (Long productId : productIds) {
                 productImageSizeMap.put(productId, imageProductPreviewSize);
                 //
-                request.setUri(persistenceEndpointProducts + "?id=" + productId);
+                http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + productId);
                 // Create client and send request
-                http1Client = new Http1Client(gatewayHost, persistencePort, request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
+                    recommendedProducts.add(mapper.readValue(frameHandler.jsonContent, Product.class));
                 }
             }
             Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -600,8 +582,6 @@ public class WebAPI implements API {
                         )
                 );
             }
-            // Check login
-            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             String title = "TeaStore Cart";
             String updateCart = "/api/web/cartaction/updatecartquantities";
             String proceedToCheckout = "/api/web/cartaction/proceedtocheckout";
@@ -614,20 +594,28 @@ public class WebAPI implements API {
                     updateCart,
                     proceedToCheckout
             );
+            // Check login
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -637,7 +625,7 @@ public class WebAPI implements API {
      *
      * @return Category page view as JSON
      */
-    private FullHttpResponse categoryView(SessionData sessionData,
+    private Http2Response categoryView(SessionData sessionData,
                                           Long id,
                                           Integer productQuantity,
                                           Integer page)
@@ -663,15 +651,14 @@ public class WebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Get number of all products
             int products = 0;
-            request.setUri(persistenceEndpointProducts);
-            request.setMethod(GET);
+            http2Header.method(GET.asciiName()).path(persistenceEndpointProducts);
             // Create client and send request
-            http1Client = new Http1Client(gatewayHost, persistencePort, request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
                 products = mapper.readValue(
-                        handler.jsonContent,
+                        frameHandler.jsonContent,
                         new TypeReference<List<Product>>(){}
                 ).size();
             }
@@ -684,15 +671,14 @@ public class WebAPI implements API {
             persistenceEndpointCategoryProducts += "&start=" +
                     (page - 1) * productQuantity + "&max=" + productQuantity;
             List<Product> productList = new ArrayList<>();
-            request.setUri(persistenceEndpointCategoryProducts);
-            request.setMethod(GET);
+            http2Header.method(GET.asciiName()).path(persistenceEndpointCategoryProducts);
             // Create client and send request
-            http1Client = new Http1Client(gatewayHost, persistencePort, request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
                 productList = mapper.readValue(
-                        handler.jsonContent,
+                        frameHandler.jsonContent,
                         new TypeReference<List<Product>>(){}
                 );
             }
@@ -729,22 +715,28 @@ public class WebAPI implements API {
                     page,
                     productQuantity
             );
-            String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            String json = mapper.writeValueAsString(view);
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -754,27 +746,27 @@ public class WebAPI implements API {
      *
      * @return Index page view as JSON
      */
-    private FullHttpResponse databaseAction(SessionData sessionData, Integer categories, Integer products, Integer users, Integer orders) {
+    private Http2Response databaseAction(SessionData sessionData, Integer categories, Integer products, Integer users, Integer orders) {
         // GET api/persistence/generatedb
         String persistenceEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
                 "?categories=" + categories + "&products=" + products +
                 "&users=" + users + "&orders=" + orders;
         try {
-            request.setUri(persistenceEndpoint);
+            http2Header.method(GET.asciiName()).path(persistenceEndpoint);
             // Create client and send request
-            http1Client = new Http1Client(gatewayHost, persistencePort, request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
                 // And return to index view
                 return indexView(sessionData);
             } else {
-                return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                return Http2Response.internalServerErrorResponse();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -784,7 +776,7 @@ public class WebAPI implements API {
      *
      * @return Database page view as JSON
      */
-    private FullHttpResponse databaseView() {
+    private Http2Response databaseView() {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         try {
@@ -803,15 +795,14 @@ public class WebAPI implements API {
                     5
             );
             String json = mapper.writeValueAsString(view);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -821,7 +812,7 @@ public class WebAPI implements API {
      *
      * @return Error page view as JSON
      */
-    private FullHttpResponse errorView(SessionData sessionData) {
+    private Http2Response errorView(SessionData sessionData) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // GET /api/auth/useractions/isloggedin
@@ -841,22 +832,28 @@ public class WebAPI implements API {
                     webImageDataMap.get("error"),
                     "/api/web/index"
             );
-            String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            String json = mapper.writeValueAsString(view);
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -866,7 +863,7 @@ public class WebAPI implements API {
      *
      * @return Index page view as JSON
      */
-    private FullHttpResponse indexView(SessionData sessionData) {
+    private Http2Response indexView(SessionData sessionData) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages";
         // GET api/persistence/categories
@@ -892,22 +889,28 @@ public class WebAPI implements API {
                     categories,
                     webImageIndexDataMap.get("icon")
             );
-            String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            String json = mapper.writeValueAsString(view);
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -917,43 +920,43 @@ public class WebAPI implements API {
      *
      * @return Profile or index page view as JSON
      */
-    private FullHttpResponse logioAction(SessionData sessionData, String action, String username, String password) {
+    private Http2Response logioAction(SessionData sessionData, String action, String username, String password) {
         // POST api/auth/useractions/login?name=
         String authEndpointLogin = AUTH_ENDPOINT + "/useractions/login?name=";
         // POST api/auth/useractions/logout
         String authEndpointLogout = AUTH_ENDPOINT + "/useractions/logout";
         try {
             SessionData newSessionData = null;
-            request.setMethod(POST);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            http2Header.method(POST.asciiName());
+            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
             switch (action) {
                 case "login":
                     authEndpointLogin += username + "&password=" + password;
-                    request.setUri(authEndpointLogin);
+                    http2Header.path(authEndpointLogin);
                     // Create client and send request
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                    frameHandler = new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (!frameHandler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                     }
                     return profileView(newSessionData);
                 case "logout":
-                    request.setUri(authEndpointLogout);
+                    http2Header.path(authEndpointLogout);
                     // Create client and send request
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    frameHandler = new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (!frameHandler.jsonContent.isEmpty()) {
+                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                     }
                     return indexView(newSessionData);
             }
-            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+            return Http2Response.badRequestResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -963,7 +966,7 @@ public class WebAPI implements API {
      *
      * @return Login page view as JSON
      */
-    private FullHttpResponse loginView(SessionData sessionData) {
+    private Http2Response loginView(SessionData sessionData) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages";
         // GET api/persistence/categories
@@ -988,22 +991,28 @@ public class WebAPI implements API {
                     "",
                     "/api/web/loginaction/login?name=USERNAME&password=PASSWORD"
             );
-            String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            String json = mapper.writeValueAsString(view);
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1013,7 +1022,7 @@ public class WebAPI implements API {
      *
      * @return Order page view as JSON
      */
-    private FullHttpResponse orderView(SessionData sessionData) {
+    private Http2Response orderView(SessionData sessionData) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages"; // storeIcon
         // GET api/persistence/categories
@@ -1042,22 +1051,28 @@ public class WebAPI implements API {
                     "",
                     "/api/web/cartaction/proceedtocheckout"
             );
-            String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            String json = mapper.writeValueAsString(view);
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1067,7 +1082,7 @@ public class WebAPI implements API {
      *
      * @return Product page view as JSON
      */
-    private FullHttpResponse productView(SessionData sessionData, Long productId) {
+    private Http2Response productView(SessionData sessionData, Long productId) {
         // GET api/image/getWebImages
         String imageEndpointWeb = IMAGE_ENDPOINT + "/webimages";
         // GET api/persistence/categories
@@ -1090,14 +1105,13 @@ public class WebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Get product
             Product product = null;
-            request.setUri(persistenceEndpointProducts + "?id=" + productId);
-            request.setMethod(GET);
+            http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + productId);
             // Create client and send request
-            http1Client = new Http1Client(gatewayHost, persistencePort, request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                product = mapper.readValue(handler.jsonContent, Product.class);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                product = mapper.readValue(frameHandler.jsonContent, Product.class);
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -1123,20 +1137,17 @@ public class WebAPI implements API {
             // Recommendations works only with user id
             if(sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
-                FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
-                        request.protocolVersion(),
-                        POST,
-                        recommenderEndpoint + "?userid=" + sessionData.userId(),
-                        Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
-                );
-                postOrderItemsRequest.headers().set("Content-Length", orderItemsJson.getBytes().length);
-                postOrderItemsRequest.headers().setAll(request.headers());
-                http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
+                ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
+                http2Header.method(POST.asciiName()).path(recommenderEndpoint + "?userid=" + sessionData.userId());
+                http2Header.set("Content-Length", String.valueOf(postOrderItemsBody.readableBytes()));
+                http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody);
+                // Create client and send request
+                httpClient = new Http2Client(gatewayHost, recommenderPort, http2Header, http2DataFrame);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
                     productIds = mapper.readValue(
-                            handler.jsonContent,
+                            frameHandler.jsonContent,
                             new TypeReference<List<Long>>(){}
                     );
                 }
@@ -1148,13 +1159,13 @@ public class WebAPI implements API {
             for (Long id : productIds) {
                 productImageSizeMap.put(id, imageProductPreviewSize);
                 //
-                request.setUri(persistenceEndpointProducts + "?id=" + id);
+                http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + id);
                 // Create client and send request
-                http1Client = new Http1Client(gatewayHost, persistencePort, request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
+                    recommendedProducts.add(mapper.readValue(frameHandler.jsonContent, Product.class));
                 }
             }
             productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -1181,22 +1192,28 @@ public class WebAPI implements API {
                     productView,
                     advertisements
             );
-            String json = mapper.writeValueAsString(view);
-            FullHttpResponse response = new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-            );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+            String json = mapper.writeValueAsString(view);
+            if (newSessionData != null) {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+            } else {
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
             }
-            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -1206,7 +1223,7 @@ public class WebAPI implements API {
      *
      * @return Profile page view as JSON
      */
-    private FullHttpResponse profileView(SessionData sessionData) {
+    private Http2Response profileView(SessionData sessionData) {
         // GET /api/auth/useractions/isloggedin
         String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         // GET api/image/getWebImages
@@ -1233,25 +1250,24 @@ public class WebAPI implements API {
                 // Get user
                 User user = null;
                 Long userId = newSessionData.userId();
-                request.setUri(persistenceEndpointUsers + userId);
-                request.setMethod(GET);
+                http2Header.method(GET.asciiName()).path(persistenceEndpointUsers + userId);
                 // Create client and send request
-                http1Client = new Http1Client(gatewayHost, persistencePort, request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    user = mapper.readValue(handler.jsonContent, User.class);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
+                    user = mapper.readValue(frameHandler.jsonContent, User.class);
                 }
                 // Get user orders
                 List<Order> orders = new ArrayList<>();
-                request.setUri(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
-                request.setMethod(GET);
-                http1Client = new Http1Client(gatewayHost, persistencePort, request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
+                http2Header.method(GET.asciiName()).path(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
+                // Create client and send request
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                frameHandler = new Http2ClientStreamFrameHandler();
+                httpClient.sendRequest(frameHandler);
+                if (!frameHandler.jsonContent.isEmpty()) {
                     orders = mapper.readValue(
-                            handler.jsonContent,
+                            frameHandler.jsonContent,
                             new TypeReference<List<Order>>(){}
                     );
                 }
@@ -1277,18 +1293,19 @@ public class WebAPI implements API {
                         previousOrders
                 );
                 String json = mapper.writeValueAsString(view);
-                FullHttpResponse response = new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length())
+                                .set(
+                                        HttpHeaderNames.SET_COOKIE,
+                                        CookieUtil.encodeSessionData(newSessionData, gatewayHost).toString()
+                                ),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
-                return response;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
     // Status view is part of the API gateway
 }

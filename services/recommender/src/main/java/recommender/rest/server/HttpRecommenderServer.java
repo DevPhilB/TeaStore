@@ -55,10 +55,9 @@ public class HttpRecommenderServer {
         this.gatewayPort = gatewayPort;
         // Setup and start training
         TrainingSynchronizer.getInstance().setupHttpClient(
-                this.httpVersion,
-                this.scheme,
-                this.gatewayHost,
-                this.gatewayHost.isEmpty() ? 3030 : gatewayPort
+                httpVersion,
+                gatewayHost,
+                gatewayPort
         );
         TrainingSynchronizer.getInstance().retrieveDataAndRetrain();
     }

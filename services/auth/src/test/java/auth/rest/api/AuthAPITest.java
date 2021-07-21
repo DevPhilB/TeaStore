@@ -28,7 +28,7 @@ class AuthAPITest {
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private AuthAPI api;
+    private Http1AuthAPI api;
 
     @BeforeEach
     void setUp() {
@@ -38,7 +38,7 @@ class AuthAPITest {
                 AUTH_ENDPOINT
         );
         body = null;
-        api = new AuthAPI("HTTP/1.1", "", null);
+        api = new Http1AuthAPI("", null);
     }
 
     @AfterEach

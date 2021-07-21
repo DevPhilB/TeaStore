@@ -14,24 +14,18 @@
 package persistence.rest.server;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http2.DefaultHttp2DataFrame;
-import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
 import io.netty.handler.codec.http2.DefaultHttp2WindowUpdateFrame;
 import io.netty.handler.codec.http2.Http2DataFrame;
 import io.netty.handler.codec.http2.Http2FrameStream;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
-import io.netty.util.CharsetUtil;
-import persistence.rest.api.PersistenceAPI;
-
-import static io.netty.buffer.Unpooled.copiedBuffer;
-import static io.netty.buffer.Unpooled.unreleasableBuffer;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import persistence.rest.api.Http2PersistenceAPI;
+import utilities.rest.api.Http2Response;
 
 /**
  * HTTP/2 server handler for persistence service
@@ -39,28 +33,39 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
  */
 public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
 
-    private Http2DataFrame dataFrame;
-    private final PersistenceAPI api;
+    private Http2Headers headers;
+    private ByteBuf body;
+    private final Http2PersistenceAPI api;
 
     public Http2PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new PersistenceAPI("HTTP/2", gatewayHost, gatewayPort);
+        api = new Http2PersistenceAPI(gatewayHost, gatewayPort);
+    }
+
+    private void handleRequest(ChannelHandlerContext context,
+                               Http2FrameStream stream) {
+        // Handle request and response
+        Http2Response response = api.handle(headers, body);
+        sendResponse(context, stream, response);
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
+        super.exceptionCaught(context, cause);
         cause.printStackTrace();
-        ctx.close();
+        context.close();
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof Http2HeadersFrame) {
-            onHeadersRead(ctx, (Http2HeadersFrame) msg);
-        } else if (msg instanceof Http2DataFrame) {
-            onDataRead(ctx, (Http2DataFrame) msg);
+    public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
+        if (message instanceof Http2HeadersFrame headersFrame) {
+            headers = headersFrame.headers();
+            if (headersFrame.isEndStream()) {
+                handleRequest(context, headersFrame.stream());
+            }
+        } else if (message instanceof Http2DataFrame dataFrame) {
+            onDataRead(context, dataFrame);
         } else {
-            super.channelRead(ctx, msg);
+            super.channelRead(context, message);
         }
     }
 
@@ -70,43 +75,31 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
     }
 
     /**
-     * If receive a frame with end-of-stream set, send a pre-canned response
+     * Handle data frames
      */
-    private static void onDataRead(ChannelHandlerContext ctx, Http2DataFrame data) throws Exception {
+    private void onDataRead(ChannelHandlerContext context, Http2DataFrame data) {
         Http2FrameStream stream = data.stream();
-
+        body = Unpooled.copiedBuffer(body, data.content().copy());
+        data.release();
         if (data.isEndStream()) {
-            sendResponse(ctx, stream, data.content());
-        } else {
-            // We do not send back the response to the remote-peer, so we need to release it.
-            data.release();
+            handleRequest(context, stream);
         }
-
         // Update the flow controller
-        ctx.write(new DefaultHttp2WindowUpdateFrame(data.initialFlowControlledBytes()).stream(stream));
+        context.write(new DefaultHttp2WindowUpdateFrame(data.initialFlowControlledBytes()).stream(stream));
     }
 
     /**
-     * If receive a frame with end-of-stream set, send a pre-canned response
+     * Send response to the client
      */
-    private static void onHeadersRead(ChannelHandlerContext ctx, Http2HeadersFrame headers)
-            throws Exception {
-        if (headers.isEndStream()) {
-            ByteBuf content = ctx.alloc().buffer();
-            content.writeBytes(Unpooled.copiedBuffer("{}", CharsetUtil.UTF_8));
-            ByteBufUtil.writeAscii(content, " - via HTTP/2");
-            sendResponse(ctx, headers.stream(), content);
-        }
-    }
-
-    /**
-     * Sends DATA frame to the client
-     */
-    private static void sendResponse(ChannelHandlerContext ctx, Http2FrameStream stream, ByteBuf payload) {
-        // TODO: Check for method, only allow GET, POST, PUT & DELETE
-        // Send a frame for the response status
-        Http2Headers headers = new DefaultHttp2Headers().status(OK.codeAsText());
-        ctx.write(new DefaultHttp2HeadersFrame(headers).stream(stream));
-        ctx.write(new DefaultHttp2DataFrame(payload, true).stream(stream));
+    private void sendResponse(
+            ChannelHandlerContext context,
+            Http2FrameStream stream,
+            Http2Response response
+    ) {
+        // Send response frames
+        context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
+        context.write(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
+        // Close connection
+        context.close();
     }
 }

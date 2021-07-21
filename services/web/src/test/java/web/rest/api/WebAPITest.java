@@ -25,11 +25,10 @@ import static utilities.rest.api.API.WEB_ENDPOINT;
 
 class WebAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private WebAPI api;
+    private Http1WebAPI api;
 
     @BeforeEach
     void setUp() {
@@ -39,7 +38,7 @@ class WebAPITest {
                 WEB_ENDPOINT
         );
         body = null;
-        api = new WebAPI(version.text(), "", null);
+        api = new Http1WebAPI("", null);
     }
 
     @AfterEach

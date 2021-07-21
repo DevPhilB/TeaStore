@@ -20,7 +20,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import web.rest.api.WebAPI;
+import web.rest.api.Http1WebAPI;
 
 /**
  * HTTP/1.1 server handler for web service
@@ -30,10 +30,10 @@ public class Http1WebServiceHandler extends SimpleChannelInboundHandler<HttpObje
 
     private HttpRequest request;
     private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
-    private final WebAPI api;
+    private final Http1WebAPI api;
 
     public Http1WebServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new WebAPI("HTTP/1.1", gatewayHost, gatewayPort);
+        api = new Http1WebAPI(gatewayHost, gatewayPort);
     }
 
     @Override

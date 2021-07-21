@@ -28,7 +28,7 @@ class PersistenceAPITest {
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private PersistenceAPI api;
+    private Http1PersistenceAPI api;
 
     @BeforeEach
     void setUp() {
@@ -38,7 +38,7 @@ class PersistenceAPITest {
                 PERSISTENCE_ENDPOINT
         );
         body = null;
-        api = new PersistenceAPI("HTTP/1.1", "", null);
+        api = new Http1PersistenceAPI("", null);
     }
 
     @AfterEach

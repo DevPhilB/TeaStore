@@ -20,7 +20,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import image.rest.api.ImageAPI;
+import image.rest.api.Http1ImageAPI;
 
 /**
  * HTTP/1.1 server handler for image service
@@ -30,10 +30,10 @@ public class Http1ImageServiceHandler extends SimpleChannelInboundHandler<HttpOb
 
     private HttpRequest request;
     private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
-    private final ImageAPI api;
+    private final Http1ImageAPI api;
 
     public Http1ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new ImageAPI("HTTP/1.1", gatewayHost, gatewayPort);
+        api = new Http1ImageAPI(gatewayHost, gatewayPort);
     }
 
     @Override

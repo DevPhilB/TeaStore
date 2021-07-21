@@ -20,7 +20,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import persistence.rest.api.PersistenceAPI;
+import persistence.rest.api.Http1PersistenceAPI;
 
 /**
  * HTTP/1.1 server handler for persistence service
@@ -30,10 +30,10 @@ public class Http1PersistenceServiceHandler extends SimpleChannelInboundHandler<
 
     private HttpRequest request;
     private final HttpVersion httpVersion = HttpVersion.HTTP_1_1;
-    private final PersistenceAPI api;
+    private final Http1PersistenceAPI api;
 
     public Http1PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new PersistenceAPI("HTTP/1.1", gatewayHost, gatewayPort);
+        api = new Http1PersistenceAPI(gatewayHost, gatewayPort);
     }
 
     @Override

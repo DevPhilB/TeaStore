@@ -28,21 +28,18 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for web service
- * /api/web
+ * API for image service
+ * /api/image
  *
  * @author Philipp Backes
  */
-public class ImageAPI implements API {
-    private final Integer hVersion;
-    private final HttpVersion httpVersion;
+public class Http1ImageAPI implements API {
     private final ObjectMapper mapper;
 
-    public ImageAPI(String httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.hVersion = httpVersion.equals("HTTP/1.1") ? 1 : httpVersion.equals("HTTP/2") ? 2 : 3;
-        this.httpVersion = httpVersion.equals("HTTP/1.1") ? HttpVersion.HTTP_1_1 : HttpVersion.HTTP_1_1;
+    public Http1ImageAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
     }
 
@@ -74,12 +71,11 @@ public class ImageAPI implements API {
                             return setCacheSize(body);
                     }
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                    break;
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
     }
-
 
     /**
      * POST /productimages
@@ -99,22 +95,22 @@ public class ImageAPI implements API {
                     new TypeReference<Map<Long, String>>(){}
             );
             images = ImageProvider.IP.getProductImages(
-                images.entrySet().parallelStream().collect(
-                    Collectors.toMap(Map.Entry::getKey,
-                            e -> ImageSize.parseImageSize(e.getValue())
+                    images.entrySet().parallelStream().collect(
+                            Collectors.toMap(Map.Entry::getKey,
+                                    e -> ImageSize.parseImageSize(e.getValue())
+                            )
                     )
-                )
             );
             String json = mapper.writeValueAsString(images);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -136,24 +132,24 @@ public class ImageAPI implements API {
             );
             Map<String, String> imageDataMap = ImageProvider.IP.getWebImages(
                     imageSizeMap.entrySet().parallelStream().collect(
-                        Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> ImageSize.parseImageSize(
-                                        e.getValue()
-                                )
-                        )
+                            Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    e -> ImageSize.parseImageSize(
+                                            e.getValue()
+                                    )
+                            )
                     )
             );
             String json = mapper.writeValueAsString(imageDataMap);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -166,7 +162,7 @@ public class ImageAPI implements API {
      */
     private FullHttpResponse regenerateImages() {
         SetupController.SETUP.reconfiguration();
-        return new DefaultFullHttpResponse(httpVersion, OK);
+        return new DefaultFullHttpResponse(HTTP_1_1, OK);
     }
 
     /**
@@ -181,14 +177,14 @@ public class ImageAPI implements API {
         try {
             String json = mapper.writeValueAsString(finished);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -201,14 +197,14 @@ public class ImageAPI implements API {
         try {
             String json = mapper.writeValueAsString(state);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -226,13 +222,13 @@ public class ImageAPI implements API {
             Boolean success = SetupController.SETUP.setCacheSize(cacheSize);
             String json = mapper.writeValueAsString(success);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 }
