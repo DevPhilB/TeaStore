@@ -255,7 +255,7 @@ public class Http2WebAPI implements API {
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         SessionData newSessionData = null;
         http2Header.method(GET.asciiName()).path(authEndpoint);
-        http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+        http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
         // Create client and send request
         httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
         frameHandler = new Http2ClientStreamFrameHandler();
@@ -317,7 +317,7 @@ public class Http2WebAPI implements API {
                     description
             );
             http2Header.method(GET.asciiName()).path(authEndpoint);
-            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
             frameHandler = new Http2ClientStreamFrameHandler();
@@ -363,7 +363,7 @@ public class Http2WebAPI implements API {
         String authEndpointCheck = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             SessionData newSessionData = sessionData;
-            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             Http2Response response = null;
             switch (name) {
                 case "addtocart":
@@ -442,7 +442,7 @@ public class Http2WebAPI implements API {
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
             http2Header.method(POST.asciiName()).path(authEndpointPlaceOrder);
-            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(body.readableBytes()));
             http2DataFrame = new DefaultHttp2DataFrame(body);
             // Create client and send request
@@ -929,7 +929,7 @@ public class Http2WebAPI implements API {
         try {
             SessionData newSessionData = null;
             http2Header.method(POST.asciiName());
-            http2Header.set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost).toString());
+            http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             switch (action) {
                 case "login":
                     authEndpointLogin += username + "&password=" + password;

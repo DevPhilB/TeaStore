@@ -13,8 +13,7 @@
  */
 package utilities.rest.client;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.handler.codec.http2.Http2DataFrame;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.handler.codec.http2.Http2StreamFrame;
@@ -32,7 +31,7 @@ public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<H
     private static final Logger LOG = LogManager.getLogger();
 
     @Override
-    protected void channelRead0(ChannelHandlerContext context, Http2StreamFrame message) throws Exception {
+    protected void channelRead0(ChannelHandlerContext context, Http2StreamFrame message) {
         LOG.info("Received HTTP/2 'stream' frame: " + message);
         if (message instanceof Http2DataFrame dataFrame && dataFrame.isEndStream()) {
             LOG.info("Received HTTP/2 data frame: " + dataFrame);

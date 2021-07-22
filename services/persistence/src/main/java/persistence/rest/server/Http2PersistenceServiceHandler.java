@@ -24,6 +24,8 @@ import io.netty.handler.codec.http2.Http2DataFrame;
 import io.netty.handler.codec.http2.Http2FrameStream;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import persistence.rest.api.Http2PersistenceAPI;
 import utilities.rest.api.Http2Response;
 
@@ -36,6 +38,7 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body;
     private final Http2PersistenceAPI api;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http2PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2PersistenceAPI(gatewayHost, gatewayPort);
@@ -50,8 +53,7 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
-        super.exceptionCaught(context, cause);
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 

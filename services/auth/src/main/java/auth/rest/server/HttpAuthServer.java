@@ -111,9 +111,8 @@ public class HttpAuthServer {
                 break;
             case "HTTP/2":
                 // Configure SSL
-                final SslContext sslCtx;
                 SelfSignedCertificate ssc = new SelfSignedCertificate();
-                sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
+                SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
                         .sslProvider(SslProvider.JDK)
                         .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                         .applicationProtocolConfig(new ApplicationProtocolConfig(

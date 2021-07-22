@@ -17,6 +17,7 @@ import io.netty.channel.*;
 import io.netty.handler.codec.http2.Http2FrameCodecBuilder;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.*;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -114,9 +115,8 @@ public class HttpPersistenceServer {
                 break;
             case "HTTP/2":
                 // Configure SSL
-                final SslContext sslCtx;
                 SelfSignedCertificate ssc = new SelfSignedCertificate();
-                sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
+                SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
                         .sslProvider(SslProvider.JDK)
                         .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                         .applicationProtocolConfig(new ApplicationProtocolConfig(

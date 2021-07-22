@@ -22,6 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import image.rest.api.Http1ImageAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * HTTP/1.1 server handler for image service
@@ -31,6 +33,7 @@ public class Http1ImageServiceHandler extends SimpleChannelInboundHandler<HttpOb
 
     private HttpRequest request;
     private final Http1ImageAPI api;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http1ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1ImageAPI(gatewayHost, gatewayPort);
@@ -43,7 +46,7 @@ public class Http1ImageServiceHandler extends SimpleChannelInboundHandler<HttpOb
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 

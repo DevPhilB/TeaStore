@@ -14,24 +14,13 @@
 package utilities.rest.client;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http2.*;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
-import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
-import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
-import io.netty.handler.ssl.ApplicationProtocolNames;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
+import io.netty.handler.ssl.*;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,12 +48,11 @@ public class Http2Client {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
-            // Configure SSL.
-            final SslContext sslCtx;
-            sslCtx = SslContextBuilder.forClient()
+            // Configure SSL
+            SslContext sslCtx = SslContextBuilder.forClient()
                     .sslProvider(SslProvider.JDK)
                     .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-                    // TODO: Need to be changed for production
+                    // Need to be changed for production
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .applicationProtocolConfig(new ApplicationProtocolConfig(
                             ApplicationProtocolConfig.Protocol.ALPN,
@@ -73,36 +61,41 @@ public class Http2Client {
                             ApplicationProtocolNames.HTTP_2))
                     .build();
 
-            final Http2FrameCodec http2FrameCodec = Http2FrameCodecBuilder.forClient()
-                    .initialSettings(Http2Settings.defaultSettings())
-                    .frameLogger(new Http2FrameLogger(LogLevel.INFO))
-                    .build();
-
+            // Configure the client
             Bootstrap bootstrap = new Bootstrap()
                 .group(workerGroup)
                 .channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.AUTO_CLOSE, true)
                 .remoteAddress(host, port)
                 .handler(new ChannelInitializer<Channel> () {
                 @Override
-                public void initChannel(Channel channel) throws Exception {
+                public void initChannel(Channel channel) {
                     channel.pipeline().addFirst(sslCtx.newHandler(channel.alloc()));
-                    channel.pipeline().addLast(http2FrameCodec);
-                    channel.pipeline().addLast(handler);
+                    channel.pipeline().addLast(Http2FrameCodecBuilder.forClient()
+                            .initialSettings(Http2Settings.defaultSettings())
+                            .build());
+                    channel.pipeline().addLast(new Http2MultiplexHandler(handler));
                     channel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                 }
             });
-
             // Start the client
-            final Channel channel = bootstrap.connect().syncUninterruptibly().channel();
+            Channel channel = bootstrap.connect().syncUninterruptibly().channel();
             LOG.info("Connected to [" + host + ':' + port + ']');
+            // Prepare handler
+            Http2StreamChannelBootstrap streamChannelBootstrap = new Http2StreamChannelBootstrap(channel);
+            Http2StreamChannel streamChannel = streamChannelBootstrap.open().syncUninterruptibly().getNow();
+            streamChannel.pipeline().addLast(handler);
             // Send HTTP/2 request
-            channel.writeAndFlush(header);
-            if (body != null) channel.writeAndFlush(body);
+            if (body != null) {
+                channel.write(header);
+                channel.writeAndFlush(body);
+            } else {
+                channel.writeAndFlush(header);
+            }
             // Wait until the connection is closed
-            channel.close().syncUninterruptibly();
+            channel.close().sync();
         } catch(Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         } finally {
             workerGroup.shutdownGracefully();
         }

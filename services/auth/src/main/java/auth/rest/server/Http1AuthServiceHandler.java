@@ -22,6 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import auth.rest.api.Http1AuthAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * HTTP/1.1 server handler for web service
@@ -31,6 +33,7 @@ public class Http1AuthServiceHandler extends SimpleChannelInboundHandler<HttpObj
 
     private HttpRequest request;
     private final Http1AuthAPI api;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http1AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1AuthAPI(gatewayHost, gatewayPort);
@@ -43,7 +46,7 @@ public class Http1AuthServiceHandler extends SimpleChannelInboundHandler<HttpObj
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 

@@ -21,6 +21,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import web.rest.api.Http1WebAPI;
 
 /**
@@ -31,6 +33,7 @@ public class Http1WebServiceHandler extends SimpleChannelInboundHandler<HttpObje
 
     private HttpRequest request;
     private final Http1WebAPI api;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http1WebServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1WebAPI(gatewayHost, gatewayPort);
@@ -43,7 +46,7 @@ public class Http1WebServiceHandler extends SimpleChannelInboundHandler<HttpObje
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 

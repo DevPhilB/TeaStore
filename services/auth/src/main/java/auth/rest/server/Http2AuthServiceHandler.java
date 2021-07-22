@@ -25,6 +25,8 @@ import io.netty.handler.codec.http2.Http2FrameStream;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import auth.rest.api.Http2AuthAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.rest.api.Http2Response;
 
 /**
@@ -36,6 +38,7 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body;
     private final Http2AuthAPI api;
+    private static final Logger LOG = LogManager.getLogger();
 
     public Http2AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2AuthAPI(gatewayHost, gatewayPort);
@@ -50,8 +53,7 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
-        super.exceptionCaught(context, cause);
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 

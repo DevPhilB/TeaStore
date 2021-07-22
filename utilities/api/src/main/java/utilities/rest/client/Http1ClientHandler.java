@@ -38,8 +38,7 @@ public class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> 
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        LOG.error(cause.getMessage());
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 
