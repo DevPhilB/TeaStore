@@ -33,8 +33,8 @@ public record Http2Response (
 
     public static Http2Headers okJsonHeader(int contentLength) {
         return new DefaultHttp2Headers().status(OK.codeAsText())
-                .add(HttpHeaderNames.CONTENT_TYPE, "application/json")
-                .add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(contentLength));
+                .set(HttpHeaderNames.CONTENT_TYPE, "application/json")
+                .set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(contentLength));
     }
 
 }

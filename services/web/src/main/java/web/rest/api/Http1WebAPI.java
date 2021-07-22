@@ -51,29 +51,30 @@ public class Http1WebAPI implements API {
     private final HttpRequest request;
 
     public Http1WebAPI(String gatewayHost, Integer gatewayPort) {
-        this.mapper = new ObjectMapper();
+        mapper = new ObjectMapper();
         if(gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
-            this.authPort = API.DEFAULT_AUTH_PORT;
-            this.imagePort = API.DEFAULT_IMAGE_PORT;
-            this.persistencePort = API.DEFAULT_PERSISTENCE_PORT;
-            this.recommenderPort = API.DEFAULT_RECOMMENDER_PORT;
+            authPort = API.DEFAULT_AUTH_PORT;
+            imagePort = API.DEFAULT_IMAGE_PORT;
+            persistencePort = API.DEFAULT_PERSISTENCE_PORT;
+            recommenderPort = API.DEFAULT_RECOMMENDER_PORT;
         } else {
             this.gatewayHost = gatewayHost;
-            this.imagePort = gatewayPort;
-            this.authPort = gatewayPort;
-            this.persistencePort = gatewayPort;
-            this.recommenderPort = gatewayPort;
+            imagePort = gatewayPort;
+            authPort = gatewayPort;
+            persistencePort = gatewayPort;
+            recommenderPort = gatewayPort;
         }
-        this.request = new DefaultFullHttpRequest(
+        request = new DefaultFullHttpRequest(
                 HTTP_1_1,
                 GET,
                 "",
                 Unpooled.EMPTY_BUFFER
         );
-        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+        request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+        request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        request.headers().set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+        request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {

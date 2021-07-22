@@ -51,24 +51,25 @@ public class Http1AuthAPI implements API {
     private final HttpRequest request;
 
     public Http1AuthAPI(String gatewayHost, Integer gatewayPort) {
-        this.mapper = new ObjectMapper();
+        mapper = new ObjectMapper();
         if(gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
-            this.persistencePort = DEFAULT_PERSISTENCE_PORT;
+            persistencePort = DEFAULT_PERSISTENCE_PORT;
         } else {
             this.gatewayHost = gatewayHost;
-            this.persistencePort = gatewayPort;
+            persistencePort = gatewayPort;
         }
         // HTTP/1.1
-        this.request = new DefaultFullHttpRequest(
+        request = new DefaultFullHttpRequest(
                 HTTP_1_1,
                 GET,
                 "",
                 Unpooled.EMPTY_BUFFER
         );
-        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+        request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+        request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        request.headers().set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+        request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
     public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {

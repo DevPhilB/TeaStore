@@ -49,7 +49,7 @@ public class HttpWebServer {
 
     public HttpWebServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;
-        this.scheme = httpVersion.equals("HTTP/1.1") ? "http://" : "https://";
+        scheme = httpVersion.equals("HTTP/1.1") ? "http://" : "https://";
         this.gatewayHost = gatewayHost;
         this.gatewayPort = gatewayPort;
     }

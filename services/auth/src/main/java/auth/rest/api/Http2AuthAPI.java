@@ -62,9 +62,10 @@ public class Http2AuthAPI implements API {
             this.persistencePort = gatewayPort;
         }
         http2Header = new DefaultHttp2Headers().scheme(HTTPS);
-        http2Header.add(HttpHeaderNames.HOST, this.gatewayHost);
-        http2Header.add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        http2Header.add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+        http2Header.set(HttpHeaderNames.HOST, this.gatewayHost);
+        http2Header.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+        http2Header.set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+        http2Header.set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
     public Http2Response handle(Http2Headers headers, ByteBuf body) {

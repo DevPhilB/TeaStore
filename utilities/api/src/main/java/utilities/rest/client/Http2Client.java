@@ -75,6 +75,7 @@ public class Http2Client {
 
             final Http2FrameCodec http2FrameCodec = Http2FrameCodecBuilder.forClient()
                     .initialSettings(Http2Settings.defaultSettings())
+                    .frameLogger(new Http2FrameLogger(LogLevel.INFO))
                     .build();
 
             Bootstrap bootstrap = new Bootstrap()
@@ -88,6 +89,7 @@ public class Http2Client {
                     channel.pipeline().addFirst(sslCtx.newHandler(channel.alloc()));
                     channel.pipeline().addLast(http2FrameCodec);
                     channel.pipeline().addLast(handler);
+                    channel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                 }
             });
 

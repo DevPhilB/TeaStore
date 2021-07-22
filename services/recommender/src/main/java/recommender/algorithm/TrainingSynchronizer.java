@@ -117,12 +117,14 @@ public final class TrainingSynchronizer {
 		);
 		request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
 		request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+		request.headers().set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
 		request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
 		// HTTP/2
 		http2Header = new DefaultHttp2Headers().scheme(HTTPS);
-		http2Header.add(HttpHeaderNames.HOST, this.gatewayHost);
-		http2Header.add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-		http2Header.add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+		http2Header.set(HttpHeaderNames.HOST, this.gatewayHost);
+		http2Header.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+		http2Header.set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+		http2Header.set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
 	}
 
 	/**
