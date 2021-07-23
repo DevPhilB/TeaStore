@@ -89,10 +89,10 @@ public class Http2Client {
             streamChannel.pipeline().addLast(handler);
             // Send HTTP/2 request
             if (body != null) {
-                streamChannel.write(header);
-                streamChannel.writeAndFlush(body);
+                streamChannel.write(header.stream(streamChannel.stream()));
+                streamChannel.writeAndFlush(body.stream(streamChannel.stream()));
             } else {
-                streamChannel.writeAndFlush(header);
+                streamChannel.writeAndFlush(header.stream(streamChannel.stream()));
             }
             // Wait until the channel is closed
             channel.closeFuture().syncUninterruptibly();

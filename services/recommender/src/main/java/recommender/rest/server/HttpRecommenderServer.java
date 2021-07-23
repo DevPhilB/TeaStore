@@ -83,7 +83,6 @@ public class HttpRecommenderServer {
             status += "recommender:" + gatewayPort + RECOMMENDER_ENDPOINT;
         }
         LOG.info(status);
-
         channel.closeFuture().sync();
     }
 
@@ -142,12 +141,10 @@ public class HttpRecommenderServer {
                             .handler(new LoggingHandler(LogLevel.INFO))
                             .childHandler(new ChannelInitializer<SocketChannel>() {
                                 @Override
-                                protected void initChannel(SocketChannel ch) throws Exception {
-                                    // Configure new handlers for the channel pipeline of new channels
-                                    ChannelPipeline pipeline = ch.pipeline();
-                                    pipeline.addLast(sslCtx.newHandler(ch.alloc()));
-                                    pipeline.addLast(Http2FrameCodecBuilder.forServer().build());
-                                    pipeline.addLast(new Http2RecommenderServiceHandler(gatewayHost, gatewayPort));
+                                protected void initChannel(SocketChannel channel) {
+                                    channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
+                                    channel.pipeline().addLast(Http2FrameCodecBuilder.forServer().build());
+                                    channel.pipeline().addLast(new Http2RecommenderServiceHandler(gatewayHost, gatewayPort));
                                 }
                             });
                     bindAndSync(bootstrap);

@@ -44,8 +44,7 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
         api = new Http2PersistenceAPI(gatewayHost, gatewayPort);
     }
 
-    private void handleRequest(ChannelHandlerContext context,
-                               Http2FrameStream stream) {
+    private void handleRequest(ChannelHandlerContext context, Http2FrameStream stream) {
         // Handle request and response
         Http2Response response = api.handle(headers, body);
         sendResponse(context, stream, response);
@@ -99,9 +98,11 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
             Http2Response response
     ) {
         // Send response frames
-        context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
-        context.write(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
-        // Flush
-        context.flush();
+        if(response.body() == null) {
+            context.writeAndFlush(new DefaultHttp2HeadersFrame(response.headers(), true).stream(stream));
+        } else {
+            context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
+            context.writeAndFlush(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
+        }
     }
 }

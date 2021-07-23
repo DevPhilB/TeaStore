@@ -46,8 +46,7 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
         api = new Http2WebAPI(gatewayHost, gatewayPort);
     }
 
-    private void handleRequest(ChannelHandlerContext context,
-                               Http2FrameStream stream) {
+    private void handleRequest(ChannelHandlerContext context, Http2FrameStream stream) {
         // Handle request and response
         Http2Response response = api.handle(headers, body);
         sendResponse(context, stream, response);
@@ -102,12 +101,10 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
     ) {
         // Send response frames
         if(response.body() == null) {
-            context.write(new DefaultHttp2HeadersFrame(response.headers(), true).stream(stream));
+            context.writeAndFlush(new DefaultHttp2HeadersFrame(response.headers(), true).stream(stream));
         } else {
             context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
-            context.write(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
+            context.writeAndFlush(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
         }
-        // Close connection
-        context.close();
     }
 }
