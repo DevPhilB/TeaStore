@@ -74,7 +74,11 @@ public final class RecommenderSelector implements IRecommender {
 			String recommendername = (String) new InitialContext().lookup("java:comp/env/recommenderAlgorithm");
 			// if a specific algorithm is set, we can use that algorithm
 			if (recommenders.containsKey(recommendername)) {
-				recommender = recommenders.get(recommendername).newInstance();
+				try {
+					recommender = recommenders.get(recommendername).getDeclaredConstructor().newInstance();
+				} catch (Exception e) {
+					LOG.error(e.getMessage());
+				}
 			} else {
 				LOG.warn("Recommendername: " + recommendername
 						+ " was not found. Using default recommender (SlopeOneRecommeder).");

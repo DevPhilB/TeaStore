@@ -70,14 +70,14 @@ public class HttpImageServer {
 
     private void bindAndSync(ServerBootstrap bootstrap) throws InterruptedException {
         Channel channel;
-        String status = httpVersion + " web service is available on " +
+        String status = httpVersion + " image service is available on " +
                 (httpVersion.equals("HTTP/1.1") ? "http://" : "https://");
         if (gatewayHost.isEmpty()) {
             channel = bootstrap.bind(DEFAULT_IMAGE_PORT).sync().channel();
             status += "localhost:" + DEFAULT_IMAGE_PORT + IMAGE_ENDPOINT;
         } else {
             channel = bootstrap.bind(gatewayPort).sync().channel();
-            status += "web:" + gatewayPort + IMAGE_ENDPOINT;
+            status += "image:" + gatewayPort + IMAGE_ENDPOINT;
         }
         LOG.info(status);
         channel.closeFuture().sync();

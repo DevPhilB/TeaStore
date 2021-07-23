@@ -87,6 +87,7 @@ public class Http2Client {
             Http2StreamChannel streamChannel = streamChannelBootstrap.open().syncUninterruptibly().getNow();
             handler.setCloseableChannel(channel.closeFuture().channel());
             streamChannel.pipeline().addLast(handler);
+            streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
             // Send HTTP/2 request
             if (body != null) {
                 streamChannel.write(header.stream(streamChannel.stream()));

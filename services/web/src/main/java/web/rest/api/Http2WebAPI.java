@@ -25,8 +25,6 @@ import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
 import utilities.rest.api.Http2Response;
-import utilities.rest.client.Http1Client;
-import utilities.rest.client.Http1ClientHandler;
 import utilities.rest.client.Http2Client;
 import utilities.rest.client.Http2ClientStreamFrameHandler;
 
@@ -34,7 +32,6 @@ import java.io.IOException;
 import java.util.*;
 
 import static io.netty.handler.codec.http.HttpMethod.*;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * API for web service
@@ -212,6 +209,7 @@ public class Http2WebAPI implements API {
                     new TypeReference<Map<String, String>>(){}
             );
         }
+        http2Header.remove(HttpHeaderNames.CONTENT_LENGTH);
         return imageWebDataMap;
     }
 
@@ -236,6 +234,7 @@ public class Http2WebAPI implements API {
                     new TypeReference<Map<Long, String>>(){}
             );
         }
+        http2Header.remove(HttpHeaderNames.CONTENT_LENGTH);
         return imageProductDataMap;
     }
 
@@ -460,6 +459,7 @@ public class Http2WebAPI implements API {
             httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, http2DataFrame);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
+            http2Header.remove(HttpHeaderNames.CONTENT_LENGTH);
             if (!frameHandler.jsonContent.isEmpty()) {
                 SessionData newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
                 Http2Response response = profileView(newSessionData);
@@ -563,6 +563,7 @@ public class Http2WebAPI implements API {
                             new TypeReference<List<Long>>(){}
                     );
                 }
+                http2Header.remove(HttpHeaderNames.CONTENT_LENGTH);
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
