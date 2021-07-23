@@ -27,7 +27,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
+import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2HeadersFrame;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -64,6 +66,7 @@ public final class TrainingSynchronizer {
 	private Http2Client http2Client;
 	private Http2ClientStreamFrameHandler http2FrameHandler;
 	private Http2Headers http2Header;
+	private Http2HeadersFrame http2HeadersFrame;
 
 	/**
 	 * This value signals that the maximum training time is not known.
@@ -233,7 +236,8 @@ public final class TrainingSynchronizer {
 			case "HTTP/2":
 				try {
 					http2Header.method(GET.asciiName()).path(persistenceEndpointOrderItems);
-					http2Client = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+					http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
+					http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
 					http2FrameHandler = new Http2ClientStreamFrameHandler();
 					http2Client.sendRequest(http2FrameHandler);
 					if (!http2FrameHandler.jsonContent.isEmpty()) {
@@ -252,7 +256,8 @@ public final class TrainingSynchronizer {
 				}
 				try {
 					http2Header.method(GET.asciiName()).path(persistenceEndpointOrders);
-					http2Client = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+					http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
+					http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
 					http2FrameHandler = new Http2ClientStreamFrameHandler();
 					http2Client.sendRequest(http2FrameHandler);
 					if (!http2FrameHandler.jsonContent.isEmpty()) {

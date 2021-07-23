@@ -50,6 +50,7 @@ public class Http2AuthAPI implements API {
     private final String gatewayHost;
     private final Integer persistencePort;
     private Http2Headers http2Header;
+    private Http2HeadersFrame http2HeadersFrame;
     private Http2DataFrame http2DataFrame;
 
     public Http2AuthAPI(String gatewayHost, Integer gatewayPort) {
@@ -154,8 +155,9 @@ public class Http2AuthAPI implements API {
         String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
         try {
             http2Header.method(GET.asciiName()).path(persistenceEndpointProduct);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -336,9 +338,10 @@ public class Http2AuthAPI implements API {
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
             http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
             http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderBody.readableBytes()));
-            http2DataFrame = new DefaultHttp2DataFrame(postOrderBody);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+            http2DataFrame = new DefaultHttp2DataFrame(postOrderBody, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, http2DataFrame);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -353,12 +356,12 @@ public class Http2AuthAPI implements API {
                     );
                     String orderItemJson = mapper.writeValueAsString(orderItem);
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
-                    http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody);
                     http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
                     http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderItemBody.readableBytes()));
-                    http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+                    http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, http2DataFrame);
+                    httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
                     frameHandler= new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (frameHandler.jsonContent.isEmpty()) {
@@ -414,8 +417,9 @@ public class Http2AuthAPI implements API {
         String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
         try {
             http2Header.method(GET.asciiName()).path(persistenceEndpointUser);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {

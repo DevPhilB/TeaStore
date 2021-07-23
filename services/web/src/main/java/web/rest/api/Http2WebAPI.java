@@ -52,6 +52,7 @@ public class Http2WebAPI implements API {
     private final Integer persistencePort;
     private final Integer recommenderPort;
     private Http2Headers http2Header;
+    private Http2HeadersFrame http2HeadersFrame;
     private Http2DataFrame http2DataFrame;
 
     public Http2WebAPI(String gatewayHost, Integer gatewayPort) {
@@ -199,9 +200,10 @@ public class Http2WebAPI implements API {
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http2Header.method(POST.asciiName()).path(imageEndpoint);
         http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postBody.readableBytes()));
-        http2DataFrame = new DefaultHttp2DataFrame(postBody);
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+        http2DataFrame = new DefaultHttp2DataFrame(postBody, true);
         // Create client and send request
-        httpClient = new Http2Client(gatewayHost, imagePort, http2Header, http2DataFrame);
+        httpClient = new Http2Client(gatewayHost, imagePort, http2HeadersFrame, http2DataFrame);
         frameHandler = new Http2ClientStreamFrameHandler();
         httpClient.sendRequest(frameHandler);
         if (!frameHandler.jsonContent.isEmpty()) {
@@ -222,9 +224,10 @@ public class Http2WebAPI implements API {
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http2Header.method(POST.asciiName()).path(imageEndpoint);
         http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postBody.readableBytes()));
-        http2DataFrame = new DefaultHttp2DataFrame(postBody);
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+        http2DataFrame = new DefaultHttp2DataFrame(postBody, true);
         // Create client and send request
-        httpClient = new Http2Client(gatewayHost, imagePort, http2Header, http2DataFrame);
+        httpClient = new Http2Client(gatewayHost, imagePort, http2HeadersFrame, http2DataFrame);
         frameHandler = new Http2ClientStreamFrameHandler();
         httpClient.sendRequest(frameHandler);
         if (!frameHandler.jsonContent.isEmpty()) {
@@ -239,8 +242,9 @@ public class Http2WebAPI implements API {
     private List<Category> getCategories(String persistenceEndpointCategories) throws IOException {
         List<Category> categories = new ArrayList<>();
         http2Header.method(GET.asciiName()).path(persistenceEndpointCategories);
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
         // Create client and send request
-        httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+        httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
         frameHandler = new Http2ClientStreamFrameHandler();
         httpClient.sendRequest(frameHandler);
         if (!frameHandler.jsonContent.isEmpty()) {
@@ -256,8 +260,9 @@ public class Http2WebAPI implements API {
         SessionData newSessionData = null;
         http2Header.method(GET.asciiName()).path(authEndpoint);
         http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
         // Create client and send request
-        httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+        httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
         frameHandler = new Http2ClientStreamFrameHandler();
         httpClient.sendRequest(frameHandler);
         if (!frameHandler.jsonContent.isEmpty()) {
@@ -318,8 +323,9 @@ public class Http2WebAPI implements API {
             );
             http2Header.method(GET.asciiName()).path(authEndpoint);
             http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             String json = mapper.writeValueAsString(view);
@@ -368,8 +374,9 @@ public class Http2WebAPI implements API {
             switch (name) {
                 case "addtocart":
                     http2Header.method(POST.asciiName()).path(authEndpointAdd);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -381,8 +388,9 @@ public class Http2WebAPI implements API {
                     }
                 case "removeproduct":
                     http2Header.method(POST.asciiName()).path(authEndpointRemove);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -394,8 +402,9 @@ public class Http2WebAPI implements API {
                     }
                 case "updatecartquantities":
                     http2Header.method(PUT.asciiName()).path(authEndpointUpdate);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -407,8 +416,9 @@ public class Http2WebAPI implements API {
                     }
                 case "proceedtocheckout":
                     http2Header.method(GET.asciiName()).path(authEndpointCheck);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -444,9 +454,10 @@ public class Http2WebAPI implements API {
             http2Header.method(POST.asciiName()).path(authEndpointPlaceOrder);
             http2Header.setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(body.readableBytes()));
-            http2DataFrame = new DefaultHttp2DataFrame(body);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+            http2DataFrame = new DefaultHttp2DataFrame(body, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, authPort, http2Header, http2DataFrame);
+            httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, http2DataFrame);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -499,8 +510,9 @@ public class Http2WebAPI implements API {
             HashMap<Long, Product> products = new HashMap<>();
             for (Long id : ids) {
                 http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + id);
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
@@ -539,9 +551,10 @@ public class Http2WebAPI implements API {
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http2Header.method(POST.asciiName()).path(recommenderEndpoint + "?userid=" + sessionData.userId());
                 http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderItemsBody.readableBytes()));
-                http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody);
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+                http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, recommenderPort, http2Header, http2DataFrame);
+                httpClient = new Http2Client(gatewayHost, recommenderPort, http2HeadersFrame, http2DataFrame);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
@@ -559,8 +572,9 @@ public class Http2WebAPI implements API {
                 productImageSizeMap.put(productId, imageProductPreviewSize);
                 //
                 http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + productId);
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
@@ -653,8 +667,9 @@ public class Http2WebAPI implements API {
             // Get number of all products
             int products = 0;
             http2Header.method(GET.asciiName()).path(persistenceEndpointProducts);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -673,8 +688,9 @@ public class Http2WebAPI implements API {
                     (page - 1) * productQuantity + "&max=" + productQuantity;
             List<Product> productList = new ArrayList<>();
             http2Header.method(GET.asciiName()).path(persistenceEndpointCategoryProducts);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -754,8 +770,9 @@ public class Http2WebAPI implements API {
                 "&users=" + users + "&orders=" + orders;
         try {
             http2Header.method(GET.asciiName()).path(persistenceEndpoint);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -934,8 +951,9 @@ public class Http2WebAPI implements API {
                 case "login":
                     authEndpointLogin += username + "&password=" + password;
                     http2Header.path(authEndpointLogin);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                    httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -944,8 +962,9 @@ public class Http2WebAPI implements API {
                     return profileView(newSessionData);
                 case "logout":
                     http2Header.path(authEndpointLogout);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, authPort, http2Header, null);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -1107,8 +1126,9 @@ public class Http2WebAPI implements API {
             // Get product
             Product product = null;
             http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + productId);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
             // Create client and send request
-            httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -1141,9 +1161,10 @@ public class Http2WebAPI implements API {
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http2Header.method(POST.asciiName()).path(recommenderEndpoint + "?userid=" + sessionData.userId());
                 http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderItemsBody.readableBytes()));
-                http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody);
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+                http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, recommenderPort, http2Header, http2DataFrame);
+                httpClient = new Http2Client(gatewayHost, recommenderPort, http2HeadersFrame, http2DataFrame);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
@@ -1161,8 +1182,9 @@ public class Http2WebAPI implements API {
                 productImageSizeMap.put(id, imageProductPreviewSize);
                 //
                 http2Header.method(GET.asciiName()).path(persistenceEndpointProducts + "?id=" + id);
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
@@ -1252,8 +1274,9 @@ public class Http2WebAPI implements API {
                 User user = null;
                 Long userId = newSessionData.userId();
                 http2Header.method(GET.asciiName()).path(persistenceEndpointUsers + userId);
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
@@ -1262,8 +1285,9 @@ public class Http2WebAPI implements API {
                 // Get user orders
                 List<Order> orders = new ArrayList<>();
                 http2Header.method(GET.asciiName()).path(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
                 // Create client and send request
-                httpClient = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+                httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
                 frameHandler = new Http2ClientStreamFrameHandler();
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {

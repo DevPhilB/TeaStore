@@ -27,17 +27,37 @@ import org.apache.logging.log4j.Logger;
  */
 public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<Http2StreamFrame> {
 
+    private Channel channel;
     public String jsonContent = "";
     private static final Logger LOG = LogManager.getLogger();
+
+    public void setCloseableChannel(Channel channel) {
+        this.channel = channel;
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext context) {
+        context.flush();
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
+        context.close();
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, Http2StreamFrame message) {
         LOG.info("Received HTTP/2 'stream' frame: " + message);
-        if (message instanceof Http2DataFrame dataFrame && dataFrame.isEndStream()) {
+        if (message instanceof Http2DataFrame dataFrame) {
             LOG.info("Received HTTP/2 data frame: " + dataFrame);
             jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
+            if (dataFrame.isEndStream()) {
+                LOG.info("Received end data frame: " + dataFrame);
+                channel.close();
+            }
         } else if (message instanceof Http2HeadersFrame headersFrame && headersFrame.isEndStream()) {
-            LOG.info("Received HTTP/2 header frame: " + headersFrame);
+            LOG.info("Received end header frame: " + headersFrame);
         }
     }
 }

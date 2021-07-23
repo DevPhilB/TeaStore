@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,7 +41,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
+import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2HeadersFrame;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -126,6 +129,7 @@ public enum SetupController {
   private Http2Client http2Client;
   private Http2ClientStreamFrameHandler http2FrameHandler;
   private Http2Headers http2Header;
+  private Http2HeadersFrame http2HeadersFrame;
 
 
   private StorageRule storageRule = StorageRule.STD_STORAGE_RULE;
@@ -182,7 +186,7 @@ public enum SetupController {
     http2Header = new DefaultHttp2Headers().scheme(HTTPS);
     http2Header.set(HttpHeaderNames.HOST, this.gatewayHost);
     http2Header.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-    http2Header.set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+    http2Header.set(HttpHeaderNames.ACCEPT, "*/*");
     http2Header.set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
   }
 
@@ -211,7 +215,8 @@ public enum SetupController {
         break;
       case "HTTP/2":
         http2Header.method(GET.asciiName()).path(persistenceEndpointProducts);
-        http2Client = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
+        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
         http2FrameHandler = new Http2ClientStreamFrameHandler();
         try {
           http2Client.sendRequest(http2FrameHandler);
@@ -268,8 +273,9 @@ public enum SetupController {
         break;
       case "HTTP/2":
         http2Header.method(GET.asciiName()).path(persistenceEndpointCategories);
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
         // Create client and send request
-        http2Client = new Http2Client(gatewayHost, persistencePort, http2Header, null);
+        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
         http2FrameHandler = new Http2ClientStreamFrameHandler();
         try {
           http2Client.sendRequest(http2FrameHandler);

@@ -101,7 +101,7 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
         // Send response frames
         context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
         context.write(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
-        // Close connection
-        context.close();
+        // Flush
+        context.flush();
     }
 }
