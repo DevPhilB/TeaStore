@@ -33,7 +33,7 @@ public class Http1WebServiceHandler extends SimpleChannelInboundHandler<HttpObje
 
     private HttpRequest request;
     private final Http1WebAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1WebServiceHandler.class);
 
     public Http1WebServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1WebAPI(gatewayHost, gatewayPort);

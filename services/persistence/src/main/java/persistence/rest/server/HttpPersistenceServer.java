@@ -31,8 +31,6 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-import java.util.ServiceLoader;
-
 import static utilities.rest.api.API.DEFAULT_PERSISTENCE_PORT;
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
@@ -45,7 +43,7 @@ public class HttpPersistenceServer {
     private final String httpVersion;
     private final String gatewayHost;
     private final Integer gatewayPort;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(HttpPersistenceServer.class);
 
     public HttpPersistenceServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;

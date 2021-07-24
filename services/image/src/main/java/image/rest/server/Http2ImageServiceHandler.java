@@ -38,7 +38,7 @@ public class Http2ImageServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body = Unpooled.EMPTY_BUFFER;
     private final Http2ImageAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2ImageServiceHandler.class);
 
     public Http2ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2ImageAPI(gatewayHost, gatewayPort);

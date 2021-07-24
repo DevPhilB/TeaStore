@@ -42,7 +42,7 @@ public class HttpAuthServer {
     private final String httpVersion;
     private final String gatewayHost;
     private final Integer gatewayPort;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(HttpAuthServer.class);
 
     public HttpAuthServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;

@@ -5,10 +5,10 @@ services:
     # The official v2 Traefik docker image
     image: traefik:v2.5
     # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker --entryPoints.http.address=:80
+    command: --api.insecure=true --providers.docker --entryPoints.https.address=:443
     ports:
-      # The HTTP port
-      - "80:80"
+      # The HTTPS port
+      - "443:443"
       # The Web UI (enabled by --api.insecure=true)
       - "8080:8080"
     volumes:
@@ -25,70 +25,80 @@ services:
     depends_on:
       - db
     expose:
-      - "80"
+      - "443"
     environment:
-      VERSION: "HTTP/1.1"
+      VERSION: "HTTP/2"
       HOST_NAME: "persistence"
       GATEWAY_HOST: "gateway"
       DB_HOST: "db"
       DB_PORT: "3306"
     labels:
       - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.persistence.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.persistence.tls=true"
+      - "traefik.protocol=https"
   auth:
     build: services/auth
     depends_on:
       - persistence
     expose:
-      - "80"
+      - "443"
     environment:
-      VERSION: "HTTP/1.1"
+      VERSION: "HTTP/2"
       HOST_NAME: "auth"
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.auth.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.auth.tls=true"
+      - "traefik.protocol=https"
   web:
     build: services/web
     depends_on:
       - auth
     expose:
-      - "80"
+      - "443"
     environment:
-      VERSION: "HTTP/1.1"
+      VERSION: "HTTP/2"
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.web.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.web.tls=true"
+      - "traefik.protocol=https"
   image:
     build: services/image
     depends_on:
       - persistence
     expose:
-      - "80"
+      - "443"
     environment:
-      VERSION: "HTTP/1.1"
+      VERSION: "HTTP/2"
       HOST_NAME: "image"
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.image.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.image.tls=true"
+      - "traefik.protocol=https"
   recommender:
     build: services/recommender
     depends_on:
       - persistence
     expose:
-      - "80"
+      - "443"
     environment:
-      VERSION: "HTTP/1.1"
+      VERSION: "HTTP/2"
       HOST_NAME: "recommender"
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.recommender.entrypoints=https"
+      - "traefik.port=443"
+      - "traefik.http.recommender.tls=true"
+      - "traefik.protocol=https"

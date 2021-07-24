@@ -29,7 +29,7 @@ import org.apache.logging.log4j.Logger;
 public class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     public String jsonContent = "";
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1ClientHandler.class);
 
     @Override
     public void channelReadComplete(ChannelHandlerContext channelHandlerContext) {

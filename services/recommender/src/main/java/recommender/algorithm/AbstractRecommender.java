@@ -44,7 +44,7 @@ public abstract class AbstractRecommender implements IRecommender {
 	 */
 	public static final int MAX_NUMBER_OF_RECOMMENDATIONS = 10;
 
-	private static final Logger LOG = LogManager.getLogger();
+	private static final Logger LOG = LogManager.getLogger(AbstractRecommender.class);
 
 	/**
 	 * This represents the matrix assigning each user a frequency for each product

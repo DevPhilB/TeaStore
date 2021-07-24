@@ -33,7 +33,7 @@ public class Http1RecommenderServiceHandler extends SimpleChannelInboundHandler<
 
     private HttpRequest request;
     private final Http1RecommenderAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1RecommenderServiceHandler.class);
 
     public Http1RecommenderServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1RecommenderAPI(gatewayHost, gatewayPort);

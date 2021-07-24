@@ -38,7 +38,7 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body;
     private final Http2AuthAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2AuthServiceHandler.class);
 
     public Http2AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2AuthAPI(gatewayHost, gatewayPort);

@@ -29,7 +29,7 @@ public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<H
 
     private Channel channel;
     public String jsonContent = "";
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2ClientStreamFrameHandler.class);
 
     public void setCloseableChannel(Channel channel) {
         this.channel = channel;

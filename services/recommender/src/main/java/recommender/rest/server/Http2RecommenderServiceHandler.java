@@ -38,7 +38,7 @@ public class Http2RecommenderServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body;
     private final Http2RecommenderAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2RecommenderServiceHandler.class);
 
     public Http2RecommenderServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2RecommenderAPI(gatewayHost, gatewayPort);

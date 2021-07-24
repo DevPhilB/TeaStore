@@ -38,7 +38,7 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body;
     private final Http2PersistenceAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2PersistenceServiceHandler.class);
 
     public Http2PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2PersistenceAPI(gatewayHost, gatewayPort);

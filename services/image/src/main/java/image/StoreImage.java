@@ -22,7 +22,6 @@ import java.util.Base64;
 
 import javax.imageio.ImageIO;
 
-import image.cache.entry.AbstractEntry;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -57,7 +56,7 @@ public class StoreImage implements ICachable<StoreImage> {
   private final long id;
   private byte[] data;
   private ImageSize size;
-  private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger(StoreImage.class);
 
   /**
    * Creates a new store image with a given id and size. The image is converted

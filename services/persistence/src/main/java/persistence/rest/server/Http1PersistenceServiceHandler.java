@@ -33,7 +33,7 @@ public class Http1PersistenceServiceHandler extends SimpleChannelInboundHandler<
 
     private HttpRequest request;
     private final Http1PersistenceAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1PersistenceServiceHandler.class);
 
     public Http1PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1PersistenceAPI(gatewayHost, gatewayPort);

@@ -1,8 +1,13 @@
 FROM openjdk:17-jdk
 
 WORKDIR /service
+
+# copy shell script
+COPY start.sh /service/start.sh
+RUN chmod +x /service/start.sh
+
 # copy the packaged jar file into our docker image
 COPY target/auth.jar /service/auth.jar
 
-# set the startup command to execute the jar
-CMD ["java", "-jar", "/service/auth.jar", "HTTP/1.1", "http://", "gateway", "80"]
+# run the shell script
+CMD ["/service/start.sh"]

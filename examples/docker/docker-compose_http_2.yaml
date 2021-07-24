@@ -1,4 +1,4 @@
-version: '3'
+version: '3.9'
 
 services:
   gateway:
@@ -27,6 +27,7 @@ services:
     expose:
       - "443"
     environment:
+      VERSION: "HTTP/2"
       HOST_NAME: "persistence"
       GATEWAY_HOST: "gateway"
       DB_HOST: "db"
@@ -44,6 +45,7 @@ services:
     expose:
       - "443"
     environment:
+      VERSION: "HTTP/2"
       HOST_NAME: "auth"
       GATEWAY_HOST: "gateway"
     labels:
@@ -59,6 +61,7 @@ services:
     expose:
       - "443"
     environment:
+      VERSION: "HTTP/2"
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
@@ -74,6 +77,7 @@ services:
     expose:
       - "443"
     environment:
+      VERSION: "HTTP/2"
       HOST_NAME: "image"
       GATEWAY_HOST: "gateway"
     labels:
@@ -89,6 +93,7 @@ services:
     expose:
       - "443"
     environment:
+      VERSION: "HTTP/2"
       HOST_NAME: "recommender"
       GATEWAY_HOST: "gateway"
     labels:

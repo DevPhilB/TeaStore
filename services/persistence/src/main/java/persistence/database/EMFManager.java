@@ -31,7 +31,7 @@ final class EMFManager {
 	private static EntityManagerFactory emf = null; 
 	private static HashMap<String, String> persistenceProperties = null;
 
-	private static final Logger LOG = LogManager.getLogger();
+	private static final Logger LOG = LogManager.getLogger(EMFManager.class);
 	
 	private static final String DRIVER_PROPERTY = "jakarta.persistence.jdbc.driver";
 	private static final String IN_MEMORY_DRIVER_VALUE = "org.hsqldb.jdbcDriver";
@@ -91,7 +91,7 @@ final class EMFManager {
 		String url = MYSQL_URL_PREFIX;
 		url += System.getenv("DB_HOST") == null ? MYSQL_DEFAULT_HOST : System.getenv("DB_HOST");
 		url += ":";
-		url += MYSQL_DEFAULT_PORT;
+		url += System.getenv("DB_PORT") == null ? MYSQL_DEFAULT_PORT : System.getenv("DB_PORT");
 		url += MYSQL_URL_POSTFIX;
 		LOG.info("Setting jdbc url to \"" + url + "\".");
 		persistenceProperties.put("jakarta.persistence.jdbc.url", url);

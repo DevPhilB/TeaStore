@@ -14,7 +14,7 @@ import java.util.ArrayList;
 
 public class CookieUtil {
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(CookieUtil.class);
 
     /**
      * Decode cookie to session data

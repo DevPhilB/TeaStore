@@ -33,7 +33,7 @@ public class Http1AuthServiceHandler extends SimpleChannelInboundHandler<HttpObj
 
     private HttpRequest request;
     private final Http1AuthAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1AuthServiceHandler.class);
 
     public Http1AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1AuthAPI(gatewayHost, gatewayPort);

@@ -36,7 +36,7 @@ public class Http2Client {
     private final Integer port;
     private final Http2HeadersFrame header;
     private final Http2DataFrame body;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2Client.class);
 
     public Http2Client(String host, Integer port, Http2HeadersFrame header, Http2DataFrame body) {
         this.host = host;

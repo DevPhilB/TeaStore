@@ -143,7 +143,7 @@ public enum SetupController {
   private ScheduledThreadPoolExecutor imgCreationPool = new ScheduledThreadPoolExecutor(
       SetupControllerConstants.CREATION_THREAD_POOL_SIZE
   );
-  private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger(SetupController.class);
   private AtomicBoolean isFinished = new AtomicBoolean();
 
   private SetupController() {}
@@ -361,7 +361,7 @@ public enum SetupController {
     String path = "categoryimg/black-tea.png";
     File imageFile = null;
     if (!gatewayHost.equals("localhost")) {
-      path = "service/" + path;
+      path = "/service/" + path;
       imageFile = new File(path);
     } else {
       imageFile = new File(getClass().getResource(path).getPath());
@@ -429,7 +429,7 @@ public enum SetupController {
     String path = "existingimg/front.png";
     File imageFile = null;
     if (!gatewayHost.equals("localhost")) {
-      path = "service/" + path;
+      path = "/service/" + path;
       imageFile = new File(path);
     } else {
       imageFile = new File(getClass().getResource(path).getPath());

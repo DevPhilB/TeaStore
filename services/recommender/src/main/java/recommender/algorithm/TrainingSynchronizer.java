@@ -133,7 +133,7 @@ public final class TrainingSynchronizer {
 		return instance;
 	}
 
-	private static final Logger LOG = LogManager.getLogger();
+	private static final Logger LOG = LogManager.getLogger(TrainingSynchronizer.class);
 
 	/**
 	 * The maximum considered time in milliseconds. DEFAULT_MAX_TIME_VALUE signals

@@ -43,7 +43,7 @@ public class HttpImageServer {
     private final String httpVersion;
     private final String gatewayHost;
     private final Integer gatewayPort;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(HttpImageServer.class);
 
     public HttpImageServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;

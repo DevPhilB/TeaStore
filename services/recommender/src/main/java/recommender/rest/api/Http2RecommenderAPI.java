@@ -38,7 +38,7 @@ import java.util.*;
  */
 public class Http2RecommenderAPI implements API {
     private final ObjectMapper mapper;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2RecommenderAPI.class);
 
     public Http2RecommenderAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();

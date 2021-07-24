@@ -6,7 +6,7 @@ info:
 servers:
   - url: "http://localhost:80"
   - url: "https://localhost:443"
-  - url: "https://localhost:50781"
+  - url: "https://localhost:4433"
 paths:
   /api/web/isready:
     get:

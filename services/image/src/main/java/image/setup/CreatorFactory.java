@@ -30,7 +30,7 @@ public class CreatorFactory {
   private ImageDB imgDB;
   private AtomicLong nrOfImagesGenerated;
 
-  private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger(CreatorFactory.class);
 
   /**
    * Standard constructor defining all necessary information to create image generation runnables.

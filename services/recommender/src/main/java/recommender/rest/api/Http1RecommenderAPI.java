@@ -39,7 +39,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  */
 public class Http1RecommenderAPI implements API {
     private final ObjectMapper mapper;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1RecommenderAPI.class);
 
     public Http1RecommenderAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();

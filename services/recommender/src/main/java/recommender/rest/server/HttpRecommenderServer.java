@@ -31,8 +31,6 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import recommender.algorithm.TrainingSynchronizer;
 
-import java.util.ServiceLoader;
-
 import static utilities.rest.api.API.DEFAULT_RECOMMENDER_PORT;
 import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
 
@@ -45,7 +43,7 @@ public class HttpRecommenderServer {
     private final String httpVersion;
     private final String gatewayHost;
     private final Integer gatewayPort;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(HttpRecommenderServer.class);
 
     public HttpRecommenderServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
         this.httpVersion = httpVersion;

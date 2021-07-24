@@ -38,7 +38,7 @@ public class Http2WebServiceHandler extends ChannelDuplexHandler {
     private Http2Headers headers;
     private ByteBuf body;
     private final Http2WebAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http2WebServiceHandler.class);
 
     public Http2WebServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http2WebAPI(gatewayHost, gatewayPort);

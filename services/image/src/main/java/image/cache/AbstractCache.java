@@ -42,7 +42,7 @@ public abstract class AbstractCache<S extends Collection<F>, T extends ICachable
   private long maxCacheSize;
   private long currentCacheSize;
   private Predicate<T> cachingRule;
-  private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger(AbstractCache.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**

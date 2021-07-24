@@ -33,7 +33,7 @@ public class Http1ImageServiceHandler extends SimpleChannelInboundHandler<HttpOb
 
     private HttpRequest request;
     private final Http1ImageAPI api;
-    private static final Logger LOG = LogManager.getLogger();
+    private static final Logger LOG = LogManager.getLogger(Http1ImageServiceHandler.class);
 
     public Http1ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http1ImageAPI(gatewayHost, gatewayPort);
