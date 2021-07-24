@@ -29,8 +29,6 @@ import utilities.rest.api.Http2Response;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.OK;
-
 /**
  * API for image service
  * /api/image

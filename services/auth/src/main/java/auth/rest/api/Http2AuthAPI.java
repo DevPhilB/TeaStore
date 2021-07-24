@@ -33,10 +33,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-import static io.netty.handler.codec.http.HttpMethod.GET;
-import static io.netty.handler.codec.http.HttpMethod.POST;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
-
 /**
  * API for auth service
  * /api/auth
@@ -49,7 +45,6 @@ public class Http2AuthAPI implements API {
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer persistencePort;
-    private Http2Headers http2Header;
     private Http2HeadersFrame http2HeadersFrame;
     private Http2DataFrame http2DataFrame;
 
@@ -62,11 +57,6 @@ public class Http2AuthAPI implements API {
             this.gatewayHost = gatewayHost;
             this.persistencePort = gatewayPort;
         }
-        http2Header = new DefaultHttp2Headers().scheme(HTTPS);
-        http2Header.set(HttpHeaderNames.HOST, this.gatewayHost);
-        http2Header.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        http2Header.set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
-        http2Header.set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
     public Http2Response handle(Http2Headers headers, ByteBuf body) {
@@ -154,8 +144,13 @@ public class Http2AuthAPI implements API {
         // GET api/persistence/products?id=productId
         String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
         try {
-            http2Header.method(GET.asciiName()).path(persistenceEndpointProduct);
-            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                    Http2Response.getHeader(
+                            gatewayHost,
+                            persistenceEndpointProduct
+                    ),
+                    true
+            );
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
@@ -313,7 +308,7 @@ public class Http2AuthAPI implements API {
         // POST api/persistence/orderitems
         String persistenceEndpointCreateOrderItem = PERSISTENCE_ENDPOINT + "/orderitems";
         if (new ShaSecurityProvider().validate(sessionData) == null || sessionData.orderItems().isEmpty()) {
-            return new Http2Response(http2Header.status(NOT_FOUND.codeAsText()), null);
+            return Http2Response.notFoundResponse();
         }
         try {
             long totalPrice = 0;
@@ -336,9 +331,14 @@ public class Http2AuthAPI implements API {
             Long orderId = null;
             String orderJson = mapper.writeValueAsString(newOrder);
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
-            http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
-            http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderBody.readableBytes()));
-            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                    Http2Response.postContentHeader(
+                            gatewayHost,
+                            persistenceEndpointCreateOrder,
+                            String.valueOf(postOrderBody.readableBytes())
+                    ),
+                    false
+            );
             http2DataFrame = new DefaultHttp2DataFrame(postOrderBody, true);
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
@@ -356,9 +356,14 @@ public class Http2AuthAPI implements API {
                     );
                     String orderItemJson = mapper.writeValueAsString(orderItem);
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
-                    http2Header.method(POST.asciiName()).path(persistenceEndpointCreateOrder);
-                    http2Header.set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(postOrderItemBody.readableBytes()));
-                    http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, false);
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.postContentHeader(
+                                    gatewayHost,
+                                    persistenceEndpointCreateOrderItem,
+                                    String.valueOf(postOrderItemBody.readableBytes())
+                            ),
+                            false
+                    );
                     http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody, true);
                     // Create client and send request
                     httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
@@ -416,8 +421,13 @@ public class Http2AuthAPI implements API {
         // GET api/persistence/users/name?name=name
         String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
         try {
-            http2Header.method(GET.asciiName()).path(persistenceEndpointUser);
-            http2HeadersFrame = new DefaultHttp2HeadersFrame(http2Header, true);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                    Http2Response.getHeader(
+                            gatewayHost,
+                            persistenceEndpointUser
+                    ),
+                    true
+            );
             // Create client and send request
             httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
             frameHandler = new Http2ClientStreamFrameHandler();
@@ -425,7 +435,7 @@ public class Http2AuthAPI implements API {
             if (!frameHandler.jsonContent.isEmpty()) {
                 user = mapper.readValue(frameHandler.jsonContent, User.class);
                 if(user == null) {
-                    return new Http2Response(http2Header.status(NOT_FOUND.codeAsText()), null);
+                    return Http2Response.notFoundResponse();
                 } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
                             user.id(),

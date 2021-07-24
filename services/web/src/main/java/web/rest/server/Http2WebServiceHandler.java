@@ -29,8 +29,6 @@ import org.apache.logging.log4j.Logger;
 import utilities.rest.api.Http2Response;
 import web.rest.api.Http2WebAPI;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
-
 /**
  * HTTP/2 server handler for web service
  * @author Philipp Backes

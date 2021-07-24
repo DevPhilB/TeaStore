@@ -49,12 +49,6 @@ class PersistenceAPITest {
     }
 
     @Test
-    void testTest() {
-        assertEquals(HttpResponseStatus.NOT_FOUND, HttpResponseStatus.NOT_FOUND);
-    }
-
-    /*
-    @Test
     void testClearCache() {
         header.setMethod(HttpMethod.DELETE);
         header.setUri(PERSISTENCE_ENDPOINT + "/cache?classname=test");
@@ -343,5 +337,5 @@ class PersistenceAPITest {
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.SERVICE_UNAVAILABLE, response.status());
     }
-    */
+
 }

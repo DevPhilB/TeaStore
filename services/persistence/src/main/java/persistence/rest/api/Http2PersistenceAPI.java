@@ -26,9 +26,6 @@ import utilities.rest.api.Http2Response;
 
 import java.util.*;
 import java.util.concurrent.Executors;
-;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * API for persistence service
