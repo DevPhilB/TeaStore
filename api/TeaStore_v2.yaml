@@ -6,7 +6,7 @@ info:
 servers:
   - url: "http://localhost:80"
   - url: "https://localhost:443"
-  - url: "https://localhost:50781"
+  - url: "https://localhost:4433"
 paths:
   /api/web/isready:
     get:
@@ -384,7 +384,7 @@ paths:
         - Persistence
   /api/persistence/emf:
     delete:
-      summary: "Return view 'Profile'."
+      summary: "Closes and resets the entity manager factory (EMF)."
       responses:
         "200":
           description: "OK"

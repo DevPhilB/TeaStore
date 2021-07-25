@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.SessionData;
 
 import java.net.URLDecoder;
@@ -11,7 +13,8 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 
 public class CookieUtil {
-    private final static ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger LOG = LogManager.getLogger(CookieUtil.class);
 
     /**
      * Decode cookie to session data
@@ -31,7 +34,7 @@ public class CookieUtil {
                         SessionData.class
                 );
             } catch(Exception e) {
-                e.printStackTrace();
+                LOG.error(e.getMessage());
             }
         } else {
             cookie = new SessionData(
@@ -63,7 +66,7 @@ public class CookieUtil {
             cookie.setDomain(gatewayHost);
             return cookie;
         } catch(Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return null;
     }

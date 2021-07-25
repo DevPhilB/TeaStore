@@ -20,33 +20,31 @@ import image.setup.SetupController;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
+import utilities.rest.api.Http2Response;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
-
 /**
- * API for web service
- * /api/web
+ * API for image service
+ * /api/image
  *
  * @author Philipp Backes
  */
-public class ImageAPI implements API {
-    private final HttpVersion httpVersion;
+public class Http2ImageAPI implements API {
     private final ObjectMapper mapper;
 
-    public ImageAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
+    public Http2ImageAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
     }
 
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
-        String method = header.method().name();
+    public Http2Response handle(Http2Headers headers, ByteBuf body) {
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(headers.path().toString());
+        String method = headers.method().toString();
         String path = queryStringDecoder.path();
 
         // Select endpoint
@@ -72,12 +70,11 @@ public class ImageAPI implements API {
                             return setCacheSize(body);
                     }
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                    break;
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
-
 
     /**
      * POST /productimages
@@ -88,7 +85,7 @@ public class ImageAPI implements API {
      * @param body Map of product IDs and the corresponding image size as JSON
      * @return Map of product IDs and the image data (base64 encoded) as JSON
      */
-    private FullHttpResponse getProductImages(ByteBuf body) {
+    private Http2Response getProductImages(ByteBuf body) {
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
@@ -97,22 +94,21 @@ public class ImageAPI implements API {
                     new TypeReference<Map<Long, String>>(){}
             );
             images = ImageProvider.IP.getProductImages(
-                images.entrySet().parallelStream().collect(
-                    Collectors.toMap(Map.Entry::getKey,
-                            e -> ImageSize.parseImageSize(e.getValue())
+                    images.entrySet().parallelStream().collect(
+                            Collectors.toMap(Map.Entry::getKey,
+                                    e -> ImageSize.parseImageSize(e.getValue())
+                            )
                     )
-                )
             );
             String json = mapper.writeValueAsString(images);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -124,7 +120,7 @@ public class ImageAPI implements API {
      * @param body Map web interface image names and the corresponding image size as JSON
      * @return Map of web interface image names and the image data (base64 encoded) as JSON
      */
-    private FullHttpResponse getWebImages(ByteBuf body) {
+    private Http2Response getWebImages(ByteBuf body) {
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
@@ -134,24 +130,23 @@ public class ImageAPI implements API {
             );
             Map<String, String> imageDataMap = ImageProvider.IP.getWebImages(
                     imageSizeMap.entrySet().parallelStream().collect(
-                        Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> ImageSize.parseImageSize(
-                                        e.getValue()
-                                )
-                        )
+                            Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    e -> ImageSize.parseImageSize(
+                                            e.getValue()
+                                    )
+                            )
                     )
             );
             String json = mapper.writeValueAsString(imageDataMap);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -162,9 +157,9 @@ public class ImageAPI implements API {
      *
      * @return OK
      */
-    private FullHttpResponse regenerateImages() {
+    private Http2Response regenerateImages() {
         SetupController.SETUP.reconfiguration();
-        return new DefaultFullHttpResponse(httpVersion, OK);
+        return Http2Response.okResponse();
     }
 
     /**
@@ -174,19 +169,18 @@ public class ImageAPI implements API {
      *
      * @return True or false
      */
-    private FullHttpResponse isFinished() {
+    private Http2Response isFinished() {
         Boolean finished = SetupController.SETUP.isFinished();
         try {
             String json = mapper.writeValueAsString(finished);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -194,19 +188,18 @@ public class ImageAPI implements API {
      *
      * @return Service status
      */
-    private FullHttpResponse getState() {
+    private Http2Response getState() {
         String state = SetupController.SETUP.getState();
         try {
             String json = mapper.writeValueAsString(state);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -216,21 +209,20 @@ public class ImageAPI implements API {
      *
      * @return True or false
      */
-    private FullHttpResponse setCacheSize(ByteBuf body) {
+    private Http2Response setCacheSize(ByteBuf body) {
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
         try {
             Long cacheSize = mapper.readValue(jsonByte, Long.class);
             Boolean success = SetupController.SETUP.setCacheSize(cacheSize);
             String json = mapper.writeValueAsString(success);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 }

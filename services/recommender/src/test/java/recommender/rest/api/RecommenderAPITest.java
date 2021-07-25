@@ -25,21 +25,20 @@ import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
 
 class RecommenderAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private RecommenderAPI api;
+    private Http1RecommenderAPI api;
 
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
+                HttpVersion.HTTP_1_1,
                 HttpMethod.GET,
                 RECOMMENDER_ENDPOINT
         );
         body = null;
-        api = new RecommenderAPI(version, "", null);
+        api = new Http1RecommenderAPI("", null);
     }
 
     @AfterEach
@@ -58,7 +57,7 @@ class RecommenderAPITest {
 
     @Test
     void testTrain() {
-        header.setMethod(HttpMethod.POST);
+        header.setMethod(HttpMethod.GET);
         header.setUri(RECOMMENDER_ENDPOINT + "/train");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
@@ -66,7 +65,7 @@ class RecommenderAPITest {
 
     @Test
     void testGetTimeStamp() {
-        header.setMethod(HttpMethod.POST);
+        header.setMethod(HttpMethod.GET);
         header.setUri(RECOMMENDER_ENDPOINT + "/train/timestamp");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
@@ -74,9 +73,9 @@ class RecommenderAPITest {
 
     @Test
     void testIsReady() {
-        header.setMethod(HttpMethod.POST);
+        header.setMethod(HttpMethod.GET);
         header.setUri(RECOMMENDER_ENDPOINT + "/train/isready");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 }

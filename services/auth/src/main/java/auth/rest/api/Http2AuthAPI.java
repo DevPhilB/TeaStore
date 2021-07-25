@@ -20,40 +20,35 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.api.Http2Response;
+import utilities.rest.client.Http2Client;
+import utilities.rest.client.Http2ClientStreamFrameHandler;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.netty.handler.codec.http.HttpMethod.*;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import java.util.*;
 
 /**
- * API for web service
- * /api/web
+ * API for auth service
+ * /api/auth
  *
  * @author Philipp Backes
  */
-public class AuthAPI implements API {
-    private final HttpVersion httpVersion;
-    private HttpClient httpClient;
-    private HttpClientHandler handler;
+public class Http2AuthAPI implements API {
+    private Http2Client httpClient;
+    private Http2ClientStreamFrameHandler frameHandler;
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer persistencePort;
-    private final HttpRequest request;
+    private Http2HeadersFrame http2HeadersFrame;
+    private Http2DataFrame http2DataFrame;
 
-    public AuthAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
+    public Http2AuthAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
         if(gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
@@ -62,23 +57,15 @@ public class AuthAPI implements API {
             this.gatewayHost = gatewayHost;
             this.persistencePort = gatewayPort;
         }
-        this.request = new DefaultFullHttpRequest(
-                this.httpVersion,
-                GET,
-                "",
-                Unpooled.EMPTY_BUFFER
-        );
-        this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
+    public Http2Response handle(Http2Headers headers, ByteBuf body) {
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(headers.path().toString());
         Map<String, List<String>> params = queryStringDecoder.parameters();
-        String method = header.method().name();
+        String method = headers.method().toString();
         String path = queryStringDecoder.path();
-        String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
+        String cookieValue = headers.get(HttpHeaderNames.COOKIE) != null
+                ? headers.get(HttpHeaderNames.COOKIE).toString() : null;
         SessionData sessionData = CookieUtil.decodeCookie(cookieValue);
 
         // Select endpoint
@@ -97,27 +84,27 @@ public class AuthAPI implements API {
                                 Long productId = Long.parseLong(params.get("productid").get(0));
                                 return addProductToCart(sessionData, productId);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/cart/remove":
                             if (params.containsKey("productid")) {
                                 Long productId = Long.parseLong(params.get("productid").get(0));
                                 return removeProductFromCart(sessionData, productId);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/useractions/placeorder":
                             if (body != null) {
                                 return placeOrder(sessionData, body);
                             }
-                            return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                            return Http2Response.badRequestResponse();
                         case "/useractions/login":
                             if (params.containsKey("name") && params.containsKey("password")) {
                                 String name = params.get("name").get(0);
                                 String password = params.get("password").get(0);
                                 return login(sessionData, name, password);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                         case "/useractions/logout":
                             return logout(sessionData);
@@ -132,14 +119,14 @@ public class AuthAPI implements API {
                                 Integer quantity = Integer.parseInt(params.get("quantity").get(0));
                                 return updateQuantity(sessionData, productId, quantity);
                             } else {
-                                return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                                return Http2Response.badRequestResponse();
                             }
                     }
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                    break;
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return Http2Response.notFoundResponse();
     }
 
     /**
@@ -152,19 +139,24 @@ public class AuthAPI implements API {
      * @param productId Product id
      * @return Updated session data
      */
-    private FullHttpResponse addProductToCart(SessionData sessionData, Long productId) {
+    private Http2Response addProductToCart(SessionData sessionData, Long productId) {
         Product product = null;
         // GET api/persistence/products?id=productId
         String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
         try {
-            request.setUri(persistenceEndpointProduct);
-            request.setMethod(GET);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                    Http2Response.getHeader(
+                            gatewayHost,
+                            persistenceEndpointProduct
+                    ),
+                    true
+            );
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                product = mapper.readValue(handler.jsonContent, Product.class);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                product = mapper.readValue(frameHandler.jsonContent, Product.class);
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
@@ -215,16 +207,15 @@ public class AuthAPI implements API {
                 );
                 data = new ShaSecurityProvider().secure(data);
                 String json = mapper.writeValueAsString(data);
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -236,7 +227,7 @@ public class AuthAPI implements API {
      * @param productId Product id
      * @return Updated session data
      */
-    private FullHttpResponse removeProductFromCart(SessionData sessionData, Long productId) {
+    private Http2Response removeProductFromCart(SessionData sessionData, Long productId) {
         OrderItem toRemove = null;
         try {
             for (OrderItem item : sessionData.orderItems()) {
@@ -248,18 +239,17 @@ public class AuthAPI implements API {
                 sessionData.orderItems().remove(toRemove);
                 SessionData data = new ShaSecurityProvider().secure(sessionData);
                 String json = mapper.writeValueAsString(data);
-                return new DefaultFullHttpResponse(
-                        httpVersion,
-                        HttpResponseStatus.OK,
+                return new Http2Response(
+                        Http2Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             } else {
-                return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                return Http2Response.notFoundResponse();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -272,7 +262,7 @@ public class AuthAPI implements API {
      * @param quantity New quantity
      * @return Updated session data
      */
-    private FullHttpResponse updateQuantity(SessionData sessionData, Long productId, Integer quantity) {
+    private Http2Response updateQuantity(SessionData sessionData, Long productId, Integer quantity) {
         try {
             for (OrderItem item : sessionData.orderItems()) {
                 if (item.productId().equals(productId)) {
@@ -287,18 +277,17 @@ public class AuthAPI implements API {
                     sessionData.orderItems().set(index, newItem);
                     SessionData data = new ShaSecurityProvider().secure(sessionData);
                     String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            httpVersion,
-                            HttpResponseStatus.OK,
+                    return new Http2Response(
+                            Http2Response.okJsonHeader(json.length()),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
             }
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -310,7 +299,7 @@ public class AuthAPI implements API {
      * @param body Order as JSON
      * @return Updated session data
      */
-    private FullHttpResponse placeOrder(SessionData sessionData, ByteBuf body) {
+    private Http2Response placeOrder(SessionData sessionData, ByteBuf body) {
         Order orderData = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
@@ -319,9 +308,8 @@ public class AuthAPI implements API {
         // POST api/persistence/orderitems
         String persistenceEndpointCreateOrderItem = PERSISTENCE_ENDPOINT + "/orderitems";
         if (new ShaSecurityProvider().validate(sessionData) == null || sessionData.orderItems().isEmpty()) {
-            return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+            return Http2Response.notFoundResponse();
         }
-
         try {
             long totalPrice = 0;
             for (OrderItem item : sessionData.orderItems()) {
@@ -343,20 +331,21 @@ public class AuthAPI implements API {
             Long orderId = null;
             String orderJson = mapper.writeValueAsString(newOrder);
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
-            FullHttpRequest postOrderRequest = new DefaultFullHttpRequest(
-                    request.protocolVersion(),
-                    POST,
-                    persistenceEndpointCreateOrder,
-                    Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8)
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                    Http2Response.postContentHeader(
+                            gatewayHost,
+                            persistenceEndpointCreateOrder,
+                            String.valueOf(postOrderBody.readableBytes())
+                    ),
+                    false
             );
-            postOrderRequest.headers().set("Content-Length", postOrderBody.readableBytes());
-            postOrderRequest.headers().setAll(request.headers());
+            http2DataFrame = new DefaultHttp2DataFrame(postOrderBody, true);
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, postOrderRequest);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                orderId = mapper.readValue(handler.jsonContent, Order.class).id();
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                orderId = mapper.readValue(frameHandler.jsonContent, Order.class).id();
                 for (OrderItem item : sessionData.orderItems()) {
                     OrderItem orderItem = new OrderItem(
                             item.id(),
@@ -367,20 +356,21 @@ public class AuthAPI implements API {
                     );
                     String orderItemJson = mapper.writeValueAsString(orderItem);
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
-                    FullHttpRequest postOrderItemRequest = new DefaultFullHttpRequest(
-                            request.protocolVersion(),
-                            POST,
-                            persistenceEndpointCreateOrderItem,
-                            Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8)
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.postContentHeader(
+                                    gatewayHost,
+                                    persistenceEndpointCreateOrderItem,
+                                    String.valueOf(postOrderItemBody.readableBytes())
+                            ),
+                            false
                     );
-                    postOrderItemRequest.headers().set("Content-Length", postOrderItemBody.readableBytes());
-                    postOrderItemRequest.headers().setAll(request.headers());
+                    http2DataFrame = new DefaultHttp2DataFrame(postOrderItemBody, true);
                     // Create client and send request
-                    httpClient = new HttpClient(gatewayHost, persistencePort, postOrderItemRequest);
-                    handler = new HttpClientHandler();
-                    httpClient.sendRequest(handler);
-                    if (handler.jsonContent.isEmpty()) {
-                        return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                    httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
+                    frameHandler= new Http2ClientStreamFrameHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (frameHandler.jsonContent.isEmpty()) {
+                        return Http2Response.badRequestResponse();
                     }
                     sessionData.orderItems().clear();
                     SessionData data = new SessionData(
@@ -404,9 +394,8 @@ public class AuthAPI implements API {
                     );
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            httpVersion,
-                            HttpResponseStatus.OK,
+                    return new Http2Response(
+                            Http2Response.okJsonHeader(json.length()),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
@@ -414,7 +403,7 @@ public class AuthAPI implements API {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -427,21 +416,26 @@ public class AuthAPI implements API {
      * @param password User password
      * @return Updated session data
      */
-    private FullHttpResponse login(SessionData sessionData, String name, String password) {
+    private Http2Response login(SessionData sessionData, String name, String password) {
         User user = null;
         // GET api/persistence/users/name?name=name
         String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
         try {
-            request.setUri(persistenceEndpointUser);
-            request.setMethod(GET);
+            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                    Http2Response.getHeader(
+                            gatewayHost,
+                            persistenceEndpointUser
+                    ),
+                    true
+            );
             // Create client and send request
-            httpClient = new HttpClient(gatewayHost, persistencePort, request);
-            handler = new HttpClientHandler();
-            httpClient.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                user = mapper.readValue(handler.jsonContent, User.class);
+            httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+            frameHandler = new Http2ClientStreamFrameHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                user = mapper.readValue(frameHandler.jsonContent, User.class);
                 if(user == null) {
-                    return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+                    return Http2Response.notFoundResponse();
                 } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
                             user.id(),
@@ -453,19 +447,18 @@ public class AuthAPI implements API {
                     );
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            httpVersion,
-                            HttpResponseStatus.OK,
+                    return new Http2Response(
+                            Http2Response.okJsonHeader(json.length()),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 } else {
-                    return new DefaultFullHttpResponse(httpVersion, BAD_REQUEST);
+                    return Http2Response.badRequestResponse();
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -476,7 +469,7 @@ public class AuthAPI implements API {
      * @param sessionData Session data from the current user
      * @return Updated session data
      */
-    private FullHttpResponse logout(SessionData sessionData) {
+    private Http2Response logout(SessionData sessionData) {
         try {
             sessionData.orderItems().clear();
             SessionData data = new SessionData(
@@ -499,15 +492,14 @@ public class AuthAPI implements API {
                     sessionData.message()
             );
             String json = mapper.writeValueAsString(data);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
     /**
@@ -518,19 +510,18 @@ public class AuthAPI implements API {
      * @param sessionData Session data from the current user
      * @return Updated session data
      */
-    private FullHttpResponse isLoggedIn(SessionData sessionData) {
+    private Http2Response isLoggedIn(SessionData sessionData) {
         SessionData data = new ShaSecurityProvider().validate(sessionData);
         try {
             String json = mapper.writeValueAsString(data);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 
 
@@ -541,17 +532,16 @@ public class AuthAPI implements API {
      *
      * @return True
      */
-    private FullHttpResponse isReady() {
+    private Http2Response isReady() {
         try {
             String json = mapper.writeValueAsString(Boolean.TRUE);
-            return new DefaultFullHttpResponse(
-                    httpVersion,
-                    HttpResponseStatus.OK,
+            return new Http2Response(
+                    Http2Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return Http2Response.internalServerErrorResponse();
     }
 }

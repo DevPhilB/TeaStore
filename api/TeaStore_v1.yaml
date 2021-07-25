@@ -1,7 +1,7 @@
 openapi: "3.0.3"
 info:
   title: "TeaStore v1 API"
-  description: "Original TeaStore API"
+  description: "Original TeaStore API (mainly generated and therefore incomplete)"
   version: "1.0.0"
 servers:
   - url: "http://localhost:8080"
@@ -85,6 +85,26 @@ paths:
       tags:
         - Registry
   /tools.descartes.teastore.registry/rest/services/{name}/{location}:
+    put:
+      summary: "PUT services/{name}/{location}"
+      parameters:
+        - name: "name"
+          in: "path"
+          schema:
+            type: string
+          required: true
+        - name: "location"
+          in: "path"
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: "OK"
+        "201":
+          description: "Created"
+      tags:
+        - Registry
     delete:
       summary: "DELETE services/{name}/{location}"
       parameters:

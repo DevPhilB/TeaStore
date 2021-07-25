@@ -26,25 +26,22 @@ import recommender.algorithm.TrainingSynchronizer;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for web service
- * /api/web
+ * API for recommender service
+ * /api/recommender
  *
  * @author Philipp Backes
  */
-public class RecommenderAPI implements API {
-    private final HttpVersion httpVersion;
+public class Http1RecommenderAPI implements API {
     private final ObjectMapper mapper;
-    private static final Logger LOG = LogManager.getLogger(RecommenderAPI.class);
+    private static final Logger LOG = LogManager.getLogger(Http1RecommenderAPI.class);
 
-    public RecommenderAPI(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
+    public Http1RecommenderAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
     }
 
@@ -85,10 +82,10 @@ public class RecommenderAPI implements API {
                             }
                     };
                 default:
-                    return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+                    break;
             }
         }
-        return new DefaultFullHttpResponse(httpVersion, NOT_FOUND);
+        return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
     }
 
     /**
@@ -126,14 +123,14 @@ public class RecommenderAPI implements API {
             List<Long> recommended = RecommenderSelector.getInstance().recommendProducts(userId, currentItems);
             String json = mapper.writeValueAsString(recommended);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -158,15 +155,15 @@ public class RecommenderAPI implements API {
             if (number != -1) {
                 LOG.info(
                         "The (re)train was succesfully done. It took " + time + "ms and "
-                        + number + " of Orderitems were retrieved from the database."
+                                + number + " of Orderitems were retrieved from the database."
                 );
-                return new DefaultFullHttpResponse(httpVersion, OK);
+                return new DefaultFullHttpResponse(HTTP_1_1, OK);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         LOG.error("The (re)trainprocess failed.");
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -179,19 +176,19 @@ public class RecommenderAPI implements API {
     private FullHttpResponse getTimeStamp() {
         if (TrainingSynchronizer.getInstance().getMaxTime() == TrainingSynchronizer.DEFAULT_MAX_TIME_VALUE) {
             LOG.error("The collection of the current maxTime was not possible.");
-            return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+            return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
         }
         try {
             String json = mapper.writeValueAsString(TrainingSynchronizer.getInstance().getMaxTime());
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -211,13 +208,13 @@ public class RecommenderAPI implements API {
         try {
             String json = mapper.writeValueAsString(ready);
             return new DefaultFullHttpResponse(
-                    httpVersion,
+                    HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(httpVersion, INTERNAL_SERVER_ERROR);
+        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
 }

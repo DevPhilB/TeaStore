@@ -11,31 +11,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package auth.rest.server;
+package persistence.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-
-import auth.rest.api.AuthAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import persistence.rest.api.Http1PersistenceAPI;
 
 /**
- * HTTP server handler for auth service
+ * HTTP/1.1 server handler for persistence service
  * @author Philipp Backes
  */
-public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1PersistenceServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final AuthAPI api;
+    private final Http1PersistenceAPI api;
+    private static final Logger LOG = LogManager.getLogger(Http1PersistenceServiceHandler.class);
 
-    public HttpAuthServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new AuthAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new Http1PersistenceAPI(gatewayHost, gatewayPort);
     }
 
     @Override
@@ -45,7 +46,7 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 
@@ -55,8 +56,9 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
             this.request = request;
             // Check HTTP method
             if (request.method() != HttpMethod.GET
-                && request.method() != HttpMethod.POST
-                && request.method() != HttpMethod.PUT) {
+                    && request.method() != HttpMethod.POST
+                    && request.method() != HttpMethod.PUT
+                    && request.method() != HttpMethod.DELETE) {
                 writeStatusResponse(context, METHOD_NOT_ALLOWED);
             }
             if (HttpUtil.is100ContinueExpected(request)) {
@@ -74,18 +76,18 @@ public class HttpAuthServiceHandler extends SimpleChannelInboundHandler<HttpObje
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }
 
     private void writeStatusResponse(ChannelHandlerContext context, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
         context.write(response);
     }
 
     private void writeContinueResponse(ChannelHandlerContext context) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, CONTINUE, Unpooled.EMPTY_BUFFER);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, CONTINUE, Unpooled.EMPTY_BUFFER);
         context.write(response);
     }
 

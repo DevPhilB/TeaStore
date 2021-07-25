@@ -11,31 +11,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package recommender.rest.server;
+package web.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-
-import recommender.rest.api.RecommenderAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import web.rest.api.Http1WebAPI;
 
 /**
- * HTTP server handler for recommender service
+ * HTTP/1.1 server handler for web service
  * @author Philipp Backes
  */
-public class HttpRecommenderServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1WebServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final RecommenderAPI api;
+    private final Http1WebAPI api;
+    private static final Logger LOG = LogManager.getLogger(Http1WebServiceHandler.class);
 
-    public HttpRecommenderServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new RecommenderAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1WebServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new Http1WebAPI(gatewayHost, gatewayPort);
     }
 
     @Override
@@ -45,7 +46,7 @@ public class HttpRecommenderServiceHandler extends SimpleChannelInboundHandler<H
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 
@@ -73,18 +74,18 @@ public class HttpRecommenderServiceHandler extends SimpleChannelInboundHandler<H
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }
 
     private void writeStatusResponse(ChannelHandlerContext context, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
         context.write(response);
     }
 
     private void writeContinueResponse(ChannelHandlerContext context) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, CONTINUE, Unpooled.EMPTY_BUFFER);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, CONTINUE, Unpooled.EMPTY_BUFFER);
         context.write(response);
     }
 

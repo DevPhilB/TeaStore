@@ -13,12 +13,6 @@
  */
 package utilities.rest.api;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.LastHttpContent;
-
 /**
  * API interface
  *
@@ -41,6 +35,6 @@ public interface API {
     // Web service
     Integer DEFAULT_WEB_PORT = 5050;
     String WEB_ENDPOINT = "/api/web";
-
-    FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer);
+    // HTTPS
+    CharSequence HTTPS = "https";
 }

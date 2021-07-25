@@ -20,26 +20,27 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import static org.junit.jupiter.api.Assertions.*;
 import static utilities.rest.api.API.IMAGE_ENDPOINT;
 
 class ImageAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private ImageAPI api;
+    private Http1ImageAPI api;
 
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
-                HttpMethod.GET,
+                HTTP_1_1,
+                GET,
                 IMAGE_ENDPOINT
         );
         body = null;
-        api = new ImageAPI(version, "", null);
+        api = new Http1ImageAPI("", null);
     }
 
     @AfterEach
@@ -67,7 +68,7 @@ class ImageAPITest {
 
     @Test
     void testRegenerateImages() {
-        header.setMethod(HttpMethod.GET);
+        header.setMethod(GET);
         header.setUri(IMAGE_ENDPOINT + "/regenerateimages");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
@@ -75,7 +76,7 @@ class ImageAPITest {
 
     @Test
     void testIsFinished() {
-        header.setMethod(HttpMethod.GET);
+        header.setMethod(GET);
         header.setUri(IMAGE_ENDPOINT + "/finished");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());
@@ -83,7 +84,7 @@ class ImageAPITest {
 
     @Test
     void testGetState() {
-        header.setMethod(HttpMethod.GET);
+        header.setMethod(GET);
         header.setUri(IMAGE_ENDPOINT + "/state");
         response = api.handle(header, body, null);
         assertEquals(HttpResponseStatus.OK, response.status());

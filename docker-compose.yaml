@@ -1,11 +1,11 @@
-version: '3'
+version: '3.9'
 
 services:
   gateway:
     # The official v2 Traefik docker image
     image: traefik:v2.5
     # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker --entryPoints.http.address=:80
+    command: --api.insecure=true --providers.docker=true --entryPoints.http.address=:80
     ports:
       # The HTTP port
       - "80:80"
@@ -27,6 +27,7 @@ services:
     expose:
       - "80"
     environment:
+      VERSION: "HTTP/1.1"
       HOST_NAME: "persistence"
       GATEWAY_HOST: "gateway"
       DB_HOST: "db"
@@ -42,6 +43,7 @@ services:
     expose:
       - "80"
     environment:
+      VERSION: "HTTP/1.1"
       HOST_NAME: "auth"
       GATEWAY_HOST: "gateway"
     labels:
@@ -55,6 +57,7 @@ services:
     expose:
       - "80"
     environment:
+      VERSION: "HTTP/1.1"
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
@@ -68,6 +71,7 @@ services:
     expose:
       - "80"
     environment:
+      VERSION: "HTTP/1.1"
       HOST_NAME: "image"
       GATEWAY_HOST: "gateway"
     labels:
@@ -81,6 +85,7 @@ services:
     expose:
       - "80"
     environment:
+      VERSION: "HTTP/1.1"
       HOST_NAME: "recommender"
       GATEWAY_HOST: "gateway"
     labels:

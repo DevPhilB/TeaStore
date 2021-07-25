@@ -20,27 +20,33 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
+import io.netty.handler.codec.http2.Http2HeadersFrame;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.*;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.api.Http2Response;
+import utilities.rest.client.Http1Client;
+import utilities.rest.client.Http1ClientHandler;
+import utilities.rest.client.Http2Client;
+import utilities.rest.client.Http2ClientStreamFrameHandler;
 
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import static utilities.rest.api.API.DEFAULT_PERSISTENCE_PORT;
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
 /**
  * This class organizes the communication with the other services and
  * synchronizes on startup and training.
+ * Training data could be saved in the db to speed up new instance training.
  *
  * @author Johannes Grohmann
  *
@@ -48,13 +54,16 @@ import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 public final class TrainingSynchronizer {
 
 	// HTTP client
-	private String scheme;
+	private String httpVersion;
+	private ObjectMapper mapper;
 	private String gatewayHost;
 	private Integer persistencePort;
 	private HttpRequest request;
-	private HttpClient httpClient;
-	private HttpClientHandler handler;
-	private ObjectMapper mapper;
+	private Http1Client http1Client;
+	private Http1ClientHandler http1Handler;
+	private Http2Client http2Client;
+	private Http2ClientStreamFrameHandler http2FrameHandler;
+	private Http2HeadersFrame http2HeadersFrame;
 
 	/**
 	 * This value signals that the maximum training time is not known.
@@ -86,24 +95,30 @@ public final class TrainingSynchronizer {
 	 * Set up HTTP client for persistence queries
 	 */
 	public void setupHttpClient(
-			HttpVersion version,
-			String scheme,
+			String httpVersion,
 			String gatewayHost,
-			Integer persistencePort
+			Integer gatewayPort
 	) {
-		this.mapper = new ObjectMapper();
-		this.scheme = scheme;
-		this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
-		this.persistencePort = persistencePort;
-		this.request = new DefaultFullHttpRequest(
-				version,
-				HttpMethod.GET,
+		this.httpVersion = httpVersion;
+		mapper = new ObjectMapper();
+		if(gatewayHost.isEmpty()) {
+			this.gatewayHost = "localhost";
+			persistencePort = DEFAULT_PERSISTENCE_PORT;
+		} else {
+			this.gatewayHost = gatewayHost;
+			persistencePort = gatewayPort;
+		}
+		// HTTP/1.1
+		request = new DefaultFullHttpRequest(
+				HTTP_1_1,
+				GET,
 				"",
 				Unpooled.EMPTY_BUFFER
 		);
-		this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-		this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-		this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+		request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+		request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+		request.headers().set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+		request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
 	}
 
 	/**
@@ -166,46 +181,109 @@ public final class TrainingSynchronizer {
 		String persistenceEndpointOrderItems = PERSISTENCE_ENDPOINT + "/orderitems?start=-1&max=-1";
 		// GET api/persistence/orders
 		String persistenceEndpointOrders = PERSISTENCE_ENDPOINT + "/orders?start=-1&max=-1";
-		// Retrieve order items
-		try {
-			request.setUri(persistenceEndpointOrderItems);
-			httpClient = new HttpClient(gatewayHost, persistencePort, request);
-			handler = new HttpClientHandler();
-			httpClient.sendRequest(handler);
-			if (!handler.jsonContent.isEmpty()) {
-				items = mapper.readValue(
-						handler.jsonContent,
-						new TypeReference<List<OrderItem>>() {}
-				);
-				long noItems = items.size();
-				LOG.trace("Retrieved " + noItems + " orderItems, starting retrieving of orders now.");
-			}
-		} catch (Exception e) {
-			// Set ready anyway to avoid deadlocks
-			setReady(true);
-			LOG.error("Database retrieving failed.");
-			return -1;
+		// Switch between http versions
+		// Retrieve order items and orders
+		switch (httpVersion) {
+			case "HTTP/1.1":
+				try {
+					request.setUri(persistenceEndpointOrderItems);
+					http1Client = new Http1Client(gatewayHost, persistencePort, request);
+					http1Handler = new Http1ClientHandler();
+					http1Client.sendRequest(http1Handler);
+					if (!http1Handler.jsonContent.isEmpty()) {
+						items = mapper.readValue(
+								http1Handler.jsonContent,
+								new TypeReference<List<OrderItem>>() {}
+						);
+						long noItems = items.size();
+						LOG.trace("Retrieved " + noItems + " orderItems, starting retrieving of orders now.");
+					}
+				} catch (Exception e) {
+					// Set ready anyway to avoid deadlocks
+					setReady(true);
+					LOG.error("Database retrieving failed.");
+					return -1;
+				}
+				try {
+					request.setUri(persistenceEndpointOrders);
+					http1Client = new Http1Client(gatewayHost, persistencePort, request);
+					http1Handler = new Http1ClientHandler();
+					http1Client.sendRequest(http1Handler);
+					if (!http1Handler.jsonContent.isEmpty()) {
+						orders = mapper.readValue(
+								http1Handler.jsonContent,
+								new TypeReference<List<Order>>() {}
+						);
+						long noOrders = orders.size();
+						LOG.trace("Retrieved " + noOrders + " orders, starting training now.");
+					}
+				} catch (Exception e) {
+					// Set ready anyway to avoid deadlocks
+					setReady(true);
+					LOG.error("Database retrieving failed.");
+					return -1;
+				}
+				break;
+			case "HTTP/2":
+				try {
+					http2HeadersFrame = new DefaultHttp2HeadersFrame(
+							Http2Response.getHeader(
+									gatewayHost,
+									persistenceEndpointOrderItems
+							),
+							true
+					);
+					http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+					http2FrameHandler = new Http2ClientStreamFrameHandler();
+					http2Client.sendRequest(http2FrameHandler);
+					if (!http2FrameHandler.jsonContent.isEmpty()) {
+						items = mapper.readValue(
+								http2FrameHandler.jsonContent,
+								new TypeReference<List<OrderItem>>() {}
+						);
+						long noItems = items.size();
+						LOG.trace("Retrieved " + noItems + " orderItems, starting retrieving of orders now.");
+					}
+				} catch (Exception e) {
+					// Set ready anyway to avoid deadlocks
+					setReady(true);
+					LOG.error("Database retrieving failed.");
+					return -1;
+				}
+				try {
+					http2HeadersFrame = new DefaultHttp2HeadersFrame(
+							Http2Response.getHeader(
+									gatewayHost,
+									persistenceEndpointOrders
+							),
+							true
+					);
+					http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+					http2FrameHandler = new Http2ClientStreamFrameHandler();
+					http2Client.sendRequest(http2FrameHandler);
+					if (!http2FrameHandler.jsonContent.isEmpty()) {
+						orders = mapper.readValue(
+								http2FrameHandler.jsonContent,
+								new TypeReference<List<Order>>() {}
+						);
+						long noOrders = orders.size();
+						LOG.trace("Retrieved " + noOrders + " orders, starting training now.");
+					}
+				} catch (Exception e) {
+					// Set ready anyway to avoid deadlocks
+					setReady(true);
+					LOG.error("Database retrieving failed.");
+					return -1;
+				}
+				break;
+			case "HTTP/3":
+				// TODO
+				LOG.info("HTTP/3!");
+				break;
+			default:
+				break;
 		}
-		// Retrieve orders
-		try {
-			request.setUri(persistenceEndpointOrders);
-			httpClient = new HttpClient(gatewayHost, persistencePort, request);
-			handler = new HttpClientHandler();
-			httpClient.sendRequest(handler);
-			if (!handler.jsonContent.isEmpty()) {
-				orders = mapper.readValue(
-						handler.jsonContent,
-						new TypeReference<List<Order>>() {}
-				);
-				long noOrders = orders.size();
-				LOG.trace("Retrieved " + noOrders + " orders, starting training now.");
-			}
-		} catch (Exception e) {
-			// set ready anyway to avoid deadlocks
-			setReady(true);
-			LOG.error("Database retrieving failed.");
-			return -1;
-		}
+
 		// filter lists
 		filterLists(items, orders);
 		// train instance
@@ -216,7 +294,6 @@ public final class TrainingSynchronizer {
 	}
 
 	private void filterLists(List<OrderItem> orderItems, List<Order> orders) {
-		// TODO: To use existing training data, save them in db
 		if (maxTime == Long.MIN_VALUE) {
 			// we are the only known service
 			// therefore we find max and set it

@@ -37,6 +37,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
+import io.netty.handler.codec.http2.Http2HeadersFrame;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -59,9 +61,15 @@ import image.storage.DriveStorage;
 import image.storage.IDataStorage;
 import image.storage.rules.StoreAll;
 import image.storage.rules.StoreLargeImages;
-import utilities.rest.client.HttpClient;
-import utilities.rest.client.HttpClientHandler;
+import utilities.rest.api.Http2Response;
+import utilities.rest.client.Http1Client;
+import utilities.rest.client.Http1ClientHandler;
+import utilities.rest.client.Http2Client;
+import utilities.rest.client.Http2ClientStreamFrameHandler;
 
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import static utilities.rest.api.API.DEFAULT_PERSISTENCE_PORT;
 import static utilities.rest.api.API.PERSISTENCE_ENDPOINT;
 
 /**
@@ -106,13 +114,17 @@ public enum SetupController {
 
   }
   // HTTP client
-  private String scheme;
+  private String httpVersion;
+  private ObjectMapper mapper;
   private String gatewayHost;
   private Integer persistencePort;
   private HttpRequest request;
-  private HttpClient httpClient;
-  private HttpClientHandler handler;
-  private ObjectMapper mapper;
+  private Http1Client http1Client;
+  private Http1ClientHandler http1Handler;
+  private Http2Client http2Client;
+  private Http2ClientStreamFrameHandler http2FrameHandler;
+  private Http2HeadersFrame http2HeadersFrame;
+
 
   private StorageRule storageRule = StorageRule.STD_STORAGE_RULE;
   private CachingRule cachingRule = CachingRule.STD_CACHING_RULE;
@@ -140,24 +152,30 @@ public enum SetupController {
    * Set up HTTP client for persistence queries
    */
   public void setupHttpClient(
-          HttpVersion version,
-          String scheme,
+          String httpVersion,
           String gatewayHost,
-          Integer persistencePort
+          Integer gatewayPort
   ) {
-    this.mapper = new ObjectMapper();
-    this.scheme = scheme;
-    this.gatewayHost = gatewayHost.isEmpty() ? "localhost" : gatewayHost;
-    this.persistencePort = persistencePort;
-    this.request = new DefaultFullHttpRequest(
-            version,
-            HttpMethod.GET,
+    this.httpVersion = httpVersion;
+    mapper = new ObjectMapper();
+    if(gatewayHost.isEmpty()) {
+      this.gatewayHost = "localhost";
+      persistencePort = DEFAULT_PERSISTENCE_PORT;
+    } else {
+      this.gatewayHost = gatewayHost;
+      persistencePort = gatewayPort;
+    }
+    // HTTP/1.1
+    request = new DefaultFullHttpRequest(
+            HTTP_1_1,
+            GET,
             "",
             Unpooled.EMPTY_BUFFER
     );
-    this.request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-    this.request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-    this.request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+    request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
+    request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+    request.headers().set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+    request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
   }
 
   private void fetchProductsForCategory(Category category, HashMap<Category, List<Long>> products) {
@@ -165,19 +183,52 @@ public enum SetupController {
     // GET api/persistence/products
     String persistenceEndpointProducts = PERSISTENCE_ENDPOINT +
             "/products?categoryid=" + category.id() + "&" + "start=0&max=-1";
-    request.setUri(persistenceEndpointProducts);
-    httpClient = new HttpClient(gatewayHost, persistencePort, request);
-    handler = new HttpClientHandler();
-    try {
-      httpClient.sendRequest(handler);
-      if (!handler.jsonContent.isEmpty()) {
-          productList = mapper.readValue(
-                  handler.jsonContent,
-                  new TypeReference<List<Product>>() {}
-          );
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+    // Switch between http versions
+    switch (httpVersion) {
+      case "HTTP/1.1":
+        request.setUri(persistenceEndpointProducts);
+        http1Client = new Http1Client(gatewayHost, persistencePort, request);
+        http1Handler = new Http1ClientHandler();
+        try {
+          http1Client.sendRequest(http1Handler);
+          if (!http1Handler.jsonContent.isEmpty()) {
+            productList = mapper.readValue(
+                    http1Handler.jsonContent,
+                    new TypeReference<List<Product>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/2":
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                Http2Response.getHeader(
+                        gatewayHost,
+                        persistenceEndpointProducts
+                ),
+                true
+        );
+        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+        http2FrameHandler = new Http2ClientStreamFrameHandler();
+        try {
+          http2Client.sendRequest(http2FrameHandler);
+          if (!http2FrameHandler.jsonContent.isEmpty()) {
+            productList = mapper.readValue(
+                    http2FrameHandler.jsonContent,
+                    new TypeReference<List<Product>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/3":
+        // TODO
+        LOG.info("HTTP/3!");
+        break;
+      default:
+        break;
     }
     //
     if(productList == null) {
@@ -194,20 +245,56 @@ public enum SetupController {
     List<Category> categories = null;
     // GET api/persistence/categories
     String persistenceEndpointCategories = PERSISTENCE_ENDPOINT + "/categories";
-    request.setUri(persistenceEndpointCategories);
-    httpClient = new HttpClient(gatewayHost, persistencePort, request);
-    handler = new HttpClientHandler();
-    try {
-      httpClient.sendRequest(handler);
-      if (!handler.jsonContent.isEmpty()) {
-        categories = mapper.readValue(
-                handler.jsonContent,
-                new TypeReference<List<Category>>() {}
+
+    // Switch between http versions
+    switch (httpVersion) {
+      case "HTTP/1.1":
+        request.setUri(persistenceEndpointCategories);
+        http1Client = new Http1Client(gatewayHost, persistencePort, request);
+        http1Handler = new Http1ClientHandler();
+        try {
+          http1Client.sendRequest(http1Handler);
+          if (!http1Handler.jsonContent.isEmpty()) {
+            categories = mapper.readValue(
+                    http1Handler.jsonContent,
+                    new TypeReference<List<Category>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/2":
+        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                Http2Response.getHeader(
+                        gatewayHost,
+                        persistenceEndpointCategories
+                ),
+                true
         );
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+        // Create client and send request
+        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+        http2FrameHandler = new Http2ClientStreamFrameHandler();
+        try {
+          http2Client.sendRequest(http2FrameHandler);
+          if (!http2FrameHandler.jsonContent.isEmpty()) {
+            categories = mapper.readValue(
+                    http2FrameHandler.jsonContent,
+                    new TypeReference<List<Category>>() {}
+            );
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      case "HTTP/3":
+        // TODO
+        LOG.info("HTTP/3!");
+        break;
+      default:
+        break;
     }
+    //
     if (categories == null) {
       return new ArrayList<Category>();
     }
@@ -271,12 +358,14 @@ public enum SetupController {
   public void detectCategoryImages() {
     LOG.info("Trying to find images that indicate categories in generated images.");
 
-    String path = "categoryimg" + File.separator + "black-tea.png";
+    String path = "categoryimg/black-tea.png";
+    File imageFile = null;
     if (!gatewayHost.equals("localhost")) {
-      path = File.separator + "service" + File.separator + path;
+      path = "/service/" + path;
+      imageFile = new File(path);
+    } else {
+      imageFile = new File(getClass().getResource(path).getPath());
     }
-    
-    File imageFile = new File(path);
     File dir = new File(imageFile.getParent());
 
     nrOfImagesForCategory = 0;
@@ -337,11 +426,14 @@ public enum SetupController {
       throw new NullPointerException("The supplied image database is null.");
     }
 
-    String path = "existingimg" + File.separator + "front.png";
+    String path = "existingimg/front.png";
+    File imageFile = null;
     if (!gatewayHost.equals("localhost")) {
-      path = File.separator + "service" + File.separator + path;
+      path = "/service/" + path;
+      imageFile = new File(path);
+    } else {
+      imageFile = new File(getClass().getResource(path).getPath());
     }
-    File imageFile = new File(path);
     File dir = new File(imageFile.getParent());
 
     if (dir.exists() && dir.isDirectory()) {
@@ -389,7 +481,6 @@ public enum SetupController {
         }
       }
     }
-
     LOG.info("Scanned path {} for existing images. {} images found.",
         dir.toPath().toAbsolutePath().toString(), nrOfImagesExisting);
   }

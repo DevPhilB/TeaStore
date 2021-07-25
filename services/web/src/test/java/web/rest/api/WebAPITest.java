@@ -20,26 +20,27 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import static org.junit.jupiter.api.Assertions.*;
 import static utilities.rest.api.API.WEB_ENDPOINT;
 
 class WebAPITest {
 
-    private final HttpVersion version = HttpVersion.HTTP_1_1;
     private HttpRequest header;
     private ByteBuf body;
     private HttpResponse response;
-    private WebAPI api;
+    private Http1WebAPI api;
 
     @BeforeEach
     void setUp() {
         header = new DefaultFullHttpRequest(
-                version,
-                HttpMethod.GET,
+                HTTP_1_1,
+                GET,
                 WEB_ENDPOINT
         );
         body = null;
-        api = new WebAPI(version, "", null);
+        api = new Http1WebAPI("", null);
     }
 
     @AfterEach

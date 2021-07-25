@@ -44,7 +44,7 @@ final class EMFManager {
 
 	private static final String MYSQL_URL_PREFIX = "jdbc:mysql://";
 	private static final String MYSQL_URL_POSTFIX = "/teastore";
-	private static final String MYSQL_DEFAULT_HOST = "db";
+	private static final String MYSQL_DEFAULT_HOST = "localhost";
 	private static final String MYSQL_DEFAULT_PORT = "3306";
 	
 	private EMFManager() {}
@@ -91,7 +91,7 @@ final class EMFManager {
 		String url = MYSQL_URL_PREFIX;
 		url += System.getenv("DB_HOST") == null ? MYSQL_DEFAULT_HOST : System.getenv("DB_HOST");
 		url += ":";
-		url += MYSQL_DEFAULT_PORT;
+		url += System.getenv("DB_PORT") == null ? MYSQL_DEFAULT_PORT : System.getenv("DB_PORT");
 		url += MYSQL_URL_POSTFIX;
 		LOG.info("Setting jdbc url to \"" + url + "\".");
 		persistenceProperties.put("jakarta.persistence.jdbc.url", url);

@@ -11,32 +11,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package image.rest.server;
+package auth.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
-import image.setup.SetupController;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-
-import image.rest.api.ImageAPI;
+import auth.rest.api.Http1AuthAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
- * HTTP server handler for image service
+ * HTTP/1.1 server handler for web service
  * @author Philipp Backes
  */
-public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1AuthServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final ImageAPI api;
+    private final Http1AuthAPI api;
+    private static final Logger LOG = LogManager.getLogger(Http1AuthServiceHandler.class);
 
-    public HttpImageServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new ImageAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new Http1AuthAPI(gatewayHost, gatewayPort);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 
@@ -56,7 +56,8 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
             this.request = request;
             // Check HTTP method
             if (request.method() != HttpMethod.GET
-                && request.method() != HttpMethod.POST) {
+                    && request.method() != HttpMethod.POST
+                    && request.method() != HttpMethod.PUT) {
                 writeStatusResponse(context, METHOD_NOT_ALLOWED);
             }
             if (HttpUtil.is100ContinueExpected(request)) {
@@ -74,18 +75,18 @@ public class HttpImageServiceHandler extends SimpleChannelInboundHandler<HttpObj
             }
             // Trailer response header gets ignored in handler
             if (message instanceof LastHttpContent trailer) {
-                writeAPIResponse(context, api.handle(request, httpContent.content(), trailer));
+                writeAPIResponse(context, api.handle(request, httpContent.content().copy(), trailer));
             }
         }
     }
 
     private void writeStatusResponse(ChannelHandlerContext context, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
         context.write(response);
     }
 
     private void writeContinueResponse(ChannelHandlerContext context) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, CONTINUE, Unpooled.EMPTY_BUFFER);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, CONTINUE, Unpooled.EMPTY_BUFFER);
         context.write(response);
     }
 

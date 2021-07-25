@@ -11,30 +11,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package web.rest.server;
+package image.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import web.rest.api.WebAPI;
+import image.rest.api.Http1ImageAPI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
- * HTTP server handler for web service
+ * HTTP/1.1 server handler for image service
  * @author Philipp Backes
  */
-public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
+public class Http1ImageServiceHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private HttpRequest request;
-    private final HttpVersion httpVersion;
-    private final WebAPI api;
+    private final Http1ImageAPI api;
+    private static final Logger LOG = LogManager.getLogger(Http1ImageServiceHandler.class);
 
-    public HttpWebServiceHandler(HttpVersion httpVersion, String gatewayHost, Integer gatewayPort) {
-        this.httpVersion = httpVersion;
-        api = new WebAPI(httpVersion, gatewayHost, gatewayPort);
+    public Http1ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new Http1ImageAPI(gatewayHost, gatewayPort);
     }
 
     @Override
@@ -44,7 +46,7 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
-        cause.printStackTrace();
+        LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
 
@@ -78,12 +80,12 @@ public class HttpWebServiceHandler extends SimpleChannelInboundHandler<HttpObjec
     }
 
     private void writeStatusResponse(ChannelHandlerContext context, HttpResponseStatus status) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
         context.write(response);
     }
 
     private void writeContinueResponse(ChannelHandlerContext context) {
-        FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, CONTINUE, Unpooled.EMPTY_BUFFER);
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, CONTINUE, Unpooled.EMPTY_BUFFER);
         context.write(response);
     }
 
