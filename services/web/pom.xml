@@ -42,6 +42,17 @@
             <version>${netty.version}</version>
         </dependency>
 		<dependency>
+			<groupId>io.netty.incubator</groupId>
+			<artifactId>netty-incubator-codec-quic</artifactId>
+			<version>0.0.16.Final</version>
+			<classifier>${os.detected.classifier}</classifier>
+		</dependency>
+		<dependency>
+			<groupId>io.netty.incubator</groupId>
+			<artifactId>netty-incubator-codec-http3</artifactId>
+			<version>0.0.6.Final</version>
+		</dependency>
+		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
 			<version>1.69</version>
@@ -94,6 +105,13 @@
 	</dependencies>
 
 	<build>
+		<extensions>
+			<extension>
+				<groupId>kr.motd.maven</groupId>
+				<artifactId>os-maven-plugin</artifactId>
+				<version>1.7.0</version>
+			</extension>
+		</extensions>
 		<plugins>
 			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
