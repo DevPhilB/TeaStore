@@ -13,27 +13,23 @@
  */
 package utilities.rest.client;
 
-import io.netty.channel.*;
-import io.netty.handler.codec.http2.Http2DataFrame;
-import io.netty.handler.codec.http2.Http2HeadersFrame;
-import io.netty.handler.codec.http2.Http2StreamFrame;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.incubator.codec.http3.Http3DataFrame;
+import io.netty.incubator.codec.http3.Http3HeadersFrame;
+import io.netty.incubator.codec.http3.Http3RequestStreamInboundHandler;
 import io.netty.util.CharsetUtil;
+import io.netty.util.ReferenceCountUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * HTTP/2 client stream frame handler for inter-service communication
+ * HTTP/3 client stream inbound handler for inter-service communication
  * @author Philipp Backes
  */
-public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<Http2StreamFrame> {
+public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHandler {
 
-    private Channel channel;
     public String jsonContent = "";
     private static final Logger LOG = LogManager.getLogger(Http2ClientStreamFrameHandler.class);
-
-    public void setCloseableChannel(Channel channel) {
-        this.channel = channel;
-    }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext context) {
@@ -47,16 +43,21 @@ public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<H
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext context, Http2StreamFrame message) {
-        if (message instanceof Http2DataFrame dataFrame) {
-            LOG.info("Received HTTP/2 data frame: " + dataFrame);
-            jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
-            if (dataFrame.isEndStream()) {
-                LOG.info("Received end data frame: " + dataFrame);
-                channel.close();
-            }
-        } else if (message instanceof Http2HeadersFrame headersFrame && headersFrame.isEndStream()) {
-            LOG.info("Received end header frame: " + headersFrame);
+    protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
+        if (isLast) {
+            LOG.info("Received HTTP/3 end header frame: " + headersFrame);
+        }
+        ReferenceCountUtil.release(headersFrame);
+    }
+
+    @Override
+    protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
+        LOG.info("Received HTTP/3 data frame: " + dataFrame);
+        jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
+        ReferenceCountUtil.release(dataFrame);
+        if (isLast) {
+            LOG.info("Received end data frame: " + dataFrame);
+            context.close();
         }
     }
 }

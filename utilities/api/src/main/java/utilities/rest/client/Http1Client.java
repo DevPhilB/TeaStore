@@ -42,11 +42,11 @@ public class Http1Client {
     }
 
     public void sendRequest(Http1ClientHandler handler) {
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        EventLoopGroup group = new NioEventLoopGroup();
 
         try {
             Bootstrap bootstrap = new Bootstrap()
-                .group(workerGroup)
+                .group(group)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
@@ -67,7 +67,7 @@ public class Http1Client {
         } catch(InterruptedException e) {
             e.printStackTrace();
         } finally {
-            workerGroup.shutdownGracefully();
+            group.shutdownGracefully();
         }
     }
 }

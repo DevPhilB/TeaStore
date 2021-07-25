@@ -46,7 +46,7 @@ public class Http2Client {
     }
 
     public void sendRequest(Http2ClientStreamFrameHandler handler) {
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        EventLoopGroup group = new NioEventLoopGroup();
 
         try {
             // Configure SSL
@@ -64,7 +64,7 @@ public class Http2Client {
 
             // Configure the client
             Bootstrap bootstrap = new Bootstrap()
-                .group(workerGroup)
+                .group(group)
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .remoteAddress(host, port)
@@ -82,7 +82,7 @@ public class Http2Client {
             // Start the client
             Channel channel = bootstrap.connect().syncUninterruptibly().channel();
             LOG.info("Connected to [" + host + ':' + port + ']');
-            // Prepare handler
+            // Prepare HTTP/2 stream
             Http2StreamChannelBootstrap streamChannelBootstrap = new Http2StreamChannelBootstrap(channel);
             Http2StreamChannel streamChannel = streamChannelBootstrap.open().syncUninterruptibly().getNow();
             handler.setCloseableChannel(channel.closeFuture().channel());
@@ -100,7 +100,7 @@ public class Http2Client {
         } catch(Exception e) {
             LOG.error(e.getMessage());
         } finally {
-            workerGroup.shutdownGracefully();
+            group.shutdownGracefully();
         }
     }
 }
