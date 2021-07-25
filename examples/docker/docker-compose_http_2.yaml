@@ -5,7 +5,7 @@ services:
     # The official v2 Traefik docker image
     image: traefik:v2.5
     # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker --entryPoints.https.address=:443
+    command: --api.insecure=true --providers.docker=true --serversTransport.insecureSkipVerify=true --entrypoints.https.address=:443
     ports:
       # The HTTPS port
       - "443:443"
@@ -15,13 +15,13 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
   db:
-    image: tvsjsdock/teastore-db:v2
+    build: database
     ports:
       - "3306:3306"
     labels:
       - "traefik.enable=false"
   persistence:
-    image: tvsjsdock/teastore-persistence:v2
+    build: services/persistence
     depends_on:
       - db
     expose:
@@ -35,11 +35,12 @@ services:
     labels:
       - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
       - "traefik.http.routers.persistence.entrypoints=https"
-      - "traefik.port=443"
-      - "traefik.http.persistence.tls=true"
-      - "traefik.protocol=https"
+      - "traefik.http.routers.persistence.tls=true"
+      - "traefik.http.routers.persistence.service=persistence"
+      - "traefik.http.services.persistence.loadbalancer.server.port=443"
+      - "traefik.http.services.persistence.loadbalancer.server.scheme=https"
   auth:
-    image: tvsjsdock/teastore-auth:v2
+    build: services/auth
     depends_on:
       - persistence
     expose:
@@ -51,11 +52,12 @@ services:
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
       - "traefik.http.routers.auth.entrypoints=https"
-      - "traefik.port=443"
-      - "traefik.http.auth.tls=true"
-      - "traefik.protocol=https"
+      - "traefik.http.routers.auth.tls=true"
+      - "traefik.http.routers.auth.service=auth"
+      - "traefik.http.services.auth.loadbalancer.server.port=443"
+      - "traefik.http.services.auth.loadbalancer.server.scheme=https"
   web:
-    image: tvsjsdock/teastore-web:v2
+    build: services/web
     depends_on:
       - auth
     expose:
@@ -65,13 +67,14 @@ services:
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+      - "traefik.http.routers.web.rule=Host(`gateway`) && PathPrefix(`/api/web`)"
       - "traefik.http.routers.web.entrypoints=https"
-      - "traefik.port=443"
-      - "traefik.http.web.tls=true"
-      - "traefik.protocol=https"
+      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.routers.web.service=web"
+      - "traefik.http.services.web.loadbalancer.server.port=443"
+      - "traefik.http.services.web.loadbalancer.server.scheme=https"
   image:
-    image: tvsjsdock/teastore-image:v2
+    build: services/image
     depends_on:
       - persistence
     expose:
@@ -83,11 +86,12 @@ services:
     labels:
       - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
       - "traefik.http.routers.image.entrypoints=https"
-      - "traefik.port=443"
-      - "traefik.http.image.tls=true"
-      - "traefik.protocol=https"
+      - "traefik.http.routers.image.tls=true"
+      - "traefik.http.routers.image.service=image"
+      - "traefik.http.services.image.loadbalancer.server.port=443"
+      - "traefik.http.services.image.loadbalancer.server.scheme=https"
   recommender:
-    image: tvsjsdock/teastore-recommender:v2
+    build: services/recommender
     depends_on:
       - persistence
     expose:
@@ -99,6 +103,7 @@ services:
     labels:
       - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
       - "traefik.http.routers.recommender.entrypoints=https"
-      - "traefik.port=443"
-      - "traefik.http.recommender.tls=true"
-      - "traefik.protocol=https"
+      - "traefik.http.routers.recommender.tls=true"
+      - "traefik.http.routers.recommender.service=recommender"
+      - "traefik.http.services.recommender.loadbalancer.server.port=443"
+      - "traefik.http.services.recommender.loadbalancer.server.scheme=https"

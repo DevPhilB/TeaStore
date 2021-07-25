@@ -63,7 +63,6 @@ public record Http2Response (
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(GET.asciiName()).path(endpoint)
                 .set(HttpHeaderNames.HOST, gatewayHost)
-                .set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
@@ -72,7 +71,6 @@ public record Http2Response (
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(POST.asciiName()).path(endpoint)
                 .set(HttpHeaderNames.HOST, gatewayHost)
-                .set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
@@ -83,7 +81,6 @@ public record Http2Response (
                 .set(HttpHeaderNames.HOST, gatewayHost)
                 .set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.CONTENT_LENGTH, contentLength)
-                .set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
@@ -92,7 +89,6 @@ public record Http2Response (
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(PUT.asciiName()).path(endpoint)
                 .set(HttpHeaderNames.HOST, gatewayHost)
-                .set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }

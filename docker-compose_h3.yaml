@@ -5,7 +5,7 @@ services:
     # The official v2 Traefik docker image
     image: traefik:v2.5
     # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker --entryPoints.https.address=:4433 --entryPoints.https.enableHTTP3=true
+    command: --api.insecure=true --providers.docker=true --serversTransport.insecureSkipVerify=true --entryPoints.https.address=:4433 --entryPoints.https.enableHTTP3=true
     ports:
       # The HTTPS port
       - "4433:4433/tcp"
@@ -37,8 +37,8 @@ services:
     labels:
       - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
       - "traefik.http.routers.persistence.entrypoints=https"
+      - "traefik.http.routers.persistence.tls=true"
       - "traefik.port=4433"
-      - "traefik.http.persistence.tls=true"
       - "traefik.protocol=https"
   auth:
     build: services/auth
@@ -54,8 +54,8 @@ services:
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
       - "traefik.http.routers.auth.entrypoints=https"
+      - "traefik.http.routers.auth.tls=true"
       - "traefik.port=4433"
-      - "traefik.http.auth.tls=true"
       - "traefik.protocol=https"
   web:
     build: services/web
@@ -69,10 +69,10 @@ services:
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+      - "traefik.http.routers.web.rule=Host(`gateway`) && PathPrefix(`/api/web`)"
       - "traefik.http.routers.web.entrypoints=https"
+      - "traefik.http.routers.web.tls=true"
       - "traefik.port=4433"
-      - "traefik.http.web.tls=true"
       - "traefik.protocol=https"
   image:
     build: services/image
@@ -88,8 +88,8 @@ services:
     labels:
       - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
       - "traefik.http.routers.image.entrypoints=https"
+      - "traefik.http.routers.image.tls=true"
       - "traefik.port=4433"
-      - "traefik.http.image.tls=true"
       - "traefik.protocol=https"
   recommender:
     build: services/recommender
@@ -105,6 +105,6 @@ services:
     labels:
       - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
       - "traefik.http.routers.recommender.entrypoints=https"
+      - "traefik.http.routers.recommender.tls=true"
       - "traefik.port=4433"
-      - "traefik.http.recommender.tls=true"
       - "traefik.protocol=https"
