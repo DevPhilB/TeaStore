@@ -1,12 +1,15 @@
-# TeaStore v2 (HTTP/1.1 | HTTP/2 | HTTP/3) #  
+# TeaStore v2 (HTTP/1.1 | HTTP/2 | HTTP/3)
 
-TeaStore v2 is a rework of the original [TeaStore](https://se.informatik.uni-wuerzburg.de/software-engineering-group/tools/teastore/) and part of my master thesis.  
+TeaStore v2 is a rework of the original
+[TeaStore](https://se.informatik.uni-wuerzburg.de/software-engineering-group/tools/teastore/)
+and part of my master thesis.  
 The original version was developed by the Descartes Research Group (University of Würzburg).  
 TeaStore emulates a basic web store for automatically generated, tea and tea supplies.   
 For more details visit the base [repository](https://github.com/DescartesResearch/TeaStore).
 
 ## Changes (WIP)
-- Registry replaced with [Traefik](https://github.com/traefik/traefik), a HTTP reverse proxy and load balancer
+- Registry replaced with [Traefik](https://github.com/traefik/traefik),
+  a HTTP reverse proxy and load balancer
 - Netty HTTP servers (and client) instead of Jetty servlets
 - Support for HTTP/1.1, HTTP/2 and HTTP/3
 - Full JSON-API instead of JSPs
@@ -15,17 +18,35 @@ For more details visit the base [repository](https://github.com/DescartesResearc
 - Java 17 (LTS) as target environment
 
 ## Getting Started
-### Prerequisites
+### Launch without installation
+### Docker Compose
+#### HTTP/1.1
+ ```sh
+ docker-compose up -f ./examples/docker/docker-compose_http1_1.yaml up
+ ```
+#### HTTP/2
+ ```sh
+ docker-compose up -f ./examples/docker/docker-compose_http2.yaml up
+ ```
+#### HTTP/3 (WIP)
+ ```sh
+docker-compose -f ./examples/docker/docker-compose_http3.yaml up
+ ```
+
+### Launch locally with installation
+#### Prerequisites
 Install dependencies (second command can be ignored for docker-compose run).
  ```sh
 mvn clean install
 docker build -t teastore-db:v2 database
  ```
-### Run locally
+
+#### Only database as Docker container
 You have to start the database first.
  ```sh
 docker run -p 3306:3306 teastore-db:v2
  ```
+Run services in order:
 - HttpPersistenceServer
 - HttpAuthServer
 - HttpWebServer
@@ -35,13 +56,22 @@ Wait until database is ready before starting the next services.
 - HttpImageServer
 - HttpRecommenderServer
 
-### Run with docker-compose
+#### Docker Compose
 Waiting for the database is already included.
+#### HTTP/1.1
  ```sh
  docker-compose up --build
  ```
+#### HTTP/2
+ ```sh
+ docker-compose up -f ./docker-compose_h2.yaml up --build
+ ```
+#### HTTP/3 (WIP)
+ ```sh
+ docker-compose up -f ./docker-compose_h3.yaml up --build
+ ```
 
-### Run with DockerHub images
+## DockerHub Images
 - [Traefik](https://hub.docker.com/_/traefik)
 - [Database](https://hub.docker.com/r/tvsjsdock/teastore-db)
 - [Persistence](https://hub.docker.com/r/tvsjsdock/teastore-persistence)
@@ -49,19 +79,6 @@ Waiting for the database is already included.
 - [Web](https://hub.docker.com/r/tvsjsdock/teastore-web)
 - [Image](https://hub.docker.com/r/tvsjsdock/teastore-image)
 - [Recommender](https://hub.docker.com/r/tvsjsdock/teastore-recommender)
-
-HTTP/1.1:
- ```sh
-docker-compose -f ./examples/docker/docker-compose_http.yaml up
- ```
-HTTP/2:
- ```sh
-TBD  
- ```
-HTTP/3: 
- ```sh
-TBD  
- ```
 
 ## Architecture / Documentation (WIP)
 TBD
@@ -75,4 +92,5 @@ TBD
 
 ## License
 Distributed under the Apache-2.0 License. See `LICENSE` for more information.  
-If you use this application in a scientific context, please consider the [citation rules](https://github.com/DescartesResearch/TeaStore#cite-us).
+If you use this application in a scientific context,
+please consider the [citation rules](https://github.com/DescartesResearch/TeaStore#cite-us).
