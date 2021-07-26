@@ -11,12 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package auth.rest.server;
+package persistence.rest.server;
 
+import persistence.rest.api.Http3PersistenceAPI;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
-import auth.rest.api.Http3AuthAPI;
 import io.netty.incubator.codec.http3.*;
 import io.netty.incubator.codec.quic.QuicStreamChannel;
 import io.netty.util.ReferenceCountUtil;
@@ -25,18 +25,18 @@ import org.apache.logging.log4j.Logger;
 import utilities.rest.api.Http3Response;
 
 /**
- * HTTP/3 server handler for auth service
+ * HTTP/3 server handler for persistence service
  * @author Philipp Backes
  */
-public class Http3AuthServiceHandler extends Http3RequestStreamInboundHandler {
+public class Http3PersistenceServiceHandler extends Http3RequestStreamInboundHandler {
 
     private Http3Headers headers;
     private ByteBuf body;
-    private final Http3AuthAPI api;
-    private static final Logger LOG = LogManager.getLogger(Http3AuthServiceHandler.class);
+    private final Http3PersistenceAPI api;
+    private static final Logger LOG = LogManager.getLogger(Http3PersistenceServiceHandler.class);
 
-    public Http3AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new Http3AuthAPI(gatewayHost, gatewayPort);
+    public Http3PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
+        api = new Http3PersistenceAPI(gatewayHost, gatewayPort);
     }
 
     private void handleRequest(ChannelHandlerContext context) {

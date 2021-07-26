@@ -28,15 +28,20 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
+import io.netty.incubator.codec.http3.DefaultHttp3HeadersFrame;
+import io.netty.incubator.codec.http3.Http3HeadersFrame;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 import utilities.datamodel.*;
 import utilities.rest.api.Http2Response;
+import utilities.rest.api.Http3Response;
 import utilities.rest.client.Http1Client;
 import utilities.rest.client.Http1ClientHandler;
 import utilities.rest.client.Http2Client;
 import utilities.rest.client.Http2ClientStreamFrameHandler;
+import utilities.rest.client.Http3Client;
+import utilities.rest.client.Http3ClientStreamInboundHandler;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
@@ -64,6 +69,9 @@ public final class TrainingSynchronizer {
 	private Http2Client http2Client;
 	private Http2ClientStreamFrameHandler http2FrameHandler;
 	private Http2HeadersFrame http2HeadersFrame;
+	private Http3Client http3Client;
+	private Http3ClientStreamInboundHandler http3FrameHandler;
+	private Http3HeadersFrame http3HeadersFrame;
 
 	/**
 	 * This value signals that the maximum training time is not known.
@@ -277,8 +285,54 @@ public final class TrainingSynchronizer {
 				}
 				break;
 			case "HTTP/3":
-				// TODO
-				LOG.info("HTTP/3!");
+				try {
+					http3HeadersFrame = new DefaultHttp3HeadersFrame(
+							Http3Response.getHeader(
+									gatewayHost,
+									persistenceEndpointOrderItems
+							)
+					);
+					http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+					http3FrameHandler = new Http3ClientStreamInboundHandler();
+					http3Client.sendRequest(http3FrameHandler);
+					if (!http3FrameHandler.jsonContent.isEmpty()) {
+						items = mapper.readValue(
+								http3FrameHandler.jsonContent,
+								new TypeReference<List<OrderItem>>() {}
+						);
+						long noItems = items.size();
+						LOG.trace("Retrieved " + noItems + " orderItems, starting retrieving of orders now.");
+					}
+				} catch (Exception e) {
+					// Set ready anyway to avoid deadlocks
+					setReady(true);
+					LOG.error("Database retrieving failed.");
+					return -1;
+				}
+				try {
+					http3HeadersFrame = new DefaultHttp3HeadersFrame(
+							Http3Response.getHeader(
+									gatewayHost,
+									persistenceEndpointOrders
+							)
+					);
+					http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+					http3FrameHandler = new Http3ClientStreamInboundHandler();
+					http3Client.sendRequest(http3FrameHandler);
+					if (!http3FrameHandler.jsonContent.isEmpty()) {
+						orders = mapper.readValue(
+								http3FrameHandler.jsonContent,
+								new TypeReference<List<Order>>() {}
+						);
+						long noOrders = orders.size();
+						LOG.trace("Retrieved " + noOrders + " orders, starting training now.");
+					}
+				} catch (Exception e) {
+					// Set ready anyway to avoid deadlocks
+					setReady(true);
+					LOG.error("Database retrieving failed.");
+					return -1;
+				}
 				break;
 			default:
 				break;

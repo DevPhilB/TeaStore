@@ -49,8 +49,8 @@ public class Http3AuthAPI implements API {
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer persistencePort;
-    private Http3HeadersFrame http2HeadersFrame;
-    private Http3DataFrame http2DataFrame;
+    private Http3HeadersFrame http3HeadersFrame;
+    private Http3DataFrame http3DataFrame;
 
     public Http3AuthAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
@@ -148,14 +148,14 @@ public class Http3AuthAPI implements API {
         // GET api/persistence/products?id=productId
         String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
         try {
-            http2HeadersFrame = new DefaultHttp3HeadersFrame(
+            http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
                             gatewayHost,
                             persistenceEndpointProduct
                     )
             );
             // Create client and send request
-            httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+            httpClient = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
             frameHandler = new Http3ClientStreamInboundHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -334,16 +334,16 @@ public class Http3AuthAPI implements API {
             Long orderId = null;
             String orderJson = mapper.writeValueAsString(newOrder);
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
-            http2HeadersFrame = new DefaultHttp3HeadersFrame(
+            http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.postContentHeader(
                             gatewayHost,
                             persistenceEndpointCreateOrder,
                             String.valueOf(postOrderBody.readableBytes())
                     )
             );
-            http2DataFrame = new DefaultHttp3DataFrame(postOrderBody);
+            http3DataFrame = new DefaultHttp3DataFrame(postOrderBody);
             // Create client and send request
-            httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
+            httpClient = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, http3DataFrame);
             frameHandler = new Http3ClientStreamInboundHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
@@ -358,16 +358,16 @@ public class Http3AuthAPI implements API {
                     );
                     String orderItemJson = mapper.writeValueAsString(orderItem);
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
-                    http2HeadersFrame = new DefaultHttp3HeadersFrame(
+                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.postContentHeader(
                                     gatewayHost,
                                     persistenceEndpointCreateOrderItem,
                                     String.valueOf(postOrderItemBody.readableBytes())
                             )
                     );
-                    http2DataFrame = new DefaultHttp3DataFrame(postOrderItemBody);
+                    http3DataFrame = new DefaultHttp3DataFrame(postOrderItemBody);
                     // Create client and send request
-                    httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
+                    httpClient = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, http3DataFrame);
                     frameHandler= new Http3ClientStreamInboundHandler();
                     httpClient.sendRequest(frameHandler);
                     if (frameHandler.jsonContent.isEmpty()) {
@@ -422,14 +422,14 @@ public class Http3AuthAPI implements API {
         // GET api/persistence/users/name?name=name
         String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
         try {
-            http2HeadersFrame = new DefaultHttp3HeadersFrame(
+            http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
                             gatewayHost,
                             persistenceEndpointUser
                     )
             );
             // Create client and send request
-            httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+            httpClient = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
             frameHandler = new Http3ClientStreamInboundHandler();
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {

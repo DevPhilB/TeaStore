@@ -14,7 +14,6 @@
 package auth.rest.server;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.http2.Http2FrameCodecBuilder;
@@ -23,7 +22,6 @@ import io.netty.handler.ssl.*;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.incubator.codec.http3.*;
 import io.netty.incubator.codec.quic.*;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -36,7 +34,6 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import static utilities.rest.api.API.DEFAULT_AUTH_PORT;
@@ -92,6 +89,7 @@ public class HttpAuthServer {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         // Self signed certificate
         SelfSignedCertificate certificate = new SelfSignedCertificate();
+        // Switch between HTTP versions
         switch (httpVersion) {
             case "HTTP/1.1":
                 // Configure the server

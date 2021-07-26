@@ -13,11 +13,17 @@
  */
 package recommender.rest.server;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.http2.Http2FrameCodecBuilder;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.*;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.incubator.codec.http3.Http3;
+import io.netty.incubator.codec.http3.Http3ServerConnectionHandler;
+import io.netty.incubator.codec.http3.Http3ServerPushStreamManager;
+import io.netty.incubator.codec.quic.*;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -30,6 +36,8 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import recommender.algorithm.TrainingSynchronizer;
+
+import java.util.concurrent.TimeUnit;
 
 import static utilities.rest.api.API.DEFAULT_RECOMMENDER_PORT;
 import static utilities.rest.api.API.RECOMMENDER_ENDPOINT;
@@ -89,7 +97,9 @@ public class HttpRecommenderServer {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         // Handle the traffic of the accepted connection
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-
+        // Self signed certificate
+        SelfSignedCertificate certificate = new SelfSignedCertificate();
+        // Switch between HTTP versions
         switch (httpVersion) {
             case "HTTP/1.1":
                 // Configure the server
@@ -119,8 +129,7 @@ public class HttpRecommenderServer {
                 break;
             case "HTTP/2":
                 // Configure SSL
-                SelfSignedCertificate ssc = new SelfSignedCertificate();
-                SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
+                SslContext sslCtx = SslContextBuilder.forServer(certificate.certificate(), certificate.privateKey())
                         .sslProvider(SslProvider.JDK)
                         .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                         .applicationProtocolConfig(new ApplicationProtocolConfig(
@@ -130,11 +139,10 @@ public class HttpRecommenderServer {
                                 ApplicationProtocolNames.HTTP_2))
                         .build();
                 // Configure the server
-                EventLoopGroup group = new NioEventLoopGroup();
                 try {
                     ServerBootstrap bootstrap = new ServerBootstrap();
                     bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
-                    bootstrap.group(group)
+                    bootstrap.group(bossGroup)
                             .channel(NioServerSocketChannel.class)
                             .handler(new LoggingHandler(LogLevel.INFO))
                             .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -147,12 +155,65 @@ public class HttpRecommenderServer {
                             });
                     bindAndSync(bootstrap);
                 } finally {
-                    group.shutdownGracefully();
+                    bossGroup.shutdownGracefully();
                 }
                 break;
             case "HTTP/3":
-                // TODO
-                LOG.info("TODO");
+                // Configure SSL
+                QuicSslContext quicSslContext = QuicSslContextBuilder
+                        .forServer(certificate.key(), null, certificate.cert())
+                        .applicationProtocols(Http3.supportedApplicationProtocols()).build();
+                // Configure codec
+                ChannelHandler codec = Http3.newQuicServerCodecBuilder()
+                        .sslContext(quicSslContext)
+                        .maxIdleTimeout(5000, TimeUnit.MILLISECONDS)
+                        .initialMaxData(10000000)
+                        .initialMaxStreamDataBidirectionalLocal(1000000)
+                        .initialMaxStreamDataBidirectionalRemote(1000000)
+                        .initialMaxStreamsBidirectional(100)
+                        .tokenHandler(InsecureQuicTokenHandler.INSTANCE)
+                        .handler(new ChannelInitializer<QuicChannel>() {
+                            @Override
+                            protected void initChannel(QuicChannel quicChannel) {
+                                // Called for each connection
+                                Http3ServerPushStreamManager pushStreamManager =
+                                        new Http3ServerPushStreamManager(quicChannel);
+                                quicChannel.pipeline().addLast(new Http3ServerConnectionHandler(
+                                        new ChannelInitializer<QuicStreamChannel>() {
+                                            // Called for each request-stream
+                                            @Override
+                                            protected void initChannel(QuicStreamChannel streamChannel) {
+                                                streamChannel.pipeline().addLast(
+                                                        new Http3RecommenderServiceHandler(gatewayHost, gatewayPort));
+                                            }
+                                        },
+                                        pushStreamManager.controlStreamListener(), null,
+                                        null, false));
+                            }
+                        }).build();
+                // Configure the server
+                try {
+                    Bootstrap bootstrap = new Bootstrap();
+                    Channel channel;
+                    String status = httpVersion + " recommender service is available on https://";
+                    if (gatewayHost.isEmpty()) {
+                        channel = bootstrap.group(bossGroup)
+                                .channel(NioDatagramChannel.class)
+                                .handler(codec)
+                                .bind(DEFAULT_RECOMMENDER_PORT).sync().channel();
+                        status += "localhost:" + DEFAULT_RECOMMENDER_PORT + RECOMMENDER_ENDPOINT;
+                    } else {
+                        channel = bootstrap.group(bossGroup)
+                                .channel(NioDatagramChannel.class)
+                                .handler(codec)
+                                .bind(gatewayPort).sync().channel();
+                        status += "recommender:" + gatewayPort + RECOMMENDER_ENDPOINT;
+                    }
+                    LOG.info(status);
+                    channel.closeFuture().sync();
+                } finally {
+                    bossGroup.shutdownGracefully();
+                }
                 break;
         }
     }
