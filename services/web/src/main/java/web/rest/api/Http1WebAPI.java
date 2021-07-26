@@ -34,7 +34,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for web service
+ * HTTP/1.1 API for web service
  * /api/web
  *
  * @author Philipp Backes

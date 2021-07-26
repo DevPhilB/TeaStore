@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * API for web service
+ * HTTP/2 API for web service
  * /api/web
  *
  * @author Philipp Backes

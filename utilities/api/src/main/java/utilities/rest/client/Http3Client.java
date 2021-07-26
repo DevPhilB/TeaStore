@@ -77,13 +77,13 @@ public class Http3Client {
             LOG.info("Connected to [" + host + ':' + port + ']');
             // Prepare request stream
             QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel, handler).sync().getNow();
-            // Write the header frame and send the FIN to mark the end of the request
-            Http3HeadersFrame frame = new DefaultHttp3HeadersFrame();
-            frame.headers().method("GET").path("/")
-                    .authority(host + ":" + port)
-                    .scheme("https");
-            streamChannel.writeAndFlush(frame)
-                    .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
+            // Write header (and body
+            if (body != null) {
+                streamChannel.write(header).sync();
+                streamChannel.writeAndFlush(body).addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
+            } else {
+                streamChannel.writeAndFlush(header).addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
+            }
             // Wait for the stream and QUIC channel to be closed (after FIN)
             // Close the underlying datagram channel
             streamChannel.closeFuture().sync();

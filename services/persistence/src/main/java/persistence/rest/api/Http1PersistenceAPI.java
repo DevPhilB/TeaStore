@@ -29,7 +29,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for persistence service
+ * HTTP/1.1 API for persistence service
  * /api/persistence
  *
  * @author Philipp Backes

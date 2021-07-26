@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 
 /**
- * API for persistence service
+ * HTTP/2 API for persistence service
  * /api/persistence
  *
  * @author Philipp Backes

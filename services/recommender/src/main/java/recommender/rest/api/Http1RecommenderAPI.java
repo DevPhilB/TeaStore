@@ -32,7 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for recommender service
+ * HTTP/1.1 API for recommender service
  * /api/recommender
  *
  * @author Philipp Backes

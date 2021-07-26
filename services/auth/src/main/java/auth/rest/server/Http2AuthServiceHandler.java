@@ -51,7 +51,7 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }
@@ -71,7 +71,7 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+    public void channelReadComplete(ChannelHandlerContext ctx) {
         ctx.flush();
     }
 

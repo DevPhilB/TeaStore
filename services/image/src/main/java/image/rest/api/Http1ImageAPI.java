@@ -31,7 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
- * API for image service
+ * HTTP/1.1 API for image service
  * /api/image
  *
  * @author Philipp Backes

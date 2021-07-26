@@ -31,7 +31,7 @@ import utilities.rest.api.Http2Response;
 import java.util.*;
 
 /**
- * API for recommender service
+ * HTTP/2 API for recommender service
  * /api/recommender
  *
  * @author Philipp Backes

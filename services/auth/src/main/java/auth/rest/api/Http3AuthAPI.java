@@ -19,65 +19,57 @@ import auth.security.ShaSecurityProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.incubator.codec.http3.*;
 import io.netty.util.CharsetUtil;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
-import utilities.rest.client.Http1Client;
-import utilities.rest.client.Http1ClientHandler;
+import utilities.rest.api.Http3Response;
+import utilities.rest.client.Http3Client;
+import utilities.rest.client.Http3ClientStreamInboundHandler;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-
-import static io.netty.handler.codec.http.HttpMethod.GET;
-import static io.netty.handler.codec.http.HttpMethod.POST;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * HTTP/1.1 API for auth service
+ * HTTP/3 API for auth service
  * /api/auth
  *
  * @author Philipp Backes
  */
-public class Http1AuthAPI implements API {
-    private Http1Client httpClient;
-    private Http1ClientHandler httpHandler;
+public class Http3AuthAPI implements API {
+    private Http3Client httpClient;
+    private Http3ClientStreamInboundHandler frameHandler;
     private final ObjectMapper mapper;
     private final String gatewayHost;
     private final Integer persistencePort;
-    private final HttpRequest request;
+    private Http3HeadersFrame http2HeadersFrame;
+    private Http3DataFrame http2DataFrame;
 
-    public Http1AuthAPI(String gatewayHost, Integer gatewayPort) {
-        mapper = new ObjectMapper();
+    public Http3AuthAPI(String gatewayHost, Integer gatewayPort) {
+        this.mapper = new ObjectMapper();
         if(gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
-            persistencePort = DEFAULT_PERSISTENCE_PORT;
+            this.persistencePort = DEFAULT_PERSISTENCE_PORT;
         } else {
             this.gatewayHost = gatewayHost;
-            persistencePort = gatewayPort;
+            this.persistencePort = gatewayPort;
         }
-        // HTTP/1.1
-        request = new DefaultFullHttpRequest(
-                HTTP_1_1,
-                GET,
-                "",
-                Unpooled.EMPTY_BUFFER
-        );
-        request.headers().set(HttpHeaderNames.HOST, this.gatewayHost);
-        request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-        request.headers().set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
-        request.headers().set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    public FullHttpResponse handle(HttpRequest header, ByteBuf body, LastHttpContent trailer) {
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(header.uri());
+    public Http3Response handle(Http3Headers headers, ByteBuf body) {
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(headers.path().toString());
         Map<String, List<String>> params = queryStringDecoder.parameters();
-        String method = header.method().name();
+        String method = headers.method().toString();
         String path = queryStringDecoder.path();
-        String cookieValue = header.headers().get(HttpHeaderNames.COOKIE);
+        String cookieValue = headers.get(HttpHeaderNames.COOKIE) != null
+                ? headers.get(HttpHeaderNames.COOKIE).toString() : null;
         SessionData sessionData = CookieUtil.decodeCookie(cookieValue);
 
         // Select endpoint
@@ -96,27 +88,27 @@ public class Http1AuthAPI implements API {
                                 Long productId = Long.parseLong(params.get("productid").get(0));
                                 return addProductToCart(sessionData, productId);
                             } else {
-                                return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                                return Http3Response.badRequestResponse();
                             }
                         case "/cart/remove":
                             if (params.containsKey("productid")) {
                                 Long productId = Long.parseLong(params.get("productid").get(0));
                                 return removeProductFromCart(sessionData, productId);
                             } else {
-                                return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                                return Http3Response.badRequestResponse();
                             }
                         case "/useractions/placeorder":
                             if (body != null) {
                                 return placeOrder(sessionData, body);
                             }
-                            return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                            return Http3Response.badRequestResponse();
                         case "/useractions/login":
                             if (params.containsKey("name") && params.containsKey("password")) {
                                 String name = params.get("name").get(0);
                                 String password = params.get("password").get(0);
                                 return login(sessionData, name, password);
                             } else {
-                                return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                                return Http3Response.badRequestResponse();
                             }
                         case "/useractions/logout":
                             return logout(sessionData);
@@ -131,14 +123,14 @@ public class Http1AuthAPI implements API {
                                 Integer quantity = Integer.parseInt(params.get("quantity").get(0));
                                 return updateQuantity(sessionData, productId, quantity);
                             } else {
-                                return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                                return Http3Response.badRequestResponse();
                             }
                     }
                 default:
                     break;
             }
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+        return Http3Response.notFoundResponse();
     }
 
     /**
@@ -151,19 +143,23 @@ public class Http1AuthAPI implements API {
      * @param productId Product id
      * @return Updated session data
      */
-    private FullHttpResponse addProductToCart(SessionData sessionData, Long productId) {
+    private Http3Response addProductToCart(SessionData sessionData, Long productId) {
         Product product = null;
         // GET api/persistence/products?id=productId
         String persistenceEndpointProduct = PERSISTENCE_ENDPOINT + "/products?id=" + productId;
         try {
-            request.setUri(persistenceEndpointProduct);
-            request.setMethod(GET);
+            http2HeadersFrame = new DefaultHttp3HeadersFrame(
+                    Http3Response.getHeader(
+                            gatewayHost,
+                            persistenceEndpointProduct
+                    )
+            );
             // Create client and send request
-            httpClient = new Http1Client(gatewayHost, persistencePort, request);
-            httpHandler = new Http1ClientHandler();
-            httpClient.sendRequest(httpHandler);
-            if (!httpHandler.jsonContent.isEmpty()) {
-                product = mapper.readValue(httpHandler.jsonContent, Product.class);
+            httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+            frameHandler = new Http3ClientStreamInboundHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                product = mapper.readValue(frameHandler.jsonContent, Product.class);
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
@@ -214,16 +210,15 @@ public class Http1AuthAPI implements API {
                 );
                 data = new ShaSecurityProvider().secure(data);
                 String json = mapper.writeValueAsString(data);
-                return new DefaultFullHttpResponse(
-                        HTTP_1_1,
-                        HttpResponseStatus.OK,
+                return new Http3Response(
+                        Http3Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
     /**
@@ -235,7 +230,7 @@ public class Http1AuthAPI implements API {
      * @param productId Product id
      * @return Updated session data
      */
-    private FullHttpResponse removeProductFromCart(SessionData sessionData, Long productId) {
+    private Http3Response removeProductFromCart(SessionData sessionData, Long productId) {
         OrderItem toRemove = null;
         try {
             for (OrderItem item : sessionData.orderItems()) {
@@ -247,18 +242,17 @@ public class Http1AuthAPI implements API {
                 sessionData.orderItems().remove(toRemove);
                 SessionData data = new ShaSecurityProvider().secure(sessionData);
                 String json = mapper.writeValueAsString(data);
-                return new DefaultFullHttpResponse(
-                        HTTP_1_1,
-                        HttpResponseStatus.OK,
+                return new Http3Response(
+                        Http3Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             } else {
-                return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+                return Http3Response.notFoundResponse();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
     /**
@@ -271,7 +265,7 @@ public class Http1AuthAPI implements API {
      * @param quantity New quantity
      * @return Updated session data
      */
-    private FullHttpResponse updateQuantity(SessionData sessionData, Long productId, Integer quantity) {
+    private Http3Response updateQuantity(SessionData sessionData, Long productId, Integer quantity) {
         try {
             for (OrderItem item : sessionData.orderItems()) {
                 if (item.productId().equals(productId)) {
@@ -286,18 +280,17 @@ public class Http1AuthAPI implements API {
                     sessionData.orderItems().set(index, newItem);
                     SessionData data = new ShaSecurityProvider().secure(sessionData);
                     String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            HTTP_1_1,
-                            HttpResponseStatus.OK,
+                    return new Http3Response(
+                            Http3Response.okJsonHeader(json.length()),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
             }
-            return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+            return Http3Response.notFoundResponse();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
     /**
@@ -309,7 +302,7 @@ public class Http1AuthAPI implements API {
      * @param body Order as JSON
      * @return Updated session data
      */
-    private FullHttpResponse placeOrder(SessionData sessionData, ByteBuf body) {
+    private Http3Response placeOrder(SessionData sessionData, ByteBuf body) {
         Order orderData = null;
         byte[] jsonByte = new byte[body.readableBytes()];
         body.readBytes(jsonByte);
@@ -318,9 +311,8 @@ public class Http1AuthAPI implements API {
         // POST api/persistence/orderitems
         String persistenceEndpointCreateOrderItem = PERSISTENCE_ENDPOINT + "/orderitems";
         if (new ShaSecurityProvider().validate(sessionData) == null || sessionData.orderItems().isEmpty()) {
-            return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+            return Http3Response.notFoundResponse();
         }
-
         try {
             long totalPrice = 0;
             for (OrderItem item : sessionData.orderItems()) {
@@ -342,20 +334,20 @@ public class Http1AuthAPI implements API {
             Long orderId = null;
             String orderJson = mapper.writeValueAsString(newOrder);
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
-            FullHttpRequest postOrderRequest = new DefaultFullHttpRequest(
-                    HTTP_1_1,
-                    POST,
-                    persistenceEndpointCreateOrder,
-                    Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8)
+            http2HeadersFrame = new DefaultHttp3HeadersFrame(
+                    Http3Response.postContentHeader(
+                            gatewayHost,
+                            persistenceEndpointCreateOrder,
+                            String.valueOf(postOrderBody.readableBytes())
+                    )
             );
-            postOrderRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, postOrderBody.readableBytes());
-            postOrderRequest.headers().setAll(request.headers());
+            http2DataFrame = new DefaultHttp3DataFrame(postOrderBody);
             // Create client and send request
-            httpClient = new Http1Client(gatewayHost, persistencePort, postOrderRequest);
-            httpHandler = new Http1ClientHandler();
-            httpClient.sendRequest(httpHandler);
-            if (!httpHandler.jsonContent.isEmpty()) {
-                orderId = mapper.readValue(httpHandler.jsonContent, Order.class).id();
+            httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
+            frameHandler = new Http3ClientStreamInboundHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                orderId = mapper.readValue(frameHandler.jsonContent, Order.class).id();
                 for (OrderItem item : sessionData.orderItems()) {
                     OrderItem orderItem = new OrderItem(
                             item.id(),
@@ -366,20 +358,20 @@ public class Http1AuthAPI implements API {
                     );
                     String orderItemJson = mapper.writeValueAsString(orderItem);
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
-                    FullHttpRequest postOrderItemRequest = new DefaultFullHttpRequest(
-                            HTTP_1_1,
-                            POST,
-                            persistenceEndpointCreateOrderItem,
-                            Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8)
+                    http2HeadersFrame = new DefaultHttp3HeadersFrame(
+                            Http3Response.postContentHeader(
+                                    gatewayHost,
+                                    persistenceEndpointCreateOrderItem,
+                                    String.valueOf(postOrderItemBody.readableBytes())
+                            )
                     );
-                    postOrderItemRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, postOrderItemBody.readableBytes());
-                    postOrderItemRequest.headers().setAll(request.headers());
+                    http2DataFrame = new DefaultHttp3DataFrame(postOrderItemBody);
                     // Create client and send request
-                    httpClient = new Http1Client(gatewayHost, persistencePort, postOrderItemRequest);
-                    httpHandler = new Http1ClientHandler();
-                    httpClient.sendRequest(httpHandler);
-                    if (httpHandler.jsonContent.isEmpty()) {
-                        return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                    httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, http2DataFrame);
+                    frameHandler= new Http3ClientStreamInboundHandler();
+                    httpClient.sendRequest(frameHandler);
+                    if (frameHandler.jsonContent.isEmpty()) {
+                        return Http3Response.badRequestResponse();
                     }
                     sessionData.orderItems().clear();
                     SessionData data = new SessionData(
@@ -403,9 +395,8 @@ public class Http1AuthAPI implements API {
                     );
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            HTTP_1_1,
-                            HttpResponseStatus.OK,
+                    return new Http3Response(
+                            Http3Response.okJsonHeader(json.length()),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
@@ -413,7 +404,7 @@ public class Http1AuthAPI implements API {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
     /**
@@ -426,21 +417,25 @@ public class Http1AuthAPI implements API {
      * @param password User password
      * @return Updated session data
      */
-    private FullHttpResponse login(SessionData sessionData, String name, String password) {
+    private Http3Response login(SessionData sessionData, String name, String password) {
         User user = null;
         // GET api/persistence/users/name?name=name
         String persistenceEndpointUser = PERSISTENCE_ENDPOINT + "/users/name?name=" + name;
         try {
-            request.setUri(persistenceEndpointUser);
-            request.setMethod(GET);
+            http2HeadersFrame = new DefaultHttp3HeadersFrame(
+                    Http3Response.getHeader(
+                            gatewayHost,
+                            persistenceEndpointUser
+                    )
+            );
             // Create client and send request
-            httpClient = new Http1Client(gatewayHost, persistencePort, request);
-            httpHandler = new Http1ClientHandler();
-            httpClient.sendRequest(httpHandler);
-            if (!httpHandler.jsonContent.isEmpty()) {
-                user = mapper.readValue(httpHandler.jsonContent, User.class);
+            httpClient = new Http3Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+            frameHandler = new Http3ClientStreamInboundHandler();
+            httpClient.sendRequest(frameHandler);
+            if (!frameHandler.jsonContent.isEmpty()) {
+                user = mapper.readValue(frameHandler.jsonContent, User.class);
                 if(user == null) {
-                    return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+                    return Http3Response.notFoundResponse();
                 } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
                             user.id(),
@@ -452,19 +447,18 @@ public class Http1AuthAPI implements API {
                     );
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
-                    return new DefaultFullHttpResponse(
-                            HTTP_1_1,
-                            HttpResponseStatus.OK,
+                    return new Http3Response(
+                            Http3Response.okJsonHeader(json.length()),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 } else {
-                    return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                    return Http3Response.badRequestResponse();
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
     /**
@@ -475,7 +469,7 @@ public class Http1AuthAPI implements API {
      * @param sessionData Session data from the current user
      * @return Updated session data
      */
-    private FullHttpResponse logout(SessionData sessionData) {
+    private Http3Response logout(SessionData sessionData) {
         try {
             sessionData.orderItems().clear();
             SessionData data = new SessionData(
@@ -498,15 +492,14 @@ public class Http1AuthAPI implements API {
                     sessionData.message()
             );
             String json = mapper.writeValueAsString(data);
-            return new DefaultFullHttpResponse(
-                    HTTP_1_1,
-                    HttpResponseStatus.OK,
+            return new Http3Response(
+                    Http3Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
     /**
@@ -517,19 +510,18 @@ public class Http1AuthAPI implements API {
      * @param sessionData Session data from the current user
      * @return Updated session data
      */
-    private FullHttpResponse isLoggedIn(SessionData sessionData) {
+    private Http3Response isLoggedIn(SessionData sessionData) {
         SessionData data = new ShaSecurityProvider().validate(sessionData);
         try {
             String json = mapper.writeValueAsString(data);
-            return new DefaultFullHttpResponse(
-                    HTTP_1_1,
-                    HttpResponseStatus.OK,
+            return new Http3Response(
+                    Http3Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 
 
@@ -540,17 +532,16 @@ public class Http1AuthAPI implements API {
      *
      * @return True
      */
-    private FullHttpResponse isReady() {
+    private Http3Response isReady() {
         try {
             String json = mapper.writeValueAsString(Boolean.TRUE);
-            return new DefaultFullHttpResponse(
-                    HTTP_1_1,
-                    HttpResponseStatus.OK,
+            return new Http3Response(
+                    Http3Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+        return Http3Response.internalServerErrorResponse();
     }
 }

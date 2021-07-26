@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * API for image service
+ * HTTP/2 API for image service
  * /api/image
  *
  * @author Philipp Backes

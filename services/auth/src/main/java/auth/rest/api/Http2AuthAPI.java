@@ -34,7 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * API for auth service
+ * HTTP/2 API for auth service
  * /api/auth
  *
  * @author Philipp Backes
