@@ -31,7 +31,7 @@ import utilities.rest.api.Http3Response;
 public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
 
     private Http3Headers headers;
-    private ByteBuf body;
+    private ByteBuf body = Unpooled.EMPTY_BUFFER;
     private final Http3ImageAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3ImageServiceHandler.class);
 

@@ -36,7 +36,7 @@ import web.rest.api.Http2WebAPI;
 public class Http2WebServiceHandler extends ChannelDuplexHandler {
 
     private Http2Headers headers;
-    private ByteBuf body;
+    private ByteBuf body = Unpooled.EMPTY_BUFFER;
     private final Http2WebAPI api;
     private static final Logger LOG = LogManager.getLogger(Http2WebServiceHandler.class);
 

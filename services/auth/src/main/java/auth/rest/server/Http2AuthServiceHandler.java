@@ -36,7 +36,7 @@ import utilities.rest.api.Http2Response;
 public class Http2AuthServiceHandler extends ChannelDuplexHandler {
 
     private Http2Headers headers;
-    private ByteBuf body;
+    private ByteBuf body = Unpooled.EMPTY_BUFFER;
     private final Http2AuthAPI api;
     private static final Logger LOG = LogManager.getLogger(Http2AuthServiceHandler.class);
 
