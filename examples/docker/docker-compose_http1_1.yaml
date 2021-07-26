@@ -4,8 +4,11 @@ services:
   gateway:
     # The official v2 Traefik docker image
     image: traefik:v2.5
-    # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker=true --entryPoints.http.address=:80
+    # Traefik configuration
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entryPoints.http1.address=:80"
     ports:
       # The HTTP port
       - "80:80"
@@ -34,8 +37,11 @@ services:
       DB_PORT: "3306"
     labels:
       - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.persistence.entrypoints=http1"
+      - "traefik.http.routers.persistence.tls=false"
+      - "traefik.http.routers.persistence.service=persistence"
+      - "traefik.http.services.persistence.loadbalancer.server.port=80"
+      - "traefik.http.services.persistence.loadbalancer.server.scheme=http"
   auth:
     image: tvsjsdock/teastore-auth:v2
     depends_on:
@@ -48,8 +54,11 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.auth.entrypoints=http1"
+      - "traefik.http.routers.auth.tls=false"
+      - "traefik.http.routers.auth.service=auth"
+      - "traefik.http.services.auth.loadbalancer.server.port=80"
+      - "traefik.http.services.auth.loadbalancer.server.scheme=http"
   web:
     image: tvsjsdock/teastore-web:v2
     depends_on:
@@ -62,8 +71,11 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.web.entrypoints=http1"
+      - "traefik.http.routers.web.tls=false"
+      - "traefik.http.routers.web.service=web"
+      - "traefik.http.services.web.loadbalancer.server.port=80"
+      - "traefik.http.services.web.loadbalancer.server.scheme=http"
   image:
     image: tvsjsdock/teastore-image:v2
     depends_on:
@@ -76,8 +88,11 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.image.entrypoints=http1"
+      - "traefik.http.routers.image.tls=false"
+      - "traefik.http.routers.image.service=image"
+      - "traefik.http.services.image.loadbalancer.server.port=80"
+      - "traefik.http.services.image.loadbalancer.server.scheme=http"
   recommender:
     image: tvsjsdock/teastore-recommender:v2
     depends_on:
@@ -90,5 +105,8 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
+      - "traefik.http.routers.recommender.entrypoints=http1"
+      - "traefik.http.routers.recommender.tls=false"
+      - "traefik.http.routers.recommender.service=recommender"
+      - "traefik.http.services.recommender.loadbalancer.server.port=80"
+      - "traefik.http.services.recommender.loadbalancer.server.scheme=http"

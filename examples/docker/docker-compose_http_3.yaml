@@ -4,10 +4,16 @@ services:
   gateway:
     # The official v2 Traefik docker image
     image: traefik:v2.5
-    # Enables the web UI and tells Traefik to listen to docker
-    command: --api.insecure=true --providers.docker=true --serversTransport.insecureSkipVerify=true --entryPoints.https.address=:4433 --entryPoints.https.enableHTTP3=true
+    # Traefik configuration
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--experimental.http3=true"
+      - "--serversTransport.insecureSkipVerify=true"
+      - "--entryPoints.http3.address=:4433"
+      - "--entrypoints.http3.enablehttp3=true"
     ports:
-      # The HTTPS port
+      # HTTP/3 ports
       - "4433:4433/tcp"
       - "4433:4433/udp"
       # The Web UI (enabled by --api.insecure=true)
@@ -36,7 +42,7 @@ services:
       DB_PORT: "3306"
     labels:
       - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
-      - "traefik.http.routers.persistence.entrypoints=https"
+      - "traefik.http.routers.persistence.entrypoints=http3"
       - "traefik.http.routers.persistence.tls=true"
       - "traefik.http.routers.persistence.service=persistence"
       - "traefik.http.services.persistence.loadbalancer.server.port=4433"
@@ -54,7 +60,7 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
-      - "traefik.http.routers.auth.entrypoints=https"
+      - "traefik.http.routers.auth.entrypoints=http3"
       - "traefik.http.routers.auth.tls=true"
       - "traefik.http.routers.auth.service=auth"
       - "traefik.http.services.auth.loadbalancer.server.port=4433"
@@ -71,8 +77,8 @@ services:
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
     labels:
-      - "traefik.http.routers.web.rule=Host(`gateway`) && PathPrefix(`/api/web`)"
-      - "traefik.http.routers.web.entrypoints=https"
+      - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+      - "traefik.http.routers.web.entrypoints=http3"
       - "traefik.http.routers.web.tls=true"
       - "traefik.http.routers.web.service=web"
       - "traefik.http.services.web.loadbalancer.server.port=4433"
@@ -90,7 +96,7 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
-      - "traefik.http.routers.image.entrypoints=https"
+      - "traefik.http.routers.image.entrypoints=http3"
       - "traefik.http.routers.image.tls=true"
       - "traefik.http.routers.image.service=image"
       - "traefik.http.services.image.loadbalancer.server.port=4433"
@@ -108,7 +114,7 @@ services:
       GATEWAY_HOST: "gateway"
     labels:
       - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
-      - "traefik.http.routers.recommender.entrypoints=https"
+      - "traefik.http.routers.recommender.entrypoints=http3"
       - "traefik.http.routers.recommender.tls=true"
       - "traefik.http.routers.recommender.service=recommender"
       - "traefik.http.services.recommender.loadbalancer.server.port=4433"
