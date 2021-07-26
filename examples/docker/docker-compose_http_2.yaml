@@ -2,9 +2,9 @@ version: '3.9'
 
 services:
   gateway:
-    # The official v2 Traefik docker image
-    image: traefik:v2.5
-    # Traefik configuration
+    # Traefik v2.5
+    image: traefik:v2.5.0-rc3
+    # Configuration
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"

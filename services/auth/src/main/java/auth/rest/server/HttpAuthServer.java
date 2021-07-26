@@ -176,10 +176,15 @@ public class HttpAuthServer {
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
                                                         new Http3AuthServiceHandler(gatewayHost, gatewayPort));
+                                                streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },
-                                        pushStreamManager.controlStreamListener(), null,
-                                        null, false));
+                                        pushStreamManager.controlStreamListener(),
+                                        null,
+                                        null,
+                                        false
+                                ));
+                                quicChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                             }
                         }).build();
                 // Configure the server

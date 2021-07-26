@@ -3,7 +3,6 @@
 .metadata
 .settings
 .recommenders
-services/tools.descartes.petstore.image/test/
 limbo_checkstyle.out.xml
 .idea
 *.iml
@@ -12,3 +11,4 @@ target
 *.jar
 .factorypath
 images
+*.log
