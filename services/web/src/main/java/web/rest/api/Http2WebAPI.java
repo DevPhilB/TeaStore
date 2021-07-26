@@ -425,7 +425,7 @@ public class Http2WebAPI implements API {
                     http2HeadersFrame = new DefaultHttp2HeadersFrame(
                             Http2Response.putHeader(
                                     gatewayHost,
-                                    authEndpointRemove
+                                    authEndpointUpdate
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
                             true
                     );
@@ -1020,7 +1020,7 @@ public class Http2WebAPI implements API {
                             true
                     );
                     // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
                     frameHandler = new Http2ClientStreamFrameHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {

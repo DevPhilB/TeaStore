@@ -229,7 +229,7 @@ public enum SetupController {
       case "HTTP/3":
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
                 Http3Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + persistencePort,
                         persistenceEndpointProducts
                 )
         );
@@ -310,7 +310,7 @@ public enum SetupController {
       case "HTTP/3":
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
                 Http3Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + persistencePort,
                         persistenceEndpointCategories
                 )
         );

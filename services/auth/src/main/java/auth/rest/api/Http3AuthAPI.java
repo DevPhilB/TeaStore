@@ -150,7 +150,7 @@ public class Http3AuthAPI implements API {
         try {
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointProduct
                     )
             );
@@ -336,7 +336,7 @@ public class Http3AuthAPI implements API {
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.postContentHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointCreateOrder,
                             String.valueOf(postOrderBody.readableBytes())
                     )
@@ -360,7 +360,7 @@ public class Http3AuthAPI implements API {
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.postContentHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + persistencePort,
                                     persistenceEndpointCreateOrderItem,
                                     String.valueOf(postOrderItemBody.readableBytes())
                             )
@@ -424,7 +424,7 @@ public class Http3AuthAPI implements API {
         try {
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointUser
                     )
             );

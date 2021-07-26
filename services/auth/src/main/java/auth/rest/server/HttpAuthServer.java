@@ -34,6 +34,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import static utilities.rest.api.API.DEFAULT_AUTH_PORT;
@@ -190,13 +191,13 @@ public class HttpAuthServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(DEFAULT_AUTH_PORT).sync().channel();
+                                .bind(new InetSocketAddress(DEFAULT_AUTH_PORT)).sync().channel();
                         status += "localhost:" + DEFAULT_AUTH_PORT + AUTH_ENDPOINT;
                     } else {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(gatewayPort).sync().channel();
+                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
                         status += "auth:" + gatewayPort + AUTH_ENDPOINT;
                     }
                     LOG.info(status);

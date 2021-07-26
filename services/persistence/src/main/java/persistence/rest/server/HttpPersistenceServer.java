@@ -36,6 +36,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import static utilities.rest.api.API.DEFAULT_PERSISTENCE_PORT;
@@ -192,13 +193,13 @@ public class HttpPersistenceServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(DEFAULT_PERSISTENCE_PORT).sync().channel();
+                                .bind(new InetSocketAddress(DEFAULT_PERSISTENCE_PORT)).sync().channel();
                         status += "localhost:" + DEFAULT_PERSISTENCE_PORT + PERSISTENCE_ENDPOINT;
                     } else {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(gatewayPort).sync().channel();
+                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
                         status += "persistence:" + gatewayPort + PERSISTENCE_ENDPOINT;
                     }
                     LOG.info(status);

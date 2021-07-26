@@ -58,32 +58,32 @@ public record Http3Response(
                 .set(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(contentLength));
     }
 
-    public static Http3Headers getHeader(String gatewayHost, String endpoint) {
+    public static Http3Headers getHeader(String authority, String endpoint) {
         return new DefaultHttp3Headers().scheme(HTTPS)
-                .method(GET.asciiName()).path(endpoint).authority(gatewayHost)
+                .method(GET.asciiName()).path(endpoint).authority(authority)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    public static Http3Headers postHeader(String gatewayHost, String endpoint) {
+    public static Http3Headers postHeader(String authority, String endpoint) {
         return new DefaultHttp3Headers().scheme(HTTPS)
-                .method(POST.asciiName()).path(endpoint).authority(gatewayHost)
+                .method(POST.asciiName()).path(endpoint).authority(authority)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    public static Http3Headers postContentHeader(String gatewayHost, String endpoint, String contentLength) {
+    public static Http3Headers postContentHeader(String authority, String endpoint, String contentLength) {
         return new DefaultHttp3Headers().scheme(HTTPS)
-                .method(POST.asciiName()).path(endpoint).authority(gatewayHost)
+                .method(POST.asciiName()).path(endpoint).authority(authority)
                 .set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.CONTENT_LENGTH, contentLength)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
 
-    public static Http3Headers putHeader(String gatewayHost, String endpoint) {
+    public static Http3Headers putHeader(String authority, String endpoint) {
         return new DefaultHttp3Headers().scheme(HTTPS)
-                .method(PUT.asciiName()).path(endpoint).authority(gatewayHost)
+                .method(PUT.asciiName()).path(endpoint).authority(authority)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }

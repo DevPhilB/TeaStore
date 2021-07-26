@@ -29,7 +29,7 @@ import org.apache.logging.log4j.Logger;
 public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHandler {
 
     public String jsonContent = "";
-    private static final Logger LOG = LogManager.getLogger(Http2ClientStreamFrameHandler.class);
+    private static final Logger LOG = LogManager.getLogger(Http3ClientStreamInboundHandler.class);
 
     @Override
     public void channelReadComplete(ChannelHandlerContext context) {

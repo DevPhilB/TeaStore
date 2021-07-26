@@ -193,7 +193,7 @@ public class Http3WebAPI implements API {
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
                 Http3Response.postContentHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + imagePort,
                         imageEndpoint,
                         String.valueOf(postBody.readableBytes())
                 )
@@ -221,7 +221,7 @@ public class Http3WebAPI implements API {
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
                 Http3Response.postContentHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + imagePort,
                         imageEndpoint,
                         String.valueOf(postBody.readableBytes())
                 )
@@ -244,7 +244,7 @@ public class Http3WebAPI implements API {
         List<Category> categories = new ArrayList<>();
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
                 Http3Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + persistencePort,
                         persistenceEndpointCategories
                 )
         );
@@ -265,7 +265,7 @@ public class Http3WebAPI implements API {
         SessionData newSessionData = null;
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
                 Http3Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + authPort,
                         authEndpoint
                 ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
         );
@@ -331,7 +331,7 @@ public class Http3WebAPI implements API {
             );
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + authPort,
                             authEndpoint
                     ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
             );
@@ -385,7 +385,7 @@ public class Http3WebAPI implements API {
                 case "addtocart":
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.postHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointAdd
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
                     );
@@ -403,7 +403,7 @@ public class Http3WebAPI implements API {
                 case "removeproduct":
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.postHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointRemove
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
                     );
@@ -421,8 +421,8 @@ public class Http3WebAPI implements API {
                 case "updatecartquantities":
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.putHeader(
-                                    gatewayHost,
-                                    authEndpointRemove
+                                    gatewayHost + ":" + authPort,
+                                    authEndpointUpdate
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
                     );
                     // Create client and send request
@@ -439,7 +439,7 @@ public class Http3WebAPI implements API {
                 case "proceedtocheckout":
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.getHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointCheck
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
                     );
@@ -479,7 +479,7 @@ public class Http3WebAPI implements API {
         try {
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.postContentHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + authPort,
                             authEndpointPlaceOrder,
                             String.valueOf(body.readableBytes())
                     ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
@@ -540,7 +540,7 @@ public class Http3WebAPI implements API {
             for (Long id : ids) {
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.getHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + persistencePort,
                                 persistenceEndpointProducts + "?id=" + id
                         )
                 );
@@ -584,7 +584,7 @@ public class Http3WebAPI implements API {
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.postContentHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + recommenderPort,
                                 recommenderEndpoint + "?userid=" + sessionData.userId(),
                                 String.valueOf(postOrderItemsBody.readableBytes())
                         )
@@ -609,7 +609,7 @@ public class Http3WebAPI implements API {
                 productImageSizeMap.put(productId, imageProductPreviewSize);
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.getHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + persistencePort,
                                 persistenceEndpointProducts + "?id=" + productId
                         )
                 );
@@ -708,7 +708,7 @@ public class Http3WebAPI implements API {
             int products = 0;
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointProducts
                     )
             );
@@ -733,7 +733,7 @@ public class Http3WebAPI implements API {
             List<Product> productList = new ArrayList<>();
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointCategoryProducts
                     )
             );
@@ -819,7 +819,7 @@ public class Http3WebAPI implements API {
         try {
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpoint
                     )
             );
@@ -1002,12 +1002,12 @@ public class Http3WebAPI implements API {
                     authEndpointLogin += username + "&password=" + password;
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.postHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointLogin
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
                     );
                     // Create client and send request
-                    httpClient = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                    httpClient = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
                     frameHandler = new Http3ClientStreamInboundHandler();
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
@@ -1017,7 +1017,7 @@ public class Http3WebAPI implements API {
                 case "logout":
                     http3HeadersFrame = new DefaultHttp3HeadersFrame(
                             Http3Response.postHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointLogout
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
                     );
@@ -1185,7 +1185,7 @@ public class Http3WebAPI implements API {
             Product product = null;
             http3HeadersFrame = new DefaultHttp3HeadersFrame(
                     Http3Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointProducts + "?id=" + productId
                     )
             );
@@ -1223,7 +1223,7 @@ public class Http3WebAPI implements API {
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.postContentHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + recommenderPort,
                                 recommenderEndpoint + "?userid=" + sessionData.userId(),
                                 String.valueOf(postOrderItemsBody.readableBytes())
                         )
@@ -1248,7 +1248,7 @@ public class Http3WebAPI implements API {
                 productImageSizeMap.put(id, imageProductPreviewSize);
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.getHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + persistencePort,
                                 persistenceEndpointProducts + "?id=" + id
                         )
                 );
@@ -1344,7 +1344,7 @@ public class Http3WebAPI implements API {
                 Long userId = newSessionData.userId();
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.getHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + persistencePort,
                                 persistenceEndpointUsers + userId
                         )
                 );
@@ -1359,7 +1359,7 @@ public class Http3WebAPI implements API {
                 List<Order> orders = new ArrayList<>();
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
                         Http3Response.getHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + persistencePort,
                                 persistenceEndpointUserOrders + userId + "&start=-1&max=-1"
                         )
                 );

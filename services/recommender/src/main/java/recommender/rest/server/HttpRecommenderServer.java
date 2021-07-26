@@ -37,6 +37,7 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import recommender.algorithm.TrainingSynchronizer;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import static utilities.rest.api.API.DEFAULT_RECOMMENDER_PORT;
@@ -200,13 +201,13 @@ public class HttpRecommenderServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(DEFAULT_RECOMMENDER_PORT).sync().channel();
+                                .bind(new InetSocketAddress(DEFAULT_RECOMMENDER_PORT)).sync().channel();
                         status += "localhost:" + DEFAULT_RECOMMENDER_PORT + RECOMMENDER_ENDPOINT;
                     } else {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(gatewayPort).sync().channel();
+                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
                         status += "recommender:" + gatewayPort + RECOMMENDER_ENDPOINT;
                     }
                     LOG.info(status);

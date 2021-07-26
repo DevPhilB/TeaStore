@@ -9,8 +9,8 @@ services:
       - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--experimental.http3=true"
       - "--serversTransport.insecureSkipVerify=true"
+      - "--experimental.http3=true"
       - "--entryPoints.http3.address=:4433"
       - "--entrypoints.http3.enablehttp3=true"
     ports:

@@ -288,7 +288,7 @@ public final class TrainingSynchronizer {
 				try {
 					http3HeadersFrame = new DefaultHttp3HeadersFrame(
 							Http3Response.getHeader(
-									gatewayHost,
+									gatewayHost + ":" + persistencePort,
 									persistenceEndpointOrderItems
 							)
 					);
@@ -312,7 +312,7 @@ public final class TrainingSynchronizer {
 				try {
 					http3HeadersFrame = new DefaultHttp3HeadersFrame(
 							Http3Response.getHeader(
-									gatewayHost,
+									gatewayHost + ":" + persistencePort,
 									persistenceEndpointOrders
 							)
 					);

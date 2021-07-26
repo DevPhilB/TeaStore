@@ -37,6 +37,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import static utilities.rest.api.API.DEFAULT_IMAGE_PORT;
@@ -199,13 +200,13 @@ public class HttpImageServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(DEFAULT_IMAGE_PORT).sync().channel();
+                                .bind(new InetSocketAddress(DEFAULT_IMAGE_PORT)).sync().channel();
                         status += "localhost:" + DEFAULT_IMAGE_PORT + IMAGE_ENDPOINT;
                     } else {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(gatewayPort).sync().channel();
+                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
                         status += "image:" + gatewayPort + IMAGE_ENDPOINT;
                     }
                     LOG.info(status);
