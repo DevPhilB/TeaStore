@@ -185,7 +185,8 @@ public class HttpRecommenderServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3RecommenderServiceHandler(gatewayHost, gatewayPort));
+                                                        new Http3RecommenderServiceHandler(gatewayHost, gatewayPort)
+                                                                .setStreamChannel(streamChannel));
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },

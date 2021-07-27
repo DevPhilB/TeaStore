@@ -35,6 +35,13 @@ public class Http3RecommenderServiceHandler extends Http3RequestStreamInboundHan
     private final Http3RecommenderAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3RecommenderServiceHandler.class);
 
+    private QuicStreamChannel streamChannel;
+
+    public Http3RecommenderServiceHandler setStreamChannel(QuicStreamChannel streamChannel) {
+        this.streamChannel = streamChannel;
+        return this;
+    }
+
     public Http3RecommenderServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http3RecommenderAPI(gatewayHost, gatewayPort);
     }
@@ -79,5 +86,6 @@ public class Http3RecommenderServiceHandler extends Http3RequestStreamInboundHan
             context.writeAndFlush(new DefaultHttp3DataFrame(response.body()))
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
+        streamChannel.close();
     }
 }

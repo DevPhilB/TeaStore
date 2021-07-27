@@ -179,7 +179,8 @@ public class HttpWebServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3WebServiceHandler(gatewayHost, gatewayPort));
+                                                        new Http3WebServiceHandler(gatewayHost, gatewayPort)
+                                                                .setStreamChannel(streamChannel));
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },

@@ -175,7 +175,8 @@ public class HttpAuthServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3AuthServiceHandler(gatewayHost, gatewayPort));
+                                                        new Http3AuthServiceHandler(gatewayHost, gatewayPort)
+                                                                .setStreamChannel(streamChannel));
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },

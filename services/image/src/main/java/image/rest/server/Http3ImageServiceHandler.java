@@ -35,6 +35,13 @@ public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
     private final Http3ImageAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3ImageServiceHandler.class);
 
+    private QuicStreamChannel streamChannel;
+
+    public Http3ImageServiceHandler setStreamChannel(QuicStreamChannel streamChannel) {
+        this.streamChannel = streamChannel;
+        return this;
+    }
+
     public Http3ImageServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http3ImageAPI(gatewayHost, gatewayPort);
     }
@@ -79,5 +86,6 @@ public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
             context.writeAndFlush(new DefaultHttp3DataFrame(response.body()))
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
+        streamChannel.close();
     }
 }

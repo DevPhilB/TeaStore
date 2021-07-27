@@ -35,6 +35,13 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
     private final Http3WebAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3WebServiceHandler.class);
 
+    private QuicStreamChannel streamChannel;
+
+    public Http3WebServiceHandler setStreamChannel(QuicStreamChannel streamChannel) {
+        this.streamChannel = streamChannel;
+        return this;
+    }
+
     public Http3WebServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http3WebAPI(gatewayHost, gatewayPort);
     }
@@ -79,5 +86,6 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
             context.writeAndFlush(new DefaultHttp3DataFrame(response.body()))
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
+        streamChannel.close();
     }
 }
