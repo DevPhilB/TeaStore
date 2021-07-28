@@ -178,7 +178,7 @@ public class HttpPersistenceServer {
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
                                                         new Http3PersistenceServiceHandler(gatewayHost, gatewayPort)
-                                                                .setStreamChannel(streamChannel));
+                                                );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },

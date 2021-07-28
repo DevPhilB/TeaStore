@@ -56,10 +56,10 @@ public class Http2WebAPI implements API {
         mapper = new ObjectMapper();
         if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
-            authPort = API.DEFAULT_AUTH_PORT;
-            imagePort = API.DEFAULT_IMAGE_PORT;
-            persistencePort = API.DEFAULT_PERSISTENCE_PORT;
-            recommenderPort = API.DEFAULT_RECOMMENDER_PORT;
+            authPort = DEFAULT_AUTH_PORT;
+            imagePort = DEFAULT_IMAGE_PORT;
+            persistencePort = DEFAULT_PERSISTENCE_PORT;
+            recommenderPort = DEFAULT_RECOMMENDER_PORT;
         } else {
             this.gatewayHost = gatewayHost;
             imagePort = gatewayPort;

@@ -180,7 +180,7 @@ public class HttpWebServer {
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
                                                         new Http3WebServiceHandler(gatewayHost, gatewayPort)
-                                                                .setStreamChannel(streamChannel));
+                                                );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },

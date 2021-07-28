@@ -35,13 +35,6 @@ public class Http3AuthServiceHandler extends Http3RequestStreamInboundHandler {
     private final Http3AuthAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3AuthServiceHandler.class);
 
-    private QuicStreamChannel streamChannel;
-
-    public Http3AuthServiceHandler setStreamChannel(QuicStreamChannel streamChannel) {
-        this.streamChannel = streamChannel;
-        return this;
-    }
-
     public Http3AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http3AuthAPI(gatewayHost, gatewayPort);
     }
@@ -86,6 +79,5 @@ public class Http3AuthServiceHandler extends Http3RequestStreamInboundHandler {
             context.writeAndFlush(new DefaultHttp3DataFrame(response.body()))
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
-        streamChannel.close();
     }
 }

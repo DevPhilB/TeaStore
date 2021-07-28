@@ -35,13 +35,6 @@ public class Http3PersistenceServiceHandler extends Http3RequestStreamInboundHan
     private final Http3PersistenceAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3PersistenceServiceHandler.class);
 
-    private QuicStreamChannel streamChannel;
-
-    public Http3PersistenceServiceHandler setStreamChannel(QuicStreamChannel streamChannel) {
-        this.streamChannel = streamChannel;
-        return this;
-    }
-
     public Http3PersistenceServiceHandler(String gatewayHost, Integer gatewayPort) {
         api = new Http3PersistenceAPI(gatewayHost, gatewayPort);
     }
@@ -86,6 +79,5 @@ public class Http3PersistenceServiceHandler extends Http3RequestStreamInboundHan
             context.writeAndFlush(new DefaultHttp3DataFrame(response.body()))
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
-        streamChannel.close();
     }
 }

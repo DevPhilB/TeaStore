@@ -185,7 +185,7 @@ public class HttpImageServer {
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
                                                         new Http3ImageServiceHandler(gatewayHost, gatewayPort)
-                                                                .setStreamChannel(streamChannel));
+                                                );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },
