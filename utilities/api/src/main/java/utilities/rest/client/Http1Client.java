@@ -65,7 +65,7 @@ public class Http1Client {
             // Wait until the connection is closed
             channel.closeFuture().sync();
         } catch(InterruptedException e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         } finally {
             group.shutdownGracefully();
         }

@@ -109,7 +109,7 @@ public final class TrainingSynchronizer {
 	) {
 		this.httpVersion = httpVersion;
 		mapper = new ObjectMapper();
-		if(gatewayHost.isEmpty()) {
+		if (gatewayHost.isEmpty()) {
 			this.gatewayHost = "localhost";
 			persistencePort = DEFAULT_PERSISTENCE_PORT;
 		} else {

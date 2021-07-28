@@ -21,6 +21,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 
@@ -38,6 +40,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  */
 public class Http1ImageAPI implements API {
     private final ObjectMapper mapper;
+    private static final Logger LOG = LogManager.getLogger(Http1ImageAPI.class);
 
     public Http1ImageAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
@@ -108,7 +111,7 @@ public class Http1ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -147,7 +150,7 @@ public class Http1ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -182,7 +185,7 @@ public class Http1ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -202,7 +205,7 @@ public class Http1ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -227,7 +230,7 @@ public class Http1ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }

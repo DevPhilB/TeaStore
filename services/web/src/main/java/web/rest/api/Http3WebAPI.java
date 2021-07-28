@@ -21,6 +21,8 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.incubator.codec.http3.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
@@ -52,10 +54,11 @@ public class Http3WebAPI implements API {
     private final Integer recommenderPort;
     private Http3HeadersFrame http3HeadersFrame;
     private Http3DataFrame http3DataFrame;
+    private static final Logger LOG = LogManager.getLogger(Http3WebAPI.class);
 
     public Http3WebAPI(String gatewayHost, Integer gatewayPort) {
         mapper = new ObjectMapper();
-        if(gatewayHost.isEmpty()) {
+        if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             authPort = API.DEFAULT_AUTH_PORT;
             imagePort = API.DEFAULT_IMAGE_PORT;
@@ -264,7 +267,7 @@ public class Http3WebAPI implements API {
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         SessionData newSessionData = null;
         http3HeadersFrame = new DefaultHttp3HeadersFrame(
-                Http3Response.getHeader(
+                Http3Response.postHeader(
                         gatewayHost + ":" + authPort,
                         authEndpoint
                 ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
@@ -302,7 +305,7 @@ public class Http3WebAPI implements API {
     private Http3Response aboutView(SessionData sessionData) {
         // POST api/image/getWebImages
         String imageEndpoint = IMAGE_ENDPOINT + "/webimages";
-        String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             Map<String, String> imageSizeMap = new HashMap<>();
             String imagePortraitSize = ImageSizePreset.PORTRAIT.getSize().toString();
@@ -329,19 +332,9 @@ public class Http3WebAPI implements API {
                     descartesLogo,
                     description
             );
-            http3HeadersFrame = new DefaultHttp3HeadersFrame(
-                    Http3Response.getHeader(
-                            gatewayHost + ":" + authPort,
-                            authEndpoint
-                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
-            );
-            // Create client and send request
-            httpClient = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
-            frameHandler = new Http3ClientStreamInboundHandler();
-            httpClient.sendRequest(frameHandler);
             String json = mapper.writeValueAsString(view);
-            if (!frameHandler.jsonContent.isEmpty()) {
-                SessionData newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if (newSessionData != null) {
                 return new Http3Response(
                         Http3Response.okJsonHeader(json.length())
                                 .setObject(
@@ -357,7 +350,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -437,18 +430,8 @@ public class Http3WebAPI implements API {
                         return Http3Response.internalServerErrorResponse();
                     }
                 case "proceedtocheckout":
-                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
-                            Http3Response.getHeader(
-                                    gatewayHost + ":" + authPort,
-                                    authEndpointCheck
-                            ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
-                    );
-                    // Create client and send request
-                    httpClient = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
-                    frameHandler = new Http3ClientStreamInboundHandler();
-                    httpClient.sendRequest(frameHandler);
-                    if (!frameHandler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+                    newSessionData = checkLogin(authEndpointCheck, sessionData);
+                    if (newSessionData != null) {
                         response = orderView(newSessionData);
                         break;
                     } else {
@@ -461,7 +444,7 @@ public class Http3WebAPI implements API {
             );
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -501,7 +484,7 @@ public class Http3WebAPI implements API {
                 return Http3Response.badRequestResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -579,7 +562,7 @@ public class Http3WebAPI implements API {
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
             // Recommendations works only with user id
-            if(sessionData.userId() != null) {
+            if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
@@ -668,7 +651,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -799,7 +782,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -834,7 +817,7 @@ public class Http3WebAPI implements API {
                 return Http3Response.internalServerErrorResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -870,7 +853,7 @@ public class Http3WebAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -921,7 +904,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -978,7 +961,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -1032,7 +1015,7 @@ public class Http3WebAPI implements API {
             }
             return Http3Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -1088,7 +1071,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -1148,7 +1131,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -1218,7 +1201,7 @@ public class Http3WebAPI implements API {
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
             // Recommendations works only with user id
-            if(sessionData.userId() != null) {
+            if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http3HeadersFrame = new DefaultHttp3HeadersFrame(
@@ -1303,7 +1286,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -1405,7 +1388,7 @@ public class Http3WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }

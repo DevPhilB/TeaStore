@@ -126,7 +126,7 @@ public class Http2RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -158,7 +158,7 @@ public class Http2RecommenderAPI implements API {
                 return Http2Response.okResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         LOG.error("The (re)trainprocess failed.");
         return Http2Response.internalServerErrorResponse();
@@ -183,7 +183,7 @@ public class Http2RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -209,7 +209,7 @@ public class Http2RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }

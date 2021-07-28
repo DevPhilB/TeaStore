@@ -19,6 +19,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import persistence.database.*;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
@@ -35,6 +37,7 @@ import java.util.concurrent.Executors;
  */
 public class Http2PersistenceAPI implements API {
     private final ObjectMapper mapper;
+    private static final Logger LOG = LogManager.getLogger(Http2PersistenceAPI.class);
 
     public Http2PersistenceAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
@@ -267,7 +270,7 @@ public class Http2PersistenceAPI implements API {
                 Class<?> entityClass = Class.forName(className);
                 CacheManager.MANAGER.clearLocalCacheOnly(entityClass);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error(e.getMessage());
                 return Http2Response.notFoundResponse();
             }
         }
@@ -303,7 +306,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -333,7 +336,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -345,7 +348,7 @@ public class Http2PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private Http2Response createCategory(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         Category category = null;
@@ -364,7 +367,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -393,7 +396,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -404,7 +407,7 @@ public class Http2PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private Http2Response deleteCategory(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         if (CategoryRepository.REPOSITORY.removeEntity(id)) {
@@ -456,7 +459,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -476,7 +479,7 @@ public class Http2PersistenceAPI implements API {
             DataGenerator.GENERATOR.setMaintenanceModeInternal(maintenanceMode);
             return Http2Response.okResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -495,7 +498,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -519,7 +522,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -534,7 +537,7 @@ public class Http2PersistenceAPI implements API {
      */
     private Http2Response getAllOrders(Long userId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceOrder> persistenceEntities = null;
-        if(userId != null) {
+        if (userId != null) {
             persistenceEntities = OrderRepository.REPOSITORY.getAllEntitiesWithUser(
                     userId,
                     startIndex,
@@ -556,7 +559,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -568,7 +571,7 @@ public class Http2PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private Http2Response createOrder(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         Order order = null;
@@ -587,7 +590,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -616,7 +619,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -628,7 +631,7 @@ public class Http2PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private Http2Response deleteOrder(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         if (OrderRepository.REPOSITORY.removeEntity(id)) {
@@ -656,7 +659,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -672,7 +675,7 @@ public class Http2PersistenceAPI implements API {
      */
     private Http2Response getAllOrderItems(Long productId, Long orderId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceOrderItem> persistenceEntities = null;
-        if(productId != null) {
+        if (productId != null) {
             persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntitiesWithProduct(
                     productId,
                     startIndex,
@@ -700,7 +703,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -712,7 +715,7 @@ public class Http2PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private Http2Response createOrderItem(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         OrderItem orderItem = null;
@@ -731,7 +734,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -760,7 +763,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -772,7 +775,7 @@ public class Http2PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private Http2Response deleteOrderItem(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         if (OrderItemRepository.REPOSITORY.removeEntity(id)) {
@@ -800,7 +803,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -815,7 +818,7 @@ public class Http2PersistenceAPI implements API {
      */
     private Http2Response getAllProducts(Long categoryId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceProduct> persistenceEntities = null;
-        if(categoryId != null) {
+        if (categoryId != null) {
             persistenceEntities = ProductRepository.REPOSITORY.getAllEntities(
                     categoryId,
                     startIndex,
@@ -840,7 +843,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -861,7 +864,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -873,7 +876,7 @@ public class Http2PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private Http2Response createProduct(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         Product product = null;
@@ -892,7 +895,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -921,7 +924,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -933,7 +936,7 @@ public class Http2PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private Http2Response deleteProduct(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         if (ProductRepository.REPOSITORY.removeEntity(id)) {
@@ -961,7 +964,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -985,7 +988,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1015,7 +1018,7 @@ public class Http2PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1027,7 +1030,7 @@ public class Http2PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private Http2Response createUser(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
         }
         User user = null;
@@ -1046,7 +1049,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1075,7 +1078,7 @@ public class Http2PersistenceAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1087,7 +1090,7 @@ public class Http2PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private Http2Response deleteUser(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return Http2Response.serviceUnavailableErrorResponse();
 
         }

@@ -20,6 +20,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
@@ -48,10 +50,11 @@ public class Http2WebAPI implements API {
     private final Integer recommenderPort;
     private Http2HeadersFrame http2HeadersFrame;
     private Http2DataFrame http2DataFrame;
+    private static final Logger LOG = LogManager.getLogger(Http2WebAPI.class);
 
     public Http2WebAPI(String gatewayHost, Integer gatewayPort) {
         mapper = new ObjectMapper();
-        if(gatewayHost.isEmpty()) {
+        if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             authPort = API.DEFAULT_AUTH_PORT;
             imagePort = API.DEFAULT_IMAGE_PORT;
@@ -189,7 +192,7 @@ public class Http2WebAPI implements API {
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http2HeadersFrame = new DefaultHttp2HeadersFrame(
                 Http2Response.postContentHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + imagePort,
                         imageEndpoint,
                         String.valueOf(postBody.readableBytes())
                 ),
@@ -218,7 +221,7 @@ public class Http2WebAPI implements API {
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         http2HeadersFrame = new DefaultHttp2HeadersFrame(
                 Http2Response.postContentHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + imagePort,
                         imageEndpoint,
                         String.valueOf(postBody.readableBytes())
                 ),
@@ -242,7 +245,7 @@ public class Http2WebAPI implements API {
         List<Category> categories = new ArrayList<>();
         http2HeadersFrame = new DefaultHttp2HeadersFrame(
                 Http2Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + persistencePort,
                         persistenceEndpointCategories
                 ),
                 true
@@ -263,8 +266,8 @@ public class Http2WebAPI implements API {
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         SessionData newSessionData = null;
         http2HeadersFrame = new DefaultHttp2HeadersFrame(
-                Http2Response.getHeader(
-                        gatewayHost,
+                Http2Response.postHeader(
+                        gatewayHost + ":" + authPort,
                         authEndpoint
                 ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
                 true
@@ -302,7 +305,7 @@ public class Http2WebAPI implements API {
     private Http2Response aboutView(SessionData sessionData) {
         // POST api/image/getWebImages
         String imageEndpoint = IMAGE_ENDPOINT + "/webimages";
-        String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             Map<String, String> imageSizeMap = new HashMap<>();
             String imagePortraitSize = ImageSizePreset.PORTRAIT.getSize().toString();
@@ -329,20 +332,9 @@ public class Http2WebAPI implements API {
                     descartesLogo,
                     description
             );
-            http2HeadersFrame = new DefaultHttp2HeadersFrame(
-                    Http2Response.getHeader(
-                            gatewayHost,
-                            authEndpoint
-                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
-                    true
-            );
-            // Create client and send request
-            httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
-            frameHandler = new Http2ClientStreamFrameHandler();
-            httpClient.sendRequest(frameHandler);
             String json = mapper.writeValueAsString(view);
-            if (!frameHandler.jsonContent.isEmpty()) {
-                SessionData newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if (newSessionData != null) {
                 return new Http2Response(
                         Http2Response.okJsonHeader(json.length())
                                 .setObject(
@@ -358,7 +350,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -386,7 +378,7 @@ public class Http2WebAPI implements API {
                 case "addtocart":
                     http2HeadersFrame = new DefaultHttp2HeadersFrame(
                             Http2Response.postHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointAdd
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
                             true
@@ -405,7 +397,7 @@ public class Http2WebAPI implements API {
                 case "removeproduct":
                     http2HeadersFrame = new DefaultHttp2HeadersFrame(
                             Http2Response.postHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointRemove
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
                             true
@@ -424,7 +416,7 @@ public class Http2WebAPI implements API {
                 case "updatecartquantities":
                     http2HeadersFrame = new DefaultHttp2HeadersFrame(
                             Http2Response.putHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + authPort,
                                     authEndpointUpdate
                             ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
                             true
@@ -441,19 +433,8 @@ public class Http2WebAPI implements API {
                         return Http2Response.internalServerErrorResponse();
                     }
                 case "proceedtocheckout":
-                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
-                            Http2Response.getHeader(
-                                    gatewayHost,
-                                    authEndpointCheck
-                            ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
-                            true
-                    );
-                    // Create client and send request
-                    httpClient = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
-                    frameHandler = new Http2ClientStreamFrameHandler();
-                    httpClient.sendRequest(frameHandler);
-                    if (!frameHandler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+                    newSessionData = checkLogin(authEndpointCheck, sessionData);
+                    if (newSessionData != null) {
                         response = orderView(newSessionData);
                         break;
                     } else {
@@ -466,7 +447,7 @@ public class Http2WebAPI implements API {
             );
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -484,7 +465,7 @@ public class Http2WebAPI implements API {
         try {
             http2HeadersFrame = new DefaultHttp2HeadersFrame(
                     Http2Response.postContentHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + authPort,
                             authEndpointPlaceOrder,
                             String.valueOf(body.readableBytes())
                     ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
@@ -507,7 +488,7 @@ public class Http2WebAPI implements API {
                 return Http2Response.badRequestResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -586,12 +567,12 @@ public class Http2WebAPI implements API {
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
             // Recommendations works only with user id
-            if(sessionData.userId() != null) {
+            if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http2HeadersFrame = new DefaultHttp2HeadersFrame(
                         Http2Response.postContentHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + recommenderPort,
                                 recommenderEndpoint + "?userid=" + sessionData.userId(),
                                 String.valueOf(postOrderItemsBody.readableBytes())
                         ),
@@ -677,7 +658,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -810,7 +791,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -846,7 +827,7 @@ public class Http2WebAPI implements API {
                 return Http2Response.internalServerErrorResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -882,7 +863,7 @@ public class Http2WebAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -933,7 +914,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -990,7 +971,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1046,7 +1027,7 @@ public class Http2WebAPI implements API {
             }
             return Http2Response.badRequestResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1102,7 +1083,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1162,7 +1143,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1233,12 +1214,12 @@ public class Http2WebAPI implements API {
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
             // Recommendations works only with user id
-            if(sessionData.userId() != null) {
+            if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
                 http2HeadersFrame = new DefaultHttp2HeadersFrame(
                         Http2Response.postContentHeader(
-                                gatewayHost,
+                                gatewayHost + ":" + recommenderPort,
                                 recommenderEndpoint + "?userid=" + sessionData.userId(),
                                 String.valueOf(postOrderItemsBody.readableBytes())
                         ),
@@ -1320,7 +1301,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -1424,7 +1405,7 @@ public class Http2WebAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }

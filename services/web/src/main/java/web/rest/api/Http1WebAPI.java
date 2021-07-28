@@ -19,6 +19,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.enumeration.ImageSizePreset;
 import utilities.rest.api.API;
@@ -49,10 +51,11 @@ public class Http1WebAPI implements API {
     private final Integer persistencePort;
     private final Integer recommenderPort;
     private final HttpRequest request;
+    private static final Logger LOG = LogManager.getLogger(Http1WebAPI.class);
 
     public Http1WebAPI(String gatewayHost, Integer gatewayPort) {
         mapper = new ObjectMapper();
-        if(gatewayHost.isEmpty()) {
+        if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             authPort = API.DEFAULT_AUTH_PORT;
             imagePort = API.DEFAULT_IMAGE_PORT;
@@ -266,7 +269,7 @@ public class Http1WebAPI implements API {
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         SessionData newSessionData = null;
         request.setUri(authEndpoint);
-        request.setMethod(GET);
+        request.setMethod(POST);
         request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
         http1Client = new Http1Client(gatewayHost, authPort, request);
         handler = new Http1ClientHandler();
@@ -300,7 +303,7 @@ public class Http1WebAPI implements API {
     private FullHttpResponse aboutView(SessionData sessionData) {
         // POST api/image/getWebImages
         String imageEndpoint = IMAGE_ENDPOINT + "/webimages";
-        String authEndpoint = AUTH_ENDPOINT + "/isloggedin";
+        String authEndpoint = AUTH_ENDPOINT + "/useractions/isloggedin";
         try {
             Map<String, String> imageSizeMap = new HashMap<>();
             String imagePortraitSize = ImageSizePreset.PORTRAIT.getSize().toString();
@@ -327,20 +330,14 @@ public class Http1WebAPI implements API {
                     descartesLogo,
                     description
             );
-            request.setUri(authEndpoint);
-            request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-            request.setMethod(GET);
-            http1Client = new Http1Client(gatewayHost, authPort, request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
             String json = mapper.writeValueAsString(view);
             DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                     HTTP_1_1,
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
-            if (!handler.jsonContent.isEmpty()) {
-                SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+            SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            if (newSessionData != null) {
                 response.headers().set(
                         HttpHeaderNames.SET_COOKIE,
                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -348,7 +345,7 @@ public class Http1WebAPI implements API {
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -417,13 +414,8 @@ public class Http1WebAPI implements API {
                         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
                     }
                 case "proceedtocheckout":
-                    request.setMethod(GET);
-                    request.setUri(authEndpointCheck);
-                    http1Client = new Http1Client(gatewayHost, authPort, request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    newSessionData = checkLogin(authEndpointCheck, sessionData);
+                    if (newSessionData != null) {
                         response = orderView(newSessionData);
                         break;
                     } else {
@@ -433,7 +425,7 @@ public class Http1WebAPI implements API {
             response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -471,7 +463,7 @@ public class Http1WebAPI implements API {
                 return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -545,7 +537,7 @@ public class Http1WebAPI implements API {
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
             // Recommendations works only with user id
-            if(sessionData.userId() != null) {
+            if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
                         HTTP_1_1,
@@ -617,12 +609,12 @@ public class Http1WebAPI implements API {
                     HttpResponseStatus.OK,
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -734,12 +726,12 @@ public class Http1WebAPI implements API {
             );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -769,7 +761,7 @@ public class Http1WebAPI implements API {
                 return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -806,7 +798,7 @@ public class Http1WebAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -846,12 +838,12 @@ public class Http1WebAPI implements API {
             );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -897,12 +889,12 @@ public class Http1WebAPI implements API {
             );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -948,7 +940,7 @@ public class Http1WebAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -993,12 +985,12 @@ public class Http1WebAPI implements API {
             );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1047,12 +1039,12 @@ public class Http1WebAPI implements API {
             );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1118,7 +1110,7 @@ public class Http1WebAPI implements API {
             List<Product> recommendedProducts = new ArrayList<>();
             List<Long> productIds = new ArrayList<>();
             // Recommendations works only with user id
-            if(sessionData.userId() != null) {
+            if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
                 FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
                         HTTP_1_1,
@@ -1186,12 +1178,12 @@ public class Http1WebAPI implements API {
             );
             // Check login
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            if(newSessionData != null) {
+            if (newSessionData != null) {
                 response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
             }
             return response;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1283,7 +1275,7 @@ public class Http1WebAPI implements API {
                 return response;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }

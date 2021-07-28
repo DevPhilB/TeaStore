@@ -130,7 +130,7 @@ public class Http3RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -162,7 +162,7 @@ public class Http3RecommenderAPI implements API {
                 return Http3Response.okResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         LOG.error("The (re)trainprocess failed.");
         return Http3Response.internalServerErrorResponse();
@@ -187,7 +187,7 @@ public class Http3RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -213,7 +213,7 @@ public class Http3RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }

@@ -17,13 +17,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http2.DefaultHttp2DataFrame;
-import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
-import io.netty.handler.codec.http2.DefaultHttp2WindowUpdateFrame;
-import io.netty.handler.codec.http2.Http2DataFrame;
-import io.netty.handler.codec.http2.Http2FrameStream;
-import io.netty.handler.codec.http2.Http2Headers;
-import io.netty.handler.codec.http2.Http2HeadersFrame;
+import io.netty.handler.codec.http2.*;
 import image.rest.api.Http2ImageAPI;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -71,8 +65,8 @@ public class Http2ImageServiceHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) {
-        ctx.flush();
+    public void channelReadComplete(ChannelHandlerContext context) {
+        context.flush();
     }
 
     /**
@@ -80,7 +74,7 @@ public class Http2ImageServiceHandler extends ChannelDuplexHandler {
      */
     private void onDataRead(ChannelHandlerContext context, Http2DataFrame data) {
         Http2FrameStream stream = data.stream();
-        body = Unpooled.copiedBuffer(body, data.content());
+        body = Unpooled.copiedBuffer(body, data.content().copy());
         data.release();
         if (data.isEndStream()) {
             handleRequest(context, stream);
@@ -98,11 +92,16 @@ public class Http2ImageServiceHandler extends ChannelDuplexHandler {
             Http2Response response
     ) {
         // Send response frames
-        if(response.body() == null) {
+        if (response.body() == null) {
             context.writeAndFlush(new DefaultHttp2HeadersFrame(response.headers(), true).stream(stream));
         } else {
             context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
             context.writeAndFlush(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
         }
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext context) {
+        context.channel().close();
     }
 }

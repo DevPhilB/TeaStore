@@ -20,6 +20,8 @@ import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.SessionData;
 
 /**
@@ -29,6 +31,7 @@ import utilities.datamodel.SessionData;
  *
  */
 public class ShaSecurityProvider implements ISecurityProvider {
+  private static final Logger LOG = LogManager.getLogger(ShaSecurityProvider.class);
 
   @Override
   public IKeyProvider getKeyProvider() {
@@ -105,7 +108,7 @@ public class ShaSecurityProvider implements ISecurityProvider {
       }
       generatedPassword = sb.toString();
     } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-      e.printStackTrace();
+      LOG.error(e.getMessage());
     }
     return generatedPassword;
   }

@@ -23,6 +23,8 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.incubator.codec.http3.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
@@ -51,10 +53,11 @@ public class Http3AuthAPI implements API {
     private final Integer persistencePort;
     private Http3HeadersFrame http3HeadersFrame;
     private Http3DataFrame http3DataFrame;
+    private static final Logger LOG = LogManager.getLogger(Http3AuthAPI.class);
 
     public Http3AuthAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
-        if(gatewayHost.isEmpty()) {
+        if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             this.persistencePort = DEFAULT_PERSISTENCE_PORT;
         } else {
@@ -163,7 +166,7 @@ public class Http3AuthAPI implements API {
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
-                if(sessionData.orderItems().isEmpty()) {
+                if (sessionData.orderItems().isEmpty()) {
                     itemMap.put(product.id(),
                         new OrderItem(
                             null,
@@ -216,7 +219,7 @@ public class Http3AuthAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -250,7 +253,7 @@ public class Http3AuthAPI implements API {
                 return Http3Response.notFoundResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -288,7 +291,7 @@ public class Http3AuthAPI implements API {
             }
             return Http3Response.notFoundResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -402,7 +405,7 @@ public class Http3AuthAPI implements API {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -434,7 +437,7 @@ public class Http3AuthAPI implements API {
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
                 user = mapper.readValue(frameHandler.jsonContent, User.class);
-                if(user == null) {
+                if (user == null) {
                     return Http3Response.notFoundResponse();
                 } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
@@ -456,7 +459,7 @@ public class Http3AuthAPI implements API {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -497,7 +500,7 @@ public class Http3AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -519,7 +522,7 @@ public class Http3AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -540,7 +543,7 @@ public class Http3AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }

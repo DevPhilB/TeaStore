@@ -21,6 +21,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
@@ -49,10 +51,11 @@ public class Http1AuthAPI implements API {
     private final String gatewayHost;
     private final Integer persistencePort;
     private final HttpRequest request;
+    private static final Logger LOG = LogManager.getLogger(Http1AuthAPI.class);
 
     public Http1AuthAPI(String gatewayHost, Integer gatewayPort) {
         mapper = new ObjectMapper();
-        if(gatewayHost.isEmpty()) {
+        if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             persistencePort = DEFAULT_PERSISTENCE_PORT;
         } else {
@@ -167,7 +170,7 @@ public class Http1AuthAPI implements API {
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
-                if(sessionData.orderItems().isEmpty()) {
+                if (sessionData.orderItems().isEmpty()) {
                     itemMap.put(product.id(),
                         new OrderItem(
                             null,
@@ -221,7 +224,7 @@ public class Http1AuthAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -256,7 +259,7 @@ public class Http1AuthAPI implements API {
                 return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -295,7 +298,7 @@ public class Http1AuthAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -411,7 +414,7 @@ public class Http1AuthAPI implements API {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -439,7 +442,7 @@ public class Http1AuthAPI implements API {
             httpClient.sendRequest(httpHandler);
             if (!httpHandler.jsonContent.isEmpty()) {
                 user = mapper.readValue(httpHandler.jsonContent, User.class);
-                if(user == null) {
+                if (user == null) {
                     return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
                 } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
@@ -462,7 +465,7 @@ public class Http1AuthAPI implements API {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -504,7 +507,7 @@ public class Http1AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -527,7 +530,7 @@ public class Http1AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -549,7 +552,7 @@ public class Http1AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }

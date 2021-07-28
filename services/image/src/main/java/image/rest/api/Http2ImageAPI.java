@@ -22,6 +22,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.Http2Response;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  */
 public class Http2ImageAPI implements API {
     private final ObjectMapper mapper;
+    private static final Logger LOG = LogManager.getLogger(Http2ImageAPI.class);
 
     public Http2ImageAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
@@ -106,7 +109,7 @@ public class Http2ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -144,7 +147,7 @@ public class Http2ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -178,7 +181,7 @@ public class Http2ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -197,7 +200,7 @@ public class Http2ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -221,7 +224,7 @@ public class Http2ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }

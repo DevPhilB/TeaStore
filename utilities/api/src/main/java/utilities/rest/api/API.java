@@ -21,19 +21,19 @@ package utilities.rest.api;
  */
 public interface API {
     // Auth service
-    Integer DEFAULT_AUTH_PORT = 1010;
+    Integer DEFAULT_AUTH_PORT = 1001;
     String AUTH_ENDPOINT = "/api/auth";
     // Image service
-    Integer DEFAULT_IMAGE_PORT = 2020;
+    Integer DEFAULT_IMAGE_PORT = 1002;
     String IMAGE_ENDPOINT = "/api/image";
     // Persistence service
-    Integer DEFAULT_PERSISTENCE_PORT = 3030;
+    Integer DEFAULT_PERSISTENCE_PORT = 1003;
     String PERSISTENCE_ENDPOINT = "/api/persistence";
     // Recommender service
-    Integer DEFAULT_RECOMMENDER_PORT = 4040;
+    Integer DEFAULT_RECOMMENDER_PORT = 1004;
     String RECOMMENDER_ENDPOINT = "/api/recommender";
     // Web service
-    Integer DEFAULT_WEB_PORT = 5050;
+    Integer DEFAULT_WEB_PORT = 1005;
     String WEB_ENDPOINT = "/api/web";
     // HTTPS
     CharSequence HTTPS = "https";

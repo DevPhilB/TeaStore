@@ -62,7 +62,7 @@ public record Http2Response (
     public static Http2Headers getHeader(String gatewayHost, String endpoint) {
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(GET.asciiName()).path(endpoint)
-                .set(HttpHeaderNames.HOST, gatewayHost)
+                .authority(gatewayHost)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
@@ -70,7 +70,7 @@ public record Http2Response (
     public static Http2Headers postHeader(String gatewayHost, String endpoint) {
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(POST.asciiName()).path(endpoint)
-                .set(HttpHeaderNames.HOST, gatewayHost)
+                .authority(gatewayHost)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }
@@ -78,7 +78,7 @@ public record Http2Response (
     public static Http2Headers postContentHeader(String gatewayHost, String endpoint, String contentLength) {
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(POST.asciiName()).path(endpoint)
-                .set(HttpHeaderNames.HOST, gatewayHost)
+                .authority(gatewayHost)
                 .set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.CONTENT_LENGTH, contentLength)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
@@ -88,7 +88,7 @@ public record Http2Response (
     public static Http2Headers putHeader(String gatewayHost, String endpoint) {
         return new DefaultHttp2Headers().scheme(HTTPS)
                 .method(PUT.asciiName()).path(endpoint)
-                .set(HttpHeaderNames.HOST, gatewayHost)
+                .authority(gatewayHost)
                 .set(HttpHeaderNames.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .set(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
     }

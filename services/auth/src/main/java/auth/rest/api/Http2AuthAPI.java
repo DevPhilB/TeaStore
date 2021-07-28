@@ -22,6 +22,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
 import utilities.rest.api.CookieUtil;
@@ -47,10 +49,11 @@ public class Http2AuthAPI implements API {
     private final Integer persistencePort;
     private Http2HeadersFrame http2HeadersFrame;
     private Http2DataFrame http2DataFrame;
+    private static final Logger LOG = LogManager.getLogger(Http2AuthAPI.class);
 
     public Http2AuthAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
-        if(gatewayHost.isEmpty()) {
+        if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             this.persistencePort = DEFAULT_PERSISTENCE_PORT;
         } else {
@@ -146,7 +149,7 @@ public class Http2AuthAPI implements API {
         try {
             http2HeadersFrame = new DefaultHttp2HeadersFrame(
                     Http2Response.getHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointProduct
                     ),
                     true
@@ -160,7 +163,7 @@ public class Http2AuthAPI implements API {
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
                 OrderItem item = null;
                 SessionData data = null;
-                if(sessionData.orderItems().isEmpty()) {
+                if (sessionData.orderItems().isEmpty()) {
                     itemMap.put(product.id(),
                         new OrderItem(
                             null,
@@ -213,7 +216,7 @@ public class Http2AuthAPI implements API {
                 );
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -247,7 +250,7 @@ public class Http2AuthAPI implements API {
                 return Http2Response.notFoundResponse();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -285,7 +288,7 @@ public class Http2AuthAPI implements API {
             }
             return Http2Response.notFoundResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -333,7 +336,7 @@ public class Http2AuthAPI implements API {
             ByteBuf postOrderBody = Unpooled.copiedBuffer(orderJson, CharsetUtil.UTF_8);
             http2HeadersFrame = new DefaultHttp2HeadersFrame(
                     Http2Response.postContentHeader(
-                            gatewayHost,
+                            gatewayHost + ":" + persistencePort,
                             persistenceEndpointCreateOrder,
                             String.valueOf(postOrderBody.readableBytes())
                     ),
@@ -358,7 +361,7 @@ public class Http2AuthAPI implements API {
                     ByteBuf postOrderItemBody = Unpooled.copiedBuffer(orderItemJson, CharsetUtil.UTF_8);
                     http2HeadersFrame = new DefaultHttp2HeadersFrame(
                             Http2Response.postContentHeader(
-                                    gatewayHost,
+                                    gatewayHost + ":" + persistencePort,
                                     persistenceEndpointCreateOrderItem,
                                     String.valueOf(postOrderItemBody.readableBytes())
                             ),
@@ -401,7 +404,7 @@ public class Http2AuthAPI implements API {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -434,7 +437,7 @@ public class Http2AuthAPI implements API {
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
                 user = mapper.readValue(frameHandler.jsonContent, User.class);
-                if(user == null) {
+                if (user == null) {
                     return Http2Response.notFoundResponse();
                 } else if (BCryptProvider.checkPassword(password, user.password())) {
                     SessionData data = new SessionData(
@@ -456,7 +459,7 @@ public class Http2AuthAPI implements API {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -497,7 +500,7 @@ public class Http2AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -519,7 +522,7 @@ public class Http2AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }
@@ -540,7 +543,7 @@ public class Http2AuthAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http2Response.internalServerErrorResponse();
     }

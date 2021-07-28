@@ -71,8 +71,8 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) {
-        ctx.flush();
+    public void channelReadComplete(ChannelHandlerContext context) {
+        context.flush();
     }
 
     /**
@@ -98,11 +98,16 @@ public class Http2AuthServiceHandler extends ChannelDuplexHandler {
             Http2Response response
     ) {
         // Send response frames
-        if(response.body() == null) {
+        if (response.body() == null) {
             context.writeAndFlush(new DefaultHttp2HeadersFrame(response.headers(), true).stream(stream));
         } else {
             context.write(new DefaultHttp2HeadersFrame(response.headers()).stream(stream));
             context.writeAndFlush(new DefaultHttp2DataFrame(response.body(), true).stream(stream));
         }
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext context) {
+        context.channel().close();
     }
 }

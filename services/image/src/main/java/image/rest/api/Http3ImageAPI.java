@@ -22,6 +22,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.incubator.codec.http3.Http3Headers;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import utilities.datamodel.ImageSize;
 import utilities.rest.api.API;
 import utilities.rest.api.Http3Response;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  */
 public class Http3ImageAPI implements API {
     private final ObjectMapper mapper;
+    private static final Logger LOG = LogManager.getLogger(Http3ImageAPI.class);
 
     public Http3ImageAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
@@ -106,7 +109,7 @@ public class Http3ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -144,7 +147,7 @@ public class Http3ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -178,7 +181,7 @@ public class Http3ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -197,7 +200,7 @@ public class Http3ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }
@@ -221,7 +224,7 @@ public class Http3ImageAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return Http3Response.internalServerErrorResponse();
     }

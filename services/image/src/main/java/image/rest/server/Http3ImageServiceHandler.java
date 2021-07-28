@@ -78,7 +78,7 @@ public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
 
     private void sendResponse(ChannelHandlerContext context, Http3Response response) {
         // Send response frames
-        if(response.body() == null) {
+        if (response.body() == null) {
             context.writeAndFlush(new DefaultHttp3HeadersFrame(response.headers()))
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         } else {

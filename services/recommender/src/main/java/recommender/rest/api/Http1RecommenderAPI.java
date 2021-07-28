@@ -128,7 +128,7 @@ public class Http1RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -160,7 +160,7 @@ public class Http1RecommenderAPI implements API {
                 return new DefaultFullHttpResponse(HTTP_1_1, OK);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         LOG.error("The (re)trainprocess failed.");
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
@@ -186,7 +186,7 @@ public class Http1RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -213,7 +213,7 @@ public class Http1RecommenderAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }

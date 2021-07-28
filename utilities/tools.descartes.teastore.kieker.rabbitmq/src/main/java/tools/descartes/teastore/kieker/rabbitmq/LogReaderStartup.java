@@ -56,7 +56,7 @@ public class LogReaderStartup implements ServletContextListener {
     try {
       logReaderStarter.awaitTermination(10, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOG.error(e.getMessage());
     }
   }
 
@@ -68,7 +68,7 @@ public class LogReaderStartup implements ServletContextListener {
     try {
       fileWriterStarter.awaitTermination(10, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOG.error(e.getMessage());
     }
   }
 

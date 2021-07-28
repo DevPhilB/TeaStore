@@ -161,7 +161,7 @@ public enum SetupController {
   ) {
     this.httpVersion = httpVersion;
     mapper = new ObjectMapper();
-    if(gatewayHost.isEmpty()) {
+    if (gatewayHost.isEmpty()) {
       this.gatewayHost = "localhost";
       persistencePort = DEFAULT_PERSISTENCE_PORT;
     } else {
@@ -201,13 +201,13 @@ public enum SetupController {
             );
           }
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error(e.getMessage());
         }
         break;
       case "HTTP/2":
         http2HeadersFrame = new DefaultHttp2HeadersFrame(
                 Http2Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + persistencePort,
                         persistenceEndpointProducts
                 ),
                 true
@@ -223,7 +223,7 @@ public enum SetupController {
             );
           }
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error(e.getMessage());
         }
         break;
       case "HTTP/3":
@@ -244,14 +244,14 @@ public enum SetupController {
             );
           }
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error(e.getMessage());
         }
         break;
       default:
         break;
     }
     //
-    if(productList == null) {
+    if (productList == null) {
       products.put(category, new ArrayList<>());
       LOG.info("No products for category {} ({}) found.", category.name(), category.id());
     } else {
@@ -281,13 +281,13 @@ public enum SetupController {
             );
           }
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error(e.getMessage());
         }
         break;
       case "HTTP/2":
         http2HeadersFrame = new DefaultHttp2HeadersFrame(
                 Http2Response.getHeader(
-                        gatewayHost,
+                        gatewayHost + ":" + persistencePort,
                         persistenceEndpointCategories
                 ),
                 true
@@ -304,7 +304,7 @@ public enum SetupController {
             );
           }
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error(e.getMessage());
         }
         break;
       case "HTTP/3":
@@ -326,7 +326,7 @@ public enum SetupController {
             );
           }
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error(e.getMessage());
         }
         break;
       default:

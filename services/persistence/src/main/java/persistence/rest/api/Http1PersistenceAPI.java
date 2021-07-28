@@ -18,6 +18,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import persistence.database.*;
 import utilities.datamodel.*;
 import utilities.rest.api.API;
@@ -36,6 +38,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  */
 public class Http1PersistenceAPI implements API {
     private final ObjectMapper mapper;
+    private static final Logger LOG = LogManager.getLogger(Http1PersistenceAPI.class);
 
     public Http1PersistenceAPI(String gatewayHost, Integer gatewayPort) {
         this.mapper = new ObjectMapper();
@@ -268,7 +271,7 @@ public class Http1PersistenceAPI implements API {
                 Class<?> entityClass = Class.forName(className);
                 CacheManager.MANAGER.clearLocalCacheOnly(entityClass);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error(e.getMessage());
                 return new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
             }
         }
@@ -305,7 +308,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -336,7 +339,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -348,7 +351,7 @@ public class Http1PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private FullHttpResponse createCategory(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         Category category = null;
@@ -368,7 +371,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -397,7 +400,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -408,7 +411,7 @@ public class Http1PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteCategory(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         if (CategoryRepository.REPOSITORY.removeEntity(id)) {
@@ -461,7 +464,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -481,7 +484,7 @@ public class Http1PersistenceAPI implements API {
             DataGenerator.GENERATOR.setMaintenanceModeInternal(maintenanceMode);
             return new DefaultFullHttpResponse(HTTP_1_1, OK);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -501,7 +504,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -526,7 +529,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -541,7 +544,7 @@ public class Http1PersistenceAPI implements API {
      */
     private FullHttpResponse getAllOrders(Long userId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceOrder> persistenceEntities = null;
-        if(userId != null) {
+        if (userId != null) {
             persistenceEntities = OrderRepository.REPOSITORY.getAllEntitiesWithUser(
                     userId,
                     startIndex,
@@ -564,7 +567,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -576,7 +579,7 @@ public class Http1PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private FullHttpResponse createOrder(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         Order order = null;
@@ -596,7 +599,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -625,7 +628,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -637,7 +640,7 @@ public class Http1PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteOrder(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         if (OrderRepository.REPOSITORY.removeEntity(id)) {
@@ -666,7 +669,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -682,7 +685,7 @@ public class Http1PersistenceAPI implements API {
      */
     private FullHttpResponse getAllOrderItems(Long productId, Long orderId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceOrderItem> persistenceEntities = null;
-        if(productId != null) {
+        if (productId != null) {
             persistenceEntities = OrderItemRepository.REPOSITORY.getAllEntitiesWithProduct(
                     productId,
                     startIndex,
@@ -711,7 +714,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -723,7 +726,7 @@ public class Http1PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private FullHttpResponse createOrderItem(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         OrderItem orderItem = null;
@@ -743,7 +746,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -772,7 +775,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -784,7 +787,7 @@ public class Http1PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteOrderItem(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         if (OrderItemRepository.REPOSITORY.removeEntity(id)) {
@@ -813,7 +816,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -828,7 +831,7 @@ public class Http1PersistenceAPI implements API {
      */
     private FullHttpResponse getAllProducts(Long categoryId, Integer startIndex, Integer maxResultCount) {
         List<PersistenceProduct> persistenceEntities = null;
-        if(categoryId != null) {
+        if (categoryId != null) {
             persistenceEntities = ProductRepository.REPOSITORY.getAllEntities(
                     categoryId,
                     startIndex,
@@ -854,7 +857,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -876,7 +879,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -888,7 +891,7 @@ public class Http1PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private FullHttpResponse createProduct(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         Product product = null;
@@ -908,7 +911,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -937,7 +940,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -949,7 +952,7 @@ public class Http1PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteProduct(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         if (ProductRepository.REPOSITORY.removeEntity(id)) {
@@ -978,7 +981,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1003,7 +1006,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1034,7 +1037,7 @@ public class Http1PersistenceAPI implements API {
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1046,7 +1049,7 @@ public class Http1PersistenceAPI implements API {
      * @return Created element as JSON
      */
     private FullHttpResponse createUser(ByteBuf body) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         User user = null;
@@ -1066,7 +1069,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1095,7 +1098,7 @@ public class Http1PersistenceAPI implements API {
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         }
         return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
     }
@@ -1107,7 +1110,7 @@ public class Http1PersistenceAPI implements API {
      * @return OK or NOT_FOUND
      */
     private FullHttpResponse deleteUser(Long id) {
-        if(DataGenerator.GENERATOR.isMaintenanceMode()) {
+        if (DataGenerator.GENERATOR.isMaintenanceMode()) {
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
         }
         if (UserRepository.REPOSITORY.removeEntity(id)) {

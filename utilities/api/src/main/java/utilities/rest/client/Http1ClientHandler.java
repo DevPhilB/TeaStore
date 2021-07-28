@@ -44,7 +44,7 @@ public class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> 
 
     @Override
     protected void channelRead0(ChannelHandlerContext context, HttpObject message) {
-        if(message instanceof HttpContent httpContent) {
+        if (message instanceof HttpContent httpContent) {
             if (httpContent instanceof LastHttpContent) {
                 jsonContent += httpContent.content().toString(CharsetUtil.UTF_8);
                 context.close();

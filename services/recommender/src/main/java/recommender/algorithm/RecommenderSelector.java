@@ -86,7 +86,7 @@ public final class RecommenderSelector implements IRecommender {
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
 			// if creating a new instance fails
-			e.printStackTrace();
+			LOG.error(e.getMessage());
 			LOG.warn("Could not create an instance of the requested recommender. Using fallback.");
 			recommender = fallbackrecommender;
 		} catch (NamingException e) {
