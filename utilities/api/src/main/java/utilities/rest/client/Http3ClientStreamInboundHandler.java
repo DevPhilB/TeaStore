@@ -13,6 +13,7 @@
  */
 package utilities.rest.client;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.incubator.codec.http3.Http3DataFrame;
 import io.netty.incubator.codec.http3.Http3HeadersFrame;
@@ -54,10 +55,12 @@ public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHa
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
         LOG.info("Received HTTP/3 data frame: " + dataFrame);
         jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
-        ReferenceCountUtil.release(dataFrame);
+        LOG.info("CONTENT: " + jsonContent);
         if (isLast) {
             LOG.info("Received end data frame: " + dataFrame);
-            context.close();
+            context.channel().close();
         }
+        ReferenceCountUtil.release(dataFrame);
     }
+
 }

@@ -17,6 +17,8 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.incubator.codec.http3.*;
 import io.netty.incubator.codec.quic.QuicChannel;
@@ -64,10 +66,12 @@ public class Http3Client {
                     .build();
             // Configure the client
             Bootstrap bootstrap = new Bootstrap();
+            LOG.info("Try to bind...");
             Channel channel = bootstrap.group(group)
                     .channel(NioDatagramChannel.class)
                     .handler(codec)
                     .bind(0).sync().channel();
+            LOG.info("Bind successful!");
             // Start the client
             QuicChannel quicChannel = QuicChannel.newBootstrap(channel)
                     .handler(new Http3ClientConnectionHandler())
@@ -77,9 +81,10 @@ public class Http3Client {
             LOG.info("Connected to [" + host + ':' + port + ']');
             // Prepare request stream
             QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel, handler).sync().getNow();
+            streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
             // Write header (and body
             if (body != null) {
-                streamChannel.write(header).sync();
+                streamChannel.write(header);
                 streamChannel.writeAndFlush(body).addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
             } else {
                 streamChannel.writeAndFlush(header).addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();

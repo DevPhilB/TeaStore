@@ -43,6 +43,7 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
         // Handle request and response
         Http3Response response = api.handle(headers, body);
         sendResponse(context, response);
+        context.close();
     }
 
     @Override
@@ -80,4 +81,5 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
     }
+
 }

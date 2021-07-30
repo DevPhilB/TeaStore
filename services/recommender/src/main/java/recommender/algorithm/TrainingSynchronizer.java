@@ -209,7 +209,7 @@ public final class TrainingSynchronizer {
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
 					setReady(true);
-					LOG.error("Database retrieving failed.");
+					LOG.error(e.getMessage());
 					return -1;
 				}
 				try {
@@ -228,7 +228,7 @@ public final class TrainingSynchronizer {
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
 					setReady(true);
-					LOG.error("Database retrieving failed.");
+					LOG.error(e.getMessage());
 					return -1;
 				}
 				break;
@@ -255,7 +255,7 @@ public final class TrainingSynchronizer {
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
 					setReady(true);
-					LOG.error("Database retrieving failed.");
+					LOG.error(e.getMessage());
 					return -1;
 				}
 				try {
@@ -280,7 +280,7 @@ public final class TrainingSynchronizer {
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
 					setReady(true);
-					LOG.error("Database retrieving failed.");
+					LOG.error(e.getMessage());
 					return -1;
 				}
 				break;
@@ -306,7 +306,7 @@ public final class TrainingSynchronizer {
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
 					setReady(true);
-					LOG.error("Database retrieving failed.");
+					LOG.error(e.getMessage());
 					return -1;
 				}
 				try {
@@ -330,7 +330,7 @@ public final class TrainingSynchronizer {
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
 					setReady(true);
-					LOG.error("Database retrieving failed.");
+					LOG.error(e.getMessage());
 					return -1;
 				}
 				break;

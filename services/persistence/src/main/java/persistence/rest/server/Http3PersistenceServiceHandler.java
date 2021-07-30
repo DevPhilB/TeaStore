@@ -43,6 +43,7 @@ public class Http3PersistenceServiceHandler extends Http3RequestStreamInboundHan
         // Handle request and response
         Http3Response response = api.handle(headers, body);
         sendResponse(context, response);
+        context.close();
     }
 
     @Override
@@ -80,4 +81,5 @@ public class Http3PersistenceServiceHandler extends Http3RequestStreamInboundHan
                     .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
         }
     }
+
 }

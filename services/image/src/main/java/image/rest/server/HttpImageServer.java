@@ -171,6 +171,8 @@ public class HttpImageServer {
                         .initialMaxStreamDataBidirectionalLocal(1000000)
                         .initialMaxStreamDataBidirectionalRemote(1000000)
                         .initialMaxStreamsBidirectional(100)
+                        .maxRecvUdpPayloadSize(10000000)
+                        .maxSendUdpPayloadSize(10000000)
                         .tokenHandler(InsecureQuicTokenHandler.INSTANCE)
                         .handler(new ChannelInitializer<QuicChannel>() {
                             @Override
