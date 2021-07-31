@@ -1,8 +1,11 @@
 openapi: "3.0.3"
 info:
   title: "TeaStore v2 API"
-  description: "Netty TeaStore API"
+  description: "TeaStore v2 API Documentation - Servers are placeholders and paths may be restricted in Docker context!"
   version: "2.0.0"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 servers:
   - url: "http://localhost:80"
   - url: "https://localhost:443"

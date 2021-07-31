@@ -7,11 +7,11 @@ The original version was developed by the Descartes Research Group (University o
 TeaStore emulates a basic web store for automatically generated, tea and tea supplies.   
 For more details visit the base [repository](https://github.com/DescartesResearch/TeaStore).
 
-## Changes (WIP)
+## Changes
 - Registry replaced with [Traefik](https://github.com/traefik/traefik),
   a HTTP reverse proxy and load balancer
 - Netty HTTP servers (and client) instead of Jetty servlets
-- Support for HTTP/1.1, HTTP/2 and HTTP/3
+- Support for HTTP/1.1, HTTP/2 and HTTP/3 (HTTP/3 on UNIX only)
 - Full JSON-API instead of JSPs
 - Optimized API paths
 - The database setup includes the data population
@@ -28,7 +28,7 @@ For more details visit the base [repository](https://github.com/DescartesResearc
  ```sh
  docker-compose up -f ./examples/docker/docker-compose_http2.yaml up
  ```
-#### HTTP/3 (WIP)
+#### HTTP/3
  ```sh
 docker-compose -f ./examples/docker/docker-compose_http3.yaml up
  ```
@@ -66,7 +66,7 @@ Waiting for the database is already included.
  ```sh
  docker-compose up -f ./docker-compose_h2.yaml up --build
  ```
-#### HTTP/3 (WIP)
+#### HTTP/3
  ```sh
  docker-compose up -f ./docker-compose_h3.yaml up --build
  ```
@@ -79,15 +79,21 @@ Waiting for the database is already included.
 - [Web](https://hub.docker.com/r/tvsjsdock/teastore-web)
 - [Image](https://hub.docker.com/r/tvsjsdock/teastore-image)
 - [Recommender](https://hub.docker.com/r/tvsjsdock/teastore-recommender)
+- [h2load-http3](https://hub.docker.com/r/tvsjsdock/h2load-http3)
 
-## Architecture / Documentation (WIP)
-TBD
+## Microservice Architecture
+![Microservice Architecture](api/msa-teastore-v2.png)
 
-API documentation is available in the [api](api) folder.
+### API Documentation 
+Available as [OpenAPI v3 YAML](api/TeaStore_v2.yaml).
 
-## Testing / Evaluation (WIP)
-TBD
+## Benchmarking
+### h2load
+[h2load](https://github.com/nghttp2/nghttp2/tree/quic#running-h2load-against-http3-server)
+is currently (08/21) the only HTTP benchmarking tool which supports HTTP/1.1, HTTP/2 and HTTP/3.  
+You can use the existing [benchmark script](examples/h2load_benchmark.sh) or create your own scripts.  
 
+## Application Performance Monitoring (APM)
 [Kieker](http://kieker-monitoring.net) and [RabbitMQ](https://www.rabbitmq.com/) may be removed.
 
 ## License
