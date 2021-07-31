@@ -32,9 +32,10 @@ services:
     expose:
       - "443"
     environment:
-      VERSION: "HTTP/2"
+      HTTP_VERSION: "HTTP/2"
       HOST_NAME: "persistence"
       GATEWAY_HOST: "gateway"
+      PERSISTENCE_PORT: "443"
       DB_HOST: "db"
       DB_PORT: "3306"
     labels:
@@ -51,9 +52,10 @@ services:
     expose:
       - "443"
     environment:
-      VERSION: "HTTP/2"
+      HTTP_VERSION: "HTTP/2"
       HOST_NAME: "auth"
       GATEWAY_HOST: "gateway"
+      AUTH_PORT: "443"
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
       - "traefik.http.routers.auth.entrypoints=http2"
@@ -68,9 +70,10 @@ services:
     expose:
       - "443"
     environment:
-      VERSION: "HTTP/2"
+      HTTP_VERSION: "HTTP/2"
       HOST_NAME: "web"
       GATEWAY_HOST: "gateway"
+      WEB_PORT: "443"
     labels:
       - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
       - "traefik.http.routers.web.entrypoints=http2"
@@ -85,9 +88,10 @@ services:
     expose:
       - "443"
     environment:
-      VERSION: "HTTP/2"
+      HTTP_VERSION: "HTTP/2"
       HOST_NAME: "image"
       GATEWAY_HOST: "gateway"
+      IMAGE_PORT: "443"
     labels:
       - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
       - "traefik.http.routers.image.entrypoints=http2"
@@ -102,9 +106,10 @@ services:
     expose:
       - "443"
     environment:
-      VERSION: "HTTP/2"
+      HTTP_VERSION: "HTTP/2"
       HOST_NAME: "recommender"
       GATEWAY_HOST: "gateway"
+      RECOMMENDER_PORT: "443"
     labels:
       - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
       - "traefik.http.routers.recommender.entrypoints=http2"

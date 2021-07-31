@@ -45,19 +45,20 @@ public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHa
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
+        /*
         if (isLast) {
             LOG.info("Received HTTP/3 end header frame: " + headersFrame);
         }
+        */
         ReferenceCountUtil.release(headersFrame);
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
-        LOG.info("Received HTTP/3 data frame: " + dataFrame);
+        // LOG.info("Received HTTP/3 data frame: " + dataFrame);
         jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
-        LOG.info("CONTENT: " + jsonContent);
         if (isLast) {
-            LOG.info("Received end data frame: " + dataFrame);
+            // LOG.info("Received end data frame: " + dataFrame);
             context.channel().close();
         }
         ReferenceCountUtil.release(dataFrame);

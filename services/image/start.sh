@@ -3,15 +3,16 @@
 sleep 10
 # Run jar depending on configured HTTP version
 # HTTP/1.1 is the fallback configuration
-if [ $VERSION == "HTTP/1.1" ]
+#   JAR HTTP_VERSION GATEWAY_HOST IMAGE_PORT (PERSISTENCE_PORT | for HTTP/3 only)
+if [ $HTTP_VERSION == "HTTP/1.1" ]
 then
-    java -jar /service/image.jar HTTP/1.1 $GATEWAY_HOST 80
-elif [ $VERSION == "HTTP/2" ]
+    java -jar /service/image.jar $HTTP_VERSION $GATEWAY_HOST $IMAGE_PORT
+elif [ $HTTP_VERSION == "HTTP/2" ]
 then
-    java -jar /service/image.jar HTTP/2 $GATEWAY_HOST 443
-elif [ $VERSION == "HTTP/3" ]
+    java -jar /service/image.jar $HTTP_VERSION $GATEWAY_HOST $IMAGE_PORT
+elif [ $HTTP_VERSION == "HTTP/3" ]
 then
-    java -jar /service/image.jar HTTP/3 $GATEWAY_HOST 4433
+    java -jar /service/image.jar $HTTP_VERSION $GATEWAY_HOST $IMAGE_PORT $PERSISTENCE_PORT
 else
     java -jar /service/image.jar HTTP/1.1 $GATEWAY_HOST 80
 fi

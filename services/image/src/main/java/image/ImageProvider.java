@@ -124,11 +124,11 @@ public enum ImageProvider {
       return null;
     }
     if (key == null || size == null) {
-      LOG.info("Supplied image key or size are null.");
+      LOG.error("Supplied image key or size are null.");
       return null;
     }
     if (!key.isProductKey() && (key.getWebUIName() == null || key.getWebUIName().isEmpty())) {
-      LOG.info("Supplied image key invalid. Is neither web image nor product image.");
+      LOG.error("Supplied image key invalid. Is neither web image nor product image.");
       return null;
     }
 

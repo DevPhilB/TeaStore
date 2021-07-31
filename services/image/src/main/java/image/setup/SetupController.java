@@ -253,7 +253,7 @@ public enum SetupController {
     //
     if (productList == null) {
       products.put(category, new ArrayList<>());
-      LOG.info("No products for category {} ({}) found.", category.name(), category.id());
+      LOG.error("No products for category {} ({}) found.", category.name(), category.id());
     } else {
       List<Long> ids = productList.stream().map(Product::id).collect(Collectors.toList());
       products.put(category, ids);
@@ -640,7 +640,7 @@ public enum SetupController {
     default:
       break;
     }
-
+    //
     LOG.info("Storage setup done.");
   }
 
@@ -655,7 +655,7 @@ public enum SetupController {
     } else {
     	ImageProvider.IP.setStorage(cache);
     }
-
+    //
     LOG.info("Storage and image database handed over to image provider");
   }
 

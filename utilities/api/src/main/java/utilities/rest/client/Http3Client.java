@@ -66,19 +66,16 @@ public class Http3Client {
                     .build();
             // Configure the client
             Bootstrap bootstrap = new Bootstrap();
-            LOG.info("Try to bind...");
             Channel channel = bootstrap.group(group)
                     .channel(NioDatagramChannel.class)
                     .handler(codec)
                     .bind(0).sync().channel();
-            LOG.info("Bind successful!");
             // Start the client
             QuicChannel quicChannel = QuicChannel.newBootstrap(channel)
                     .handler(new Http3ClientConnectionHandler())
                     .remoteAddress(new InetSocketAddress(host, port))
                     .connect()
                     .get();
-            LOG.info("Connected to [" + host + ':' + port + ']');
             // Prepare request stream
             QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel, handler).sync().getNow();
             streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));

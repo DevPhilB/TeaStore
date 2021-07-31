@@ -49,14 +49,17 @@ public class Http2ClientStreamFrameHandler extends SimpleChannelInboundHandler<H
     @Override
     protected void channelRead0(ChannelHandlerContext context, Http2StreamFrame message) {
         if (message instanceof Http2DataFrame dataFrame) {
-            LOG.info("Received HTTP/2 data frame: " + dataFrame);
+            // LOG.info("Received HTTP/2 data frame: " + dataFrame);
             jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
             if (dataFrame.isEndStream()) {
-                LOG.info("Received end data frame: " + dataFrame);
+                // LOG.info("Received end data frame: " + dataFrame);
                 channel.close();
             }
-        } else if (message instanceof Http2HeadersFrame headersFrame && headersFrame.isEndStream()) {
+        } 
+        /*
+        else if (message instanceof Http2HeadersFrame headersFrame && headersFrame.isEndStream()) {
             LOG.info("Received end header frame: " + headersFrame);
-        }
+        } 
+        */
     }
 }
