@@ -35,8 +35,8 @@ public class Http3AuthServiceHandler extends Http3RequestStreamInboundHandler {
     private final Http3AuthAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3AuthServiceHandler.class);
 
-    public Http3AuthServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new Http3AuthAPI(gatewayHost, gatewayPort);
+    public Http3AuthServiceHandler(String gatewayHost, Integer persistencePort) {
+        api = new Http3AuthAPI(gatewayHost, persistencePort);
     }
 
     private void handleRequest(ChannelHandlerContext context) {

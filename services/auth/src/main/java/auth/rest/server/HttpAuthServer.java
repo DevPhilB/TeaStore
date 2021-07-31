@@ -48,23 +48,27 @@ public class HttpAuthServer {
 
     private final String httpVersion;
     private final String gatewayHost;
-    private final Integer gatewayPort;
+    private final Integer authPort;
+    private final Integer persistencePort;
     private static final Logger LOG = LogManager.getLogger(HttpAuthServer.class);
 
-    public HttpAuthServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
+    public HttpAuthServer(String httpVersion, String gatewayHost, Integer authPort, Integer persistencePort) {
         this.httpVersion = httpVersion;
         this.gatewayHost = gatewayHost;
-        this.gatewayPort = gatewayPort;
+        this.authPort = authPort;
+        this.persistencePort = persistencePort;
     }
 
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer authPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer persistencePort = args.length > 3 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpAuthServer(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                authPort,
+                persistencePort
         ).run();
     }
 
@@ -76,8 +80,8 @@ public class HttpAuthServer {
             channel = bootstrap.bind(DEFAULT_AUTH_PORT).sync().channel();
             status += "localhost:" + DEFAULT_AUTH_PORT + AUTH_ENDPOINT;
         } else {
-            channel = bootstrap.bind(gatewayPort).sync().channel();
-            status += "auth:" + gatewayPort + AUTH_ENDPOINT;
+            channel = bootstrap.bind(authPort).sync().channel();
+            status += "auth:" + authPort + AUTH_ENDPOINT;
         }
         LOG.info(status);
         channel.closeFuture().sync();
@@ -109,7 +113,7 @@ public class HttpAuthServer {
                                     ChannelPipeline channelPipeline = ch.pipeline();
                                     channelPipeline.addLast(new HttpRequestDecoder());
                                     channelPipeline.addLast(new HttpResponseEncoder());
-                                    channelPipeline.addLast(new Http1AuthServiceHandler(gatewayHost, gatewayPort));
+                                    channelPipeline.addLast(new Http1AuthServiceHandler(gatewayHost, authPort));
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -141,7 +145,7 @@ public class HttpAuthServer {
                                 protected void initChannel(SocketChannel channel) {
                                     channel.pipeline().addLast(httpSslContext.newHandler(channel.alloc()));
                                     channel.pipeline().addLast(Http2FrameCodecBuilder.forServer().build());
-                                    channel.pipeline().addLast(new Http2AuthServiceHandler(gatewayHost, gatewayPort));
+                                    channel.pipeline().addLast(new Http2AuthServiceHandler(gatewayHost, authPort));
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -177,7 +181,7 @@ public class HttpAuthServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3AuthServiceHandler(gatewayHost, gatewayPort)
+                                                        new Http3AuthServiceHandler(gatewayHost, persistencePort)
                                                 );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
@@ -205,8 +209,8 @@ public class HttpAuthServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
-                        status += "auth:" + gatewayPort + AUTH_ENDPOINT;
+                                .bind(new InetSocketAddress(authPort)).sync().channel();
+                        status += "auth:" + authPort + AUTH_ENDPOINT;
                     }
                     LOG.info(status);
                     channel.closeFuture().sync();

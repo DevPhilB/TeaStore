@@ -35,8 +35,14 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
     private final Http3WebAPI api;
     private static final Logger LOG = LogManager.getLogger(Http3WebServiceHandler.class);
 
-    public Http3WebServiceHandler(String gatewayHost, Integer gatewayPort) {
-        api = new Http3WebAPI(gatewayHost, gatewayPort);
+    public Http3WebServiceHandler(
+            String gatewayHost,
+            Integer persistencePort,
+            Integer authPort,
+            Integer imagePort,
+            Integer recommenderPort
+    ) {
+        api = new Http3WebAPI(gatewayHost, persistencePort, authPort, imagePort, recommenderPort);
     }
 
     private void handleRequest(ChannelHandlerContext context) {

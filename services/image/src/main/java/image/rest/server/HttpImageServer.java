@@ -51,17 +51,19 @@ public class HttpImageServer {
 
     private final String httpVersion;
     private final String gatewayHost;
-    private final Integer gatewayPort;
+    private final Integer imagePort;
+    private final Integer persistencePort;
     private static final Logger LOG = LogManager.getLogger(HttpImageServer.class);
 
-    public HttpImageServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
+    public HttpImageServer(String httpVersion, String gatewayHost, Integer imagePort, Integer persistencePort) {
         this.httpVersion = httpVersion;
         this.gatewayHost = gatewayHost;
-        this.gatewayPort = gatewayPort;
+        this.imagePort = imagePort;
+        this.persistencePort = persistencePort;
         SetupController.SETUP.setupHttpClient(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                persistencePort == 80 ? imagePort : persistencePort
         );
         SetupController.SETUP.startup();
     }
@@ -69,11 +71,13 @@ public class HttpImageServer {
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer imagePort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer persistencePort = args.length > 3 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpImageServer(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                imagePort,
+                persistencePort
         ).run();
     }
 
@@ -85,8 +89,8 @@ public class HttpImageServer {
             channel = bootstrap.bind(DEFAULT_IMAGE_PORT).sync().channel();
             status += "localhost:" + DEFAULT_IMAGE_PORT + IMAGE_ENDPOINT;
         } else {
-            channel = bootstrap.bind(gatewayPort).sync().channel();
-            status += "image:" + gatewayPort + IMAGE_ENDPOINT;
+            channel = bootstrap.bind(imagePort).sync().channel();
+            status += "image:" + imagePort + IMAGE_ENDPOINT;
         }
         LOG.info(status);
         channel.closeFuture().sync();
@@ -118,7 +122,7 @@ public class HttpImageServer {
                                     ChannelPipeline channelPipeline = ch.pipeline();
                                     channelPipeline.addLast(new HttpRequestDecoder());
                                     channelPipeline.addLast(new HttpResponseEncoder());
-                                    channelPipeline.addLast(new Http1ImageServiceHandler(gatewayHost, gatewayPort));
+                                    channelPipeline.addLast(new Http1ImageServiceHandler(gatewayHost, imagePort));
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -150,7 +154,7 @@ public class HttpImageServer {
                                 protected void initChannel(SocketChannel channel) {
                                     channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
                                     channel.pipeline().addLast(Http2FrameCodecBuilder.forServer().build());
-                                    channel.pipeline().addLast(new Http2ImageServiceHandler(gatewayHost, gatewayPort));
+                                    channel.pipeline().addLast(new Http2ImageServiceHandler(gatewayHost, imagePort));
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -186,7 +190,7 @@ public class HttpImageServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3ImageServiceHandler(gatewayHost, gatewayPort)
+                                                        new Http3ImageServiceHandler(gatewayHost, persistencePort)
                                                 );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
@@ -214,8 +218,8 @@ public class HttpImageServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
-                        status += "image:" + gatewayPort + IMAGE_ENDPOINT;
+                                .bind(new InetSocketAddress(imagePort)).sync().channel();
+                        status += "image:" + imagePort + IMAGE_ENDPOINT;
                     }
                     LOG.info(status);
                     channel.closeFuture().sync();

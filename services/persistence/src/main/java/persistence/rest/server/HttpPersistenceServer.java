@@ -50,23 +50,23 @@ public class HttpPersistenceServer {
 
     private final String httpVersion;
     private final String gatewayHost;
-    private final Integer gatewayPort;
+    private final Integer persistencePort;
     private static final Logger LOG = LogManager.getLogger(HttpPersistenceServer.class);
 
-    public HttpPersistenceServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
+    public HttpPersistenceServer(String httpVersion, String gatewayHost, Integer persistencePort) {
         this.httpVersion = httpVersion;
         this.gatewayHost = gatewayHost;
-        this.gatewayPort = gatewayPort;
+        this.persistencePort = persistencePort;
     }
 
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer persistencePort = args.length > 2 ?  args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
         new HttpPersistenceServer(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                persistencePort
         ).run();
     }
 
@@ -78,8 +78,8 @@ public class HttpPersistenceServer {
             channel = bootstrap.bind(DEFAULT_PERSISTENCE_PORT).sync().channel();
             status += "localhost:" + DEFAULT_PERSISTENCE_PORT + PERSISTENCE_ENDPOINT;
         } else {
-            channel = bootstrap.bind(gatewayPort).sync().channel();
-            status += "persistence:" + gatewayPort + PERSISTENCE_ENDPOINT;
+            channel = bootstrap.bind(persistencePort).sync().channel();
+            status += "persistence:" + persistencePort + PERSISTENCE_ENDPOINT;
         }
         LOG.info(status);
         channel.closeFuture().sync();
@@ -111,7 +111,9 @@ public class HttpPersistenceServer {
                                     ChannelPipeline channelPipeline = ch.pipeline();
                                     channelPipeline.addLast(new HttpRequestDecoder());
                                     channelPipeline.addLast(new HttpResponseEncoder());
-                                    channelPipeline.addLast(new Http1PersistenceServiceHandler(gatewayHost, gatewayPort));
+                                    channelPipeline.addLast(
+                                            new Http1PersistenceServiceHandler(gatewayHost, persistencePort)
+                                    );
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -143,7 +145,9 @@ public class HttpPersistenceServer {
                                 protected void initChannel(SocketChannel channel) {
                                     channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
                                     channel.pipeline().addLast(Http2FrameCodecBuilder.forServer().build());
-                                    channel.pipeline().addLast(new Http2PersistenceServiceHandler(gatewayHost, gatewayPort));
+                                    channel.pipeline().addLast(
+                                            new Http2PersistenceServiceHandler(gatewayHost, persistencePort)
+                                    );
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -179,7 +183,7 @@ public class HttpPersistenceServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3PersistenceServiceHandler(gatewayHost, gatewayPort)
+                                                        new Http3PersistenceServiceHandler(gatewayHost, persistencePort)
                                                 );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
@@ -207,8 +211,8 @@ public class HttpPersistenceServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
-                        status += "persistence:" + gatewayPort + PERSISTENCE_ENDPOINT;
+                                .bind(new InetSocketAddress(persistencePort)).sync().channel();
+                        status += "persistence:" + persistencePort + PERSISTENCE_ENDPOINT;
                     }
                     LOG.info(status);
                     channel.closeFuture().sync();

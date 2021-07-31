@@ -51,18 +51,21 @@ public class HttpRecommenderServer {
 
     private final String httpVersion;
     private final String gatewayHost;
-    private final Integer gatewayPort;
+    private final Integer recommenderPort;
+    private final Integer persistencePort;
     private static final Logger LOG = LogManager.getLogger(HttpRecommenderServer.class);
 
-    public HttpRecommenderServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
+    public HttpRecommenderServer(
+            String httpVersion, String gatewayHost, Integer recommenderPort, Integer persistencePort) {
         this.httpVersion = httpVersion;
         this.gatewayHost = gatewayHost;
-        this.gatewayPort = gatewayPort;
+        this.recommenderPort = recommenderPort;
+        this.persistencePort = persistencePort;
         // Setup and start training
         TrainingSynchronizer.getInstance().setupHttpClient(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                persistencePort == 80 ? recommenderPort : persistencePort
         );
         TrainingSynchronizer.getInstance().retrieveDataAndRetrain();
     }
@@ -70,11 +73,13 @@ public class HttpRecommenderServer {
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer recommenderPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer persistencePort = args.length > 3 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
         new HttpRecommenderServer(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                recommenderPort,
+                persistencePort
         ).run();
     }
 
@@ -86,8 +91,8 @@ public class HttpRecommenderServer {
             channel = bootstrap.bind(DEFAULT_RECOMMENDER_PORT).sync().channel();
             status += "localhost:" + DEFAULT_RECOMMENDER_PORT + RECOMMENDER_ENDPOINT;
         } else {
-            channel = bootstrap.bind(gatewayPort).sync().channel();
-            status += "recommender:" + gatewayPort + RECOMMENDER_ENDPOINT;
+            channel = bootstrap.bind(recommenderPort).sync().channel();
+            status += "recommender:" + recommenderPort + RECOMMENDER_ENDPOINT;
         }
         LOG.info(status);
         channel.closeFuture().sync();
@@ -119,7 +124,9 @@ public class HttpRecommenderServer {
                                     ChannelPipeline channelPipeline = ch.pipeline();
                                     channelPipeline.addLast(new HttpRequestDecoder());
                                     channelPipeline.addLast(new HttpResponseEncoder());
-                                    channelPipeline.addLast(new Http1RecommenderServiceHandler(gatewayHost, gatewayPort));
+                                    channelPipeline.addLast(
+                                            new Http1RecommenderServiceHandler(gatewayHost, recommenderPort)
+                                    );
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -151,7 +158,9 @@ public class HttpRecommenderServer {
                                 protected void initChannel(SocketChannel channel) {
                                     channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
                                     channel.pipeline().addLast(Http2FrameCodecBuilder.forServer().build());
-                                    channel.pipeline().addLast(new Http2RecommenderServiceHandler(gatewayHost, gatewayPort));
+                                    channel.pipeline().addLast(
+                                            new Http2RecommenderServiceHandler(gatewayHost, recommenderPort)
+                                    );
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -187,7 +196,7 @@ public class HttpRecommenderServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3RecommenderServiceHandler(gatewayHost, gatewayPort)
+                                                        new Http3RecommenderServiceHandler(gatewayHost, recommenderPort)
                                                 );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
@@ -215,8 +224,8 @@ public class HttpRecommenderServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
-                        status += "recommender:" + gatewayPort + RECOMMENDER_ENDPOINT;
+                                .bind(new InetSocketAddress(recommenderPort)).sync().channel();
+                        status += "recommender:" + recommenderPort + RECOMMENDER_ENDPOINT;
                     }
                     LOG.info(status);
                     channel.closeFuture().sync();

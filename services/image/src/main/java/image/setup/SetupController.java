@@ -157,16 +157,16 @@ public enum SetupController {
   public void setupHttpClient(
           String httpVersion,
           String gatewayHost,
-          Integer gatewayPort
+          Integer persistencePort
   ) {
     this.httpVersion = httpVersion;
     mapper = new ObjectMapper();
     if (gatewayHost.isEmpty()) {
       this.gatewayHost = "localhost";
-      persistencePort = DEFAULT_PERSISTENCE_PORT;
+      this.persistencePort = DEFAULT_PERSISTENCE_PORT;
     } else {
       this.gatewayHost = gatewayHost;
-      persistencePort = gatewayPort;
+      this.persistencePort = persistencePort;
     }
     // HTTP/1.1
     request = new DefaultFullHttpRequest(

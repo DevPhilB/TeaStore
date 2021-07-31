@@ -55,14 +55,14 @@ public class Http3AuthAPI implements API {
     private Http3DataFrame http3DataFrame;
     private static final Logger LOG = LogManager.getLogger(Http3AuthAPI.class);
 
-    public Http3AuthAPI(String gatewayHost, Integer gatewayPort) {
+    public Http3AuthAPI(String gatewayHost, Integer persistencePort) {
         this.mapper = new ObjectMapper();
         if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
             this.persistencePort = DEFAULT_PERSISTENCE_PORT;
         } else {
             this.gatewayHost = gatewayHost;
-            this.persistencePort = gatewayPort;
+            this.persistencePort = persistencePort;
         }
     }
 

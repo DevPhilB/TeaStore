@@ -48,28 +48,34 @@ public class Http3WebAPI implements API {
     private Http3ClientStreamInboundHandler frameHandler;
     private final ObjectMapper mapper;
     private final String gatewayHost;
-    private final Integer imagePort;
-    private final Integer authPort;
     private final Integer persistencePort;
+    private final Integer authPort;
+    private final Integer imagePort;
     private final Integer recommenderPort;
     private Http3HeadersFrame http3HeadersFrame;
     private Http3DataFrame http3DataFrame;
     private static final Logger LOG = LogManager.getLogger(Http3WebAPI.class);
 
-    public Http3WebAPI(String gatewayHost, Integer gatewayPort) {
+    public Http3WebAPI(
+            String gatewayHost,
+            Integer persistencePort,
+            Integer authPort,
+            Integer imagePort,
+            Integer recommenderPort
+    ) {
         mapper = new ObjectMapper();
         if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
-            authPort = DEFAULT_AUTH_PORT;
-            imagePort = DEFAULT_IMAGE_PORT;
-            persistencePort = DEFAULT_PERSISTENCE_PORT;
-            recommenderPort = DEFAULT_RECOMMENDER_PORT;
+            this.authPort = DEFAULT_AUTH_PORT;
+            this.imagePort = DEFAULT_IMAGE_PORT;
+            this.persistencePort = DEFAULT_PERSISTENCE_PORT;
+            this.recommenderPort = DEFAULT_RECOMMENDER_PORT;
         } else {
             this.gatewayHost = gatewayHost;
-            imagePort = gatewayPort;
-            authPort = gatewayPort;
-            persistencePort = gatewayPort;
-            recommenderPort = gatewayPort;
+            this.imagePort = persistencePort;
+            this.authPort = authPort;
+            this.persistencePort = imagePort;
+            this.recommenderPort = recommenderPort;
         }
     }
 

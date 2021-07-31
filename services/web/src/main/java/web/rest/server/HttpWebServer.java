@@ -47,26 +47,49 @@ import static utilities.rest.api.API.WEB_ENDPOINT;
  * @author Philipp Backes
  */
 public class HttpWebServer {
-
     private final String httpVersion;
     private final String gatewayHost;
-    private final Integer gatewayPort;
+    private final Integer webPort;
+    private final Integer persistencePort; // Only for HTTP/3
+    private final Integer authPort; // Only for HTTP/3
+    private final Integer imagePort; // Only for HTTP/3
+    private final Integer recommenderPort; // Only for HTTP/3
     private static final Logger LOG = LogManager.getLogger(HttpWebServer.class);
 
-    public HttpWebServer(String httpVersion, String gatewayHost, Integer gatewayPort) {
+    public HttpWebServer(
+            String httpVersion,
+            String gatewayHost,
+            Integer webPort,
+            Integer persistencePort,
+            Integer authPort,
+            Integer imagePort,
+            Integer recommenderPort
+    ) {
         this.httpVersion = httpVersion;
         this.gatewayHost = gatewayHost;
-        this.gatewayPort = gatewayPort;
+        this.webPort = webPort;
+        this.persistencePort = persistencePort;
+        this.authPort = authPort;
+        this.imagePort = imagePort;
+        this.recommenderPort = recommenderPort;
     }
 
     public static void main(String[] args) throws Exception {
         String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
-        Integer gatewayPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer webPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
+        Integer persistencePort = args.length > 3 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
+        Integer authPort = args.length > 4 ? args[4] != null ? Integer.parseInt(args[4]) : 80 : 80;
+        Integer imagePort = args.length > 5 ? args[5] != null ? Integer.parseInt(args[5]) : 80 : 80;
+        Integer recommenderPort = args.length > 6 ? args[6] != null ? Integer.parseInt(args[6]) : 80 : 80;
         new HttpWebServer(
                 httpVersion,
                 gatewayHost,
-                gatewayPort
+                webPort,
+                persistencePort,
+                authPort,
+                imagePort,
+                recommenderPort
         ).run();
     }
 
@@ -78,8 +101,8 @@ public class HttpWebServer {
             channel = bootstrap.bind(DEFAULT_WEB_PORT).sync().channel();
             status += "localhost:" + DEFAULT_WEB_PORT + WEB_ENDPOINT;
         } else {
-            channel = bootstrap.bind(gatewayPort).sync().channel();
-            status += "web:" + gatewayPort + WEB_ENDPOINT;
+            channel = bootstrap.bind(webPort).sync().channel();
+            status += "web:" + webPort + WEB_ENDPOINT;
         }
         LOG.info(status);
         channel.closeFuture().sync();
@@ -111,7 +134,7 @@ public class HttpWebServer {
                                     ChannelPipeline channelPipeline = ch.pipeline();
                                     channelPipeline.addLast(new HttpRequestDecoder());
                                     channelPipeline.addLast(new HttpResponseEncoder());
-                                    channelPipeline.addLast(new Http1WebServiceHandler(gatewayHost, gatewayPort));
+                                    channelPipeline.addLast(new Http1WebServiceHandler(gatewayHost, webPort));
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -145,7 +168,7 @@ public class HttpWebServer {
                                 protected void initChannel(SocketChannel channel) {
                                     channel.pipeline().addLast(sslCtx.newHandler(channel.alloc()));
                                     channel.pipeline().addLast(Http2FrameCodecBuilder.forServer().build());
-                                    channel.pipeline().addLast(new Http2WebServiceHandler(gatewayHost, gatewayPort));
+                                    channel.pipeline().addLast(new Http2WebServiceHandler(gatewayHost, webPort));
                                 }
                             });
                     bindAndSync(bootstrap);
@@ -181,7 +204,13 @@ public class HttpWebServer {
                                             @Override
                                             protected void initChannel(QuicStreamChannel streamChannel) {
                                                 streamChannel.pipeline().addLast(
-                                                        new Http3WebServiceHandler(gatewayHost, gatewayPort)
+                                                        new Http3WebServiceHandler(
+                                                                gatewayHost,
+                                                                persistencePort,
+                                                                authPort,
+                                                                imagePort,
+                                                                recommenderPort
+                                                        )
                                                 );
                                                 streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
@@ -209,8 +238,8 @@ public class HttpWebServer {
                         channel = bootstrap.group(bossGroup)
                                 .channel(NioDatagramChannel.class)
                                 .handler(codec)
-                                .bind(new InetSocketAddress(gatewayPort)).sync().channel();
-                        status += "web:" + gatewayPort + WEB_ENDPOINT;
+                                .bind(new InetSocketAddress(webPort)).sync().channel();
+                        status += "web:" + webPort + WEB_ENDPOINT;
                     }
                     LOG.info(status);
                     channel.closeFuture().sync();
