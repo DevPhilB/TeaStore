@@ -66,15 +66,15 @@ public class Http3WebAPI implements API {
         mapper = new ObjectMapper();
         if (gatewayHost.isEmpty()) {
             this.gatewayHost = "localhost";
+            this.persistencePort = DEFAULT_PERSISTENCE_PORT;
             this.authPort = DEFAULT_AUTH_PORT;
             this.imagePort = DEFAULT_IMAGE_PORT;
-            this.persistencePort = DEFAULT_PERSISTENCE_PORT;
             this.recommenderPort = DEFAULT_RECOMMENDER_PORT;
         } else {
             this.gatewayHost = gatewayHost;
-            this.imagePort = persistencePort;
+            this.persistencePort = persistencePort;
             this.authPort = authPort;
-            this.persistencePort = imagePort;
+            this.imagePort = imagePort;
             this.recommenderPort = recommenderPort;
         }
     }
@@ -217,6 +217,8 @@ public class Http3WebAPI implements API {
                     frameHandler.jsonContent,
                     new TypeReference<Map<String, String>>(){}
             );
+        } else {
+            LOG.error("WEB: IMAGE did not respond to " + imageEndpoint + " request!");
         }
         return imageWebDataMap;
     }
@@ -245,6 +247,8 @@ public class Http3WebAPI implements API {
                     frameHandler.jsonContent,
                     new TypeReference<Map<Long, String>>(){}
             );
+        } else {
+            LOG.error("WEB: IMAGE did not respond to " + imageEndpoint + " request!");
         }
         return imageProductDataMap;
     }
@@ -266,6 +270,8 @@ public class Http3WebAPI implements API {
                     frameHandler.jsonContent,
                     new TypeReference<List<Category>>(){}
             );
+        } else {
+            LOG.error("WEB: PERSISTENCE did not respond to " + persistenceEndpointCategories + " request!");
         }
         return categories;
     }
@@ -284,6 +290,8 @@ public class Http3WebAPI implements API {
         httpClient.sendRequest(frameHandler);
         if (!frameHandler.jsonContent.isEmpty()) {
             newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+        } else {
+            LOG.error("WEB: AUTH did not respond to " + authEndpoint + " request!");
         }
         return newSessionData;
     }
@@ -339,7 +347,9 @@ public class Http3WebAPI implements API {
                     description
             );
             String json = mapper.writeValueAsString(view);
+            LOG.info("Check login...");
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
+            LOG.info("New session data: " + newSessionData.toString());
             if (newSessionData != null) {
                 return new Http3Response(
                         Http3Response.okJsonHeader(json.length())
@@ -397,6 +407,7 @@ public class Http3WebAPI implements API {
                         response = cartView(newSessionData);
                         break;
                     } else {
+                        LOG.error("WEB: AUTH did not respond to " + authEndpointAdd + " request!");
                         return Http3Response.internalServerErrorResponse();
                     }
                 case "removeproduct":
@@ -415,6 +426,7 @@ public class Http3WebAPI implements API {
                         response = cartView(newSessionData);
                         break;
                     } else {
+                        LOG.error("WEB: AUTH did not respond to " + authEndpointRemove + " request!");
                         return Http3Response.internalServerErrorResponse();
                     }
                 case "updatecartquantities":
@@ -433,6 +445,7 @@ public class Http3WebAPI implements API {
                         response = cartView(newSessionData);
                         break;
                     } else {
+                        LOG.error("WEB: AUTH did not respond to " + authEndpointUpdate + " request!");
                         return Http3Response.internalServerErrorResponse();
                     }
                 case "proceedtocheckout":
@@ -487,6 +500,7 @@ public class Http3WebAPI implements API {
                 );
                 return response;
             } else {
+                LOG.error("WEB: AUTH did not respond to " + authEndpointPlaceOrder + " request!");
                 return Http3Response.badRequestResponse();
             }
         } catch (Exception e) {
@@ -540,6 +554,9 @@ public class Http3WebAPI implements API {
                 if (!frameHandler.jsonContent.isEmpty()) {
                     Product product = mapper.readValue(frameHandler.jsonContent, Product.class);
                     products.put(product.id(), product);
+                } else {
+                    LOG.error("WEB: PERSISTENCE did not respond to " +
+                        persistenceEndpointProducts + "?id=" + id + " request!");
                 }
             }
             // Get store icon
@@ -588,6 +605,9 @@ public class Http3WebAPI implements API {
                             frameHandler.jsonContent,
                             new TypeReference<List<Long>>(){}
                     );
+                } else {
+                    LOG.error("WEB: RECOMMENDER did not respond to " +
+                        recommenderEndpoint + "?userid=" + sessionData.userId() + " request!");
                 }
             }
             // Get product images
@@ -608,6 +628,9 @@ public class Http3WebAPI implements API {
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
                     recommendedProducts.add(mapper.readValue(frameHandler.jsonContent, Product.class));
+                } else {
+                    LOG.error("WEB: PERSISTENCE did not respond to " +
+                        persistenceEndpointProducts + "?id=" + productId + " request!");
                 }
             }
             Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -710,6 +733,8 @@ public class Http3WebAPI implements API {
                         frameHandler.jsonContent,
                         new TypeReference<List<Product>>(){}
                 ).size();
+            } else {
+                LOG.error("WEB: PERSISTENCE did not respond to " + persistenceEndpointProducts + " request!");
             }
             // Check page number
             int maxPages = (int) Math.ceil(((double) products) / productQuantity);
@@ -735,6 +760,8 @@ public class Http3WebAPI implements API {
                         frameHandler.jsonContent,
                         new TypeReference<List<Product>>(){}
                 );
+            } else {
+                LOG.error("WEB: PERSISTENCE did not respond to " + persistenceEndpointCategoryProducts + " request!");
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -820,6 +847,7 @@ public class Http3WebAPI implements API {
                 // And return to index view
                 return indexView(sessionData);
             } else {
+                LOG.error("WEB: PERSISTENCE did not respond to " + persistenceEndpoint + " request!");
                 return Http3Response.internalServerErrorResponse();
             }
         } catch (Exception e) {
@@ -1001,6 +1029,8 @@ public class Http3WebAPI implements API {
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+                    } else {
+                        LOG.error("WEB: AUTH did not respond to " + authEndpointLogin + " request!");
                     }
                     return profileView(newSessionData);
                 case "logout":
@@ -1016,6 +1046,8 @@ public class Http3WebAPI implements API {
                     httpClient.sendRequest(frameHandler);
                     if (!frameHandler.jsonContent.isEmpty()) {
                         newSessionData = mapper.readValue(frameHandler.jsonContent, SessionData.class);
+                    } else {
+                        LOG.error("WEB: AUTH did not respond to " + authEndpointLogout + " request!");
                     }
                     return indexView(newSessionData);
             }
@@ -1184,6 +1216,9 @@ public class Http3WebAPI implements API {
             httpClient.sendRequest(frameHandler);
             if (!frameHandler.jsonContent.isEmpty()) {
                 product = mapper.readValue(frameHandler.jsonContent, Product.class);
+            } else {
+                LOG.error("WEB: PERSISTENCE did not respond to " +
+                    persistenceEndpointProducts + "?id=" + productId + " request!");
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -1227,6 +1262,9 @@ public class Http3WebAPI implements API {
                             frameHandler.jsonContent,
                             new TypeReference<List<Long>>(){}
                     );
+                } else {
+                    LOG.error("WEB: RECOMMENDER did not respond to " +
+                        recommenderEndpoint + "?userid=" + sessionData.userId() + " request!");
                 }
             }
             // Get product images
@@ -1247,6 +1285,9 @@ public class Http3WebAPI implements API {
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
                     recommendedProducts.add(mapper.readValue(frameHandler.jsonContent, Product.class));
+                } else {
+                    LOG.error("WEB: PERSISTENCE did not respond to " +
+                        persistenceEndpointProducts + "?id=" + id + " request!");
                 }
             }
             productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -1343,6 +1384,9 @@ public class Http3WebAPI implements API {
                 httpClient.sendRequest(frameHandler);
                 if (!frameHandler.jsonContent.isEmpty()) {
                     user = mapper.readValue(frameHandler.jsonContent, User.class);
+                } else {
+                    LOG.error("WEB: PERSISTENCE did not respond to " +
+                        persistenceEndpointUsers + userId + " request!");
                 }
                 // Get user orders
                 List<Order> orders = new ArrayList<>();
@@ -1361,6 +1405,9 @@ public class Http3WebAPI implements API {
                             frameHandler.jsonContent,
                             new TypeReference<List<Order>>(){}
                     );
+                } else {
+                    LOG.error("WEB: PERSISTENCE did not respond to " +
+                        persistenceEndpointUserOrders + userId + "&start=-1&max=-1 request!");
                 }
                 // Create previous orders
                 List<PreviousOrder> previousOrders = new ArrayList<>();

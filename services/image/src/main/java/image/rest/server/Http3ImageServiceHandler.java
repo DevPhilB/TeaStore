@@ -49,7 +49,6 @@ public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
-        context.close();
     }
 
     @Override
@@ -69,6 +68,7 @@ public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
         }
         ReferenceCountUtil.release(dataFrame);
     }
+
 
     private void sendResponse(ChannelHandlerContext context, Http3Response response) {
         // Send response frames

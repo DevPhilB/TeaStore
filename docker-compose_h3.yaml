@@ -9,13 +9,11 @@ services:
       - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--serversTransport.insecureSkipVerify=true"
       - "--entryPoints.h3-persistence.address=:4431/udp"
       - "--entryPoints.h3-auth.address=:4432/udp"
       - "--entryPoints.h3-web.address=:4433/udp"
       - "--entryPoints.h3-image.address=:4434/udp"
       - "--entryPoints.h3-recommender.address=:4435/udp"
-      # UDP Entrypoints???
     ports:
       # The HTTP/3 ports
       - "4431:4431/udp"

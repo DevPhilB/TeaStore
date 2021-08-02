@@ -164,7 +164,6 @@ public class Http3AuthAPI implements API {
             if (!frameHandler.jsonContent.isEmpty()) {
                 product = mapper.readValue(frameHandler.jsonContent, Product.class);
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
-                OrderItem item = null;
                 SessionData data = null;
                 if (sessionData.orderItems().isEmpty()) {
                     itemMap.put(product.id(),
@@ -217,6 +216,8 @@ public class Http3AuthAPI implements API {
                         Http3Response.okJsonHeader(json.length()),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
+            } else {
+                LOG.error("AUTH: PERSISTENCE did not respond to " + persistenceEndpointProduct + " request!");
             }
         } catch (Exception e) {
             LOG.error(e.getMessage());
@@ -403,6 +404,8 @@ public class Http3AuthAPI implements API {
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
+            } else {
+                LOG.error("AUTH: PERSISTENCE did not respond to " + persistenceEndpointCreateOrder + " request!");
             }
         } catch (Exception e) {
             LOG.error(e.getMessage());
@@ -457,6 +460,8 @@ public class Http3AuthAPI implements API {
                 } else {
                     return Http3Response.badRequestResponse();
                 }
+            } else {
+                LOG.error("AUTH: PERSISTENCE did not respond to " + persistenceEndpointUser + " request!");
             }
         } catch (Exception e) {
             LOG.error(e.getMessage());
@@ -517,6 +522,7 @@ public class Http3AuthAPI implements API {
         SessionData data = new ShaSecurityProvider().validate(sessionData);
         try {
             String json = mapper.writeValueAsString(data);
+            LOG.info("AUTH: isLoggedIn returns: " + json);
             return new Http3Response(
                     Http3Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
@@ -524,6 +530,7 @@ public class Http3AuthAPI implements API {
         } catch (Exception e) {
             LOG.error(e.getMessage());
         }
+        LOG.info("AUTH: isLoggedIn failed!");
         return Http3Response.internalServerErrorResponse();
     }
 

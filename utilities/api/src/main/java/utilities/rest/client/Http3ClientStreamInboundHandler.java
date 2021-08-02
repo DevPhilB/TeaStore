@@ -13,7 +13,6 @@
  */
 package utilities.rest.client;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.incubator.codec.http3.Http3DataFrame;
 import io.netty.incubator.codec.http3.Http3HeadersFrame;
@@ -33,35 +32,25 @@ public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHa
     private static final Logger LOG = LogManager.getLogger(Http3ClientStreamInboundHandler.class);
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext context) {
-        context.flush();
-    }
-
-    @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
-        context.close();
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
-        /*
-        if (isLast) {
-            LOG.info("Received HTTP/3 end header frame: " + headersFrame);
-        }
-        */
         ReferenceCountUtil.release(headersFrame);
+        if (isLast) {
+            context.close();
+        }
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
-        // LOG.info("Received HTTP/3 data frame: " + dataFrame);
         jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
-        if (isLast) {
-            // LOG.info("Received end data frame: " + dataFrame);
-            context.channel().close();
-        }
         ReferenceCountUtil.release(dataFrame);
+        if (isLast) {
+            context.close();
+        }
     }
 
 }

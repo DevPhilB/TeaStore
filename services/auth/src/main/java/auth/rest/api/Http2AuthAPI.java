@@ -161,7 +161,6 @@ public class Http2AuthAPI implements API {
             if (!frameHandler.jsonContent.isEmpty()) {
                 product = mapper.readValue(frameHandler.jsonContent, Product.class);
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
-                OrderItem item = null;
                 SessionData data = null;
                 if (sessionData.orderItems().isEmpty()) {
                     itemMap.put(product.id(),

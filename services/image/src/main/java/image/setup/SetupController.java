@@ -242,6 +242,8 @@ public enum SetupController {
                     http3FrameHandler.jsonContent,
                     new TypeReference<List<Product>>() {}
             );
+          } else {
+            LOG.error("IMAGE: PERSISTENCE did not respond to " + persistenceEndpointProducts + " request!");
           }
         } catch (Exception e) {
           LOG.error(e.getMessage());
@@ -324,6 +326,8 @@ public enum SetupController {
                     http3FrameHandler.jsonContent,
                     new TypeReference<List<Category>>() {}
             );
+          } else {
+            LOG.error("IMAGE: PERSISTENCE did not respond to " + persistenceEndpointCategories + " request!");
           }
         } catch (Exception e) {
           LOG.error(e.getMessage());

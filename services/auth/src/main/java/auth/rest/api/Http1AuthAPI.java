@@ -168,7 +168,6 @@ public class Http1AuthAPI implements API {
             if (!httpHandler.jsonContent.isEmpty()) {
                 product = mapper.readValue(httpHandler.jsonContent, Product.class);
                 HashMap<Long, OrderItem> itemMap = new HashMap<>();
-                OrderItem item = null;
                 SessionData data = null;
                 if (sessionData.orderItems().isEmpty()) {
                     itemMap.put(product.id(),

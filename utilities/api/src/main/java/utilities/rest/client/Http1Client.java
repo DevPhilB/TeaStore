@@ -64,7 +64,7 @@ public class Http1Client {
             channel.writeAndFlush(httpRequest);
             // Wait until the connection is closed
             channel.closeFuture().sync();
-        } catch(InterruptedException e) {
+        } catch(Exception e) {
             LOG.error(e.getMessage());
         } finally {
             group.shutdownGracefully();

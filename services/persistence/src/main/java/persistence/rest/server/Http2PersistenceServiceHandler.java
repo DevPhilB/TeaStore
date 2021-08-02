@@ -51,7 +51,7 @@ public class Http2PersistenceServiceHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
         context.close();
     }

@@ -302,6 +302,8 @@ public final class TrainingSynchronizer {
 						);
 						long noItems = items.size();
 						LOG.trace("Retrieved " + noItems + " orderItems, starting retrieving of orders now.");
+					} else {
+						LOG.error("RECOMMENDER: PERSISTENCE did not respond to " + persistenceEndpointOrderItems + " request!");
 					}
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks
@@ -326,6 +328,8 @@ public final class TrainingSynchronizer {
 						);
 						long noOrders = orders.size();
 						LOG.trace("Retrieved " + noOrders + " orders, starting training now.");
+					} else {
+						LOG.error("RECOMMENDER: PERSISTENCE did not respond to " + persistenceEndpointOrders + " request!");
 					}
 				} catch (Exception e) {
 					// Set ready anyway to avoid deadlocks

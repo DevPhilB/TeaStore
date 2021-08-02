@@ -49,7 +49,6 @@ public class Http3RecommenderServiceHandler extends Http3RequestStreamInboundHan
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
-        context.close();
     }
 
     @Override
