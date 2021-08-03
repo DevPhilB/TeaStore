@@ -15,7 +15,7 @@ jobs:
       -
         uses: joschi/setup-jdk@v2
         with:
-          java-version: '16'
+          java-version: '17'
       -
         run: mvn clean install
       -
