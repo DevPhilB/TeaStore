@@ -18,7 +18,6 @@ import io.netty.incubator.codec.http3.Http3DataFrame;
 import io.netty.incubator.codec.http3.Http3HeadersFrame;
 import io.netty.incubator.codec.http3.Http3RequestStreamInboundHandler;
 import io.netty.util.CharsetUtil;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,22 +31,25 @@ public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHa
     private static final Logger LOG = LogManager.getLogger(Http3ClientStreamInboundHandler.class);
 
     @Override
+    public void channelReadComplete(ChannelHandlerContext context) {
+        context.flush();
+    }
+
+    @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
-        ReferenceCountUtil.release(headersFrame);
         if (isLast) {
-            context.close();
+            LOG.info("Got last header frame!");
         }
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
         jsonContent += dataFrame.content().toString(CharsetUtil.UTF_8);
-        ReferenceCountUtil.release(dataFrame);
         if (isLast) {
             context.close();
         }

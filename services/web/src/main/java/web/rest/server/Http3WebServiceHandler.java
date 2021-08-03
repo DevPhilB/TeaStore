@@ -53,6 +53,11 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
     }
 
     @Override
+    public void channelReadComplete(ChannelHandlerContext context) throws Exception {
+        context.flush();
+    }
+
+    @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
     }
@@ -63,16 +68,15 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
         if (isLast) {
             handleRequest(context);
         }
-        ReferenceCountUtil.release(headersFrame);
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
         body = Unpooled.copiedBuffer(body, dataFrame.content().copy());
+        dataFrame.release();
         if (isLast) {
             handleRequest(context);
         }
-        ReferenceCountUtil.release(dataFrame);
     }
 
     private void sendResponse(ChannelHandlerContext context, Http3Response response) {
