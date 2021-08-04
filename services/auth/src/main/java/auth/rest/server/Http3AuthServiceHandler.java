@@ -47,17 +47,13 @@ public class Http3AuthServiceHandler extends Http3RequestStreamInboundHandler {
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext context) throws Exception {
-        context.flush();
-    }
-
-    @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
     }
 
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
+        ReferenceCountUtil.release(headersFrame);
         headers = headersFrame.headers();
         if (isLast) {
             handleRequest(context);
@@ -67,7 +63,7 @@ public class Http3AuthServiceHandler extends Http3RequestStreamInboundHandler {
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
         body = Unpooled.copiedBuffer(body, dataFrame.content().copy());
-        dataFrame.release();
+        ReferenceCountUtil.release(dataFrame);
         if (isLast) {
             handleRequest(context);
         }

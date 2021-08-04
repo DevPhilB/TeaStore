@@ -46,7 +46,7 @@ public class Http2Client {
     }
 
     public void sendRequest(Http2ClientStreamFrameHandler handler) {
-        EventLoopGroup group = new NioEventLoopGroup();
+        EventLoopGroup group = new NioEventLoopGroup(1);
 
         try {
             // Configure SSL

@@ -42,7 +42,7 @@ public class Http1Client {
     }
 
     public void sendRequest(Http1ClientHandler handler) {
-        EventLoopGroup group = new NioEventLoopGroup();
+        EventLoopGroup group = new NioEventLoopGroup(1);
 
         try {
             Bootstrap bootstrap = new Bootstrap()

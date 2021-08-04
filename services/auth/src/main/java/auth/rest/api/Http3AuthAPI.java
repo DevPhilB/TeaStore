@@ -522,7 +522,6 @@ public class Http3AuthAPI implements API {
         SessionData data = new ShaSecurityProvider().validate(sessionData);
         try {
             String json = mapper.writeValueAsString(data);
-            LOG.info("AUTH: isLoggedIn returns: " + json);
             return new Http3Response(
                     Http3Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
@@ -530,7 +529,6 @@ public class Http3AuthAPI implements API {
         } catch (Exception e) {
             LOG.error(e.getMessage());
         }
-        LOG.info("AUTH: isLoggedIn failed!");
         return Http3Response.internalServerErrorResponse();
     }
 

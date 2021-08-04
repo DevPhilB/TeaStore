@@ -47,11 +47,6 @@ public class Http3RecommenderServiceHandler extends Http3RequestStreamInboundHan
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext context) throws Exception {
-        context.flush();
-    }
-
-    @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         LOG.error("Channel " + context.channel().id() + ": " + cause.getMessage());
     }
@@ -59,6 +54,7 @@ public class Http3RecommenderServiceHandler extends Http3RequestStreamInboundHan
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
         headers = headersFrame.headers();
+        ReferenceCountUtil.release(headersFrame);
         if (isLast) {
             handleRequest(context);
         }
@@ -67,7 +63,7 @@ public class Http3RecommenderServiceHandler extends Http3RequestStreamInboundHan
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3DataFrame dataFrame, boolean isLast) {
         body = Unpooled.copiedBuffer(body, dataFrame.content().copy());
-        dataFrame.release();
+        ReferenceCountUtil.release(dataFrame);
         if (isLast) {
             handleRequest(context);
         }

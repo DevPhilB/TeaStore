@@ -131,7 +131,6 @@ public class Http3ImageAPI implements API {
                     jsonByte,
                     new TypeReference<Map<String, String>>(){}
             );
-            LOG.info("IMAGE: " + imageSizeMap.toString());
             Map<String, String> imageDataMap = ImageProvider.IP.getWebImages(
                     imageSizeMap.entrySet().parallelStream().collect(
                             Collectors.toMap(
@@ -143,7 +142,6 @@ public class Http3ImageAPI implements API {
                     )
             );
             String json = mapper.writeValueAsString(imageDataMap);
-            LOG.info("IMAGE: getWebImages returns: " + json);
             return new Http3Response(
                     Http3Response.okJsonHeader(json.length()),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
@@ -151,7 +149,6 @@ public class Http3ImageAPI implements API {
         } catch (Exception e) {
             LOG.error(e.getMessage());
         }
-        LOG.info("IMAGE: getWebImages failed!");
         return Http3Response.internalServerErrorResponse();
     }
 

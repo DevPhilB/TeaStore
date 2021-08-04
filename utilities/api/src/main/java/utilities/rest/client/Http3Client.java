@@ -51,7 +51,7 @@ public class Http3Client {
     }
 
     public void sendRequest(Http3ClientStreamInboundHandler handler) {
-        EventLoopGroup group = new NioEventLoopGroup();
+        EventLoopGroup group = new NioEventLoopGroup(1);
 
         try {
             // Configure QUIC SSL
@@ -63,6 +63,8 @@ public class Http3Client {
                     .maxIdleTimeout(5000, TimeUnit.MILLISECONDS)
                     .initialMaxData(10000000)
                     .initialMaxStreamDataBidirectionalLocal(1000000)
+                    .maxRecvUdpPayloadSize(10000000)
+                    .maxSendUdpPayloadSize(10000000)
                     .build();
             // Configure the client
             Bootstrap bootstrap = new Bootstrap();
@@ -77,14 +79,17 @@ public class Http3Client {
                     .connect()
                     .get();
             // Prepare request stream
-            QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel, handler).sync().getNow();
+            final QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel, handler).sync().getNow();
             streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
-            // Write header (and body
+            // Write header
             if (body != null) {
-                streamChannel.write(header);
-                streamChannel.writeAndFlush(body).addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
+                streamChannel.write(header).sync().addListener(
+                        (ChannelFutureListener) channelFuture -> streamChannel.writeAndFlush(body)
+                                .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).syncUninterruptibly()
+                );
             } else {
-                streamChannel.writeAndFlush(header).addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync();
+                streamChannel.writeAndFlush(header)
+                        .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).syncUninterruptibly();
             }
             // Wait for the stream and QUIC channel to be closed (after FIN)
             // Close the underlying datagram channel

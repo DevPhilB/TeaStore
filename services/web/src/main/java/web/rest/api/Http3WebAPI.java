@@ -347,9 +347,7 @@ public class Http3WebAPI implements API {
                     description
             );
             String json = mapper.writeValueAsString(view);
-            LOG.info("Check login...");
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
-            LOG.info("New session data: " + newSessionData.toString());
             if (newSessionData != null) {
                 return new Http3Response(
                         Http3Response.okJsonHeader(json.length())

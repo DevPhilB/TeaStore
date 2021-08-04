@@ -145,8 +145,7 @@ public class HttpWebServer {
                 break;
             case "HTTP/2":
                 // Configure SSL
-                SelfSignedCertificate ssc = new SelfSignedCertificate();
-                SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
+                SslContext sslCtx = SslContextBuilder.forServer(certificate.certificate(), certificate.privateKey())
                         .sslProvider(SslProvider.JDK)
                         .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                         .applicationProtocolConfig(new ApplicationProtocolConfig(
@@ -156,11 +155,10 @@ public class HttpWebServer {
                                 ApplicationProtocolNames.HTTP_2))
                         .build();
                 // Configure the server
-                EventLoopGroup group = new NioEventLoopGroup();
                 try {
                     ServerBootstrap bootstrap = new ServerBootstrap();
                     bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
-                    bootstrap.group(group)
+                    bootstrap.group(bossGroup)
                             .channel(NioServerSocketChannel.class)
                             .handler(new LoggingHandler(LogLevel.INFO))
                             .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -173,7 +171,7 @@ public class HttpWebServer {
                             });
                     bindAndSync(bootstrap);
                 } finally {
-                    group.shutdownGracefully();
+                    bossGroup.shutdownGracefully();
                 }
                 break;
             case "HTTP/3":
