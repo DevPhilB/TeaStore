@@ -17,8 +17,6 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.incubator.codec.http3.*;
 import io.netty.incubator.codec.quic.QuicChannel;
@@ -80,7 +78,6 @@ public class Http3Client {
                     .get();
             // Prepare request stream
             final QuicStreamChannel streamChannel = Http3.newRequestStream(quicChannel, handler).sync().getNow();
-            streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
             // Write header
             if (body != null) {
                 streamChannel.write(header).sync().addListener(

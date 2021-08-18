@@ -19,8 +19,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http2.*;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.*;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.apache.logging.log4j.LogManager;
@@ -76,7 +74,6 @@ public class Http2Client {
                             .initialSettings(Http2Settings.defaultSettings())
                             .build());
                     channel.pipeline().addLast(new Http2MultiplexHandler(handler));
-                    channel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                 }
             });
             // Start the client
@@ -87,7 +84,6 @@ public class Http2Client {
             Http2StreamChannel streamChannel = streamChannelBootstrap.open().syncUninterruptibly().getNow();
             handler.setCloseableChannel(channel.closeFuture().channel());
             streamChannel.pipeline().addLast(handler);
-            streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
             // Send HTTP/2 request
             if (body != null) {
                 streamChannel.write(header.stream(streamChannel.stream()));

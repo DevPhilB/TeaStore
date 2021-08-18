@@ -34,8 +34,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
@@ -112,8 +110,6 @@ public class HttpImageServer {
                     bootstrap.group(bossGroup, workerGroup)
                             // Instantiate new channels to accept incoming connections
                             .channel(NioServerSocketChannel.class)
-                            // Instantiate new handler for logging
-                            .handler(new LoggingHandler(LogLevel.INFO))
                             // Instantiate new handler for newly accepted channels
                             .childHandler(new ChannelInitializer<SocketChannel>() {
                                 @Override
@@ -148,7 +144,6 @@ public class HttpImageServer {
                     bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
                     bootstrap.group(bossGroup)
                             .channel(NioServerSocketChannel.class)
-                            .handler(new LoggingHandler(LogLevel.INFO))
                             .childHandler(new ChannelInitializer<SocketChannel>() {
                                 @Override
                                 protected void initChannel(SocketChannel channel) {
@@ -192,7 +187,6 @@ public class HttpImageServer {
                                                 streamChannel.pipeline().addLast(
                                                         new Http3ImageServiceHandler(gatewayHost, persistencePort)
                                                 );
-                                                streamChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                                             }
                                         },
                                         pushStreamManager.controlStreamListener(),
@@ -200,7 +194,6 @@ public class HttpImageServer {
                                         null,
                                         false
                                 ));
-                                quicChannel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
                             }
                         }).build();
                 // Configure the server
