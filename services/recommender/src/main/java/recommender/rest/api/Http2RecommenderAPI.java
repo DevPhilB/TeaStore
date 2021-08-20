@@ -122,7 +122,7 @@ public class Http2RecommenderAPI implements API {
             List<Long> recommended = RecommenderSelector.getInstance().recommendProducts(userId, currentItems);
             String json = mapper.writeValueAsString(recommended);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -179,7 +179,7 @@ public class Http2RecommenderAPI implements API {
         try {
             String json = mapper.writeValueAsString(TrainingSynchronizer.getInstance().getMaxTime());
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -205,7 +205,7 @@ public class Http2RecommenderAPI implements API {
         try {
             String json = mapper.writeValueAsString(ready);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {

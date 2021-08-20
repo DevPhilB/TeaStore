@@ -13,6 +13,7 @@
  */
 package web.rest.server;
 
+import io.netty.handler.codec.http.HttpHeaderNames;
 import web.rest.api.Http3WebAPI;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -61,7 +62,7 @@ public class Http3WebServiceHandler extends Http3RequestStreamInboundHandler {
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
         headers = headersFrame.headers();
         ReferenceCountUtil.release(headersFrame);
-        if (isLast) {
+        if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH) && isLast) {
             handleRequest(context);
         }
     }

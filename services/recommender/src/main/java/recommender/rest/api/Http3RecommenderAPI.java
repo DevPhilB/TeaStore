@@ -126,7 +126,7 @@ public class Http3RecommenderAPI implements API {
             List<Long> recommended = RecommenderSelector.getInstance().recommendProducts(userId, currentItems);
             String json = mapper.writeValueAsString(recommended);
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -183,7 +183,7 @@ public class Http3RecommenderAPI implements API {
         try {
             String json = mapper.writeValueAsString(TrainingSynchronizer.getInstance().getMaxTime());
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -209,7 +209,7 @@ public class Http3RecommenderAPI implements API {
         try {
             String json = mapper.writeValueAsString(ready);
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {

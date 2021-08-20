@@ -14,6 +14,7 @@
 package utilities.rest.client;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.incubator.codec.http3.Http3DataFrame;
 import io.netty.incubator.codec.http3.Http3HeadersFrame;
 import io.netty.incubator.codec.http3.Http3RequestStreamInboundHandler;
@@ -39,9 +40,6 @@ public class Http3ClientStreamInboundHandler extends Http3RequestStreamInboundHa
     @Override
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
         ReferenceCountUtil.release(headersFrame);
-        if (isLast) {
-            LOG.error("Missing content!");
-        }
     }
 
     @Override

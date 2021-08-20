@@ -105,7 +105,7 @@ public class Http2ImageAPI implements API {
             );
             String json = mapper.writeValueAsString(images);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -143,7 +143,7 @@ public class Http2ImageAPI implements API {
             );
             String json = mapper.writeValueAsString(imageDataMap);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -177,7 +177,7 @@ public class Http2ImageAPI implements API {
         try {
             String json = mapper.writeValueAsString(finished);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -196,7 +196,7 @@ public class Http2ImageAPI implements API {
         try {
             String json = mapper.writeValueAsString(state);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -220,7 +220,7 @@ public class Http2ImageAPI implements API {
             Boolean success = SetupController.SETUP.setCacheSize(cacheSize);
             String json = mapper.writeValueAsString(success);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {

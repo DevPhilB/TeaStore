@@ -213,7 +213,7 @@ public class Http3AuthAPI implements API {
                 data = new ShaSecurityProvider().secure(data);
                 String json = mapper.writeValueAsString(data);
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             } else {
@@ -247,7 +247,7 @@ public class Http3AuthAPI implements API {
                 SessionData data = new ShaSecurityProvider().secure(sessionData);
                 String json = mapper.writeValueAsString(data);
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             } else {
@@ -285,7 +285,7 @@ public class Http3AuthAPI implements API {
                     SessionData data = new ShaSecurityProvider().secure(sessionData);
                     String json = mapper.writeValueAsString(data);
                     return new Http3Response(
-                            Http3Response.okJsonHeader(json.length()),
+                            Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
@@ -400,7 +400,7 @@ public class Http3AuthAPI implements API {
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
                     return new Http3Response(
-                            Http3Response.okJsonHeader(json.length()),
+                            Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
@@ -454,7 +454,7 @@ public class Http3AuthAPI implements API {
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
                     return new Http3Response(
-                            Http3Response.okJsonHeader(json.length()),
+                            Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 } else {
@@ -501,7 +501,7 @@ public class Http3AuthAPI implements API {
             );
             String json = mapper.writeValueAsString(data);
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -523,7 +523,7 @@ public class Http3AuthAPI implements API {
         try {
             String json = mapper.writeValueAsString(data);
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -544,7 +544,7 @@ public class Http3AuthAPI implements API {
         try {
             String json = mapper.writeValueAsString(Boolean.TRUE);
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {

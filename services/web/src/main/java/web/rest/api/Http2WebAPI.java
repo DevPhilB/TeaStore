@@ -336,7 +336,7 @@ public class Http2WebAPI implements API {
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -345,7 +345,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -644,7 +644,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -653,7 +653,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -777,7 +777,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -786,7 +786,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -859,7 +859,7 @@ public class Http2WebAPI implements API {
             );
             String json = mapper.writeValueAsString(view);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -900,7 +900,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -909,7 +909,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -957,7 +957,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -966,7 +966,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1069,7 +1069,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -1078,7 +1078,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1129,7 +1129,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -1138,7 +1138,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1287,7 +1287,7 @@ public class Http2WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -1296,7 +1296,7 @@ public class Http2WebAPI implements API {
                 );
             } else {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1396,7 +1396,7 @@ public class Http2WebAPI implements API {
                 );
                 String json = mapper.writeValueAsString(view);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length())
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)

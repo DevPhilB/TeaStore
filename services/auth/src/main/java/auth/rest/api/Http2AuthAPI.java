@@ -210,7 +210,7 @@ public class Http2AuthAPI implements API {
                 data = new ShaSecurityProvider().secure(data);
                 String json = mapper.writeValueAsString(data);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -242,7 +242,7 @@ public class Http2AuthAPI implements API {
                 SessionData data = new ShaSecurityProvider().secure(sessionData);
                 String json = mapper.writeValueAsString(data);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             } else {
@@ -280,7 +280,7 @@ public class Http2AuthAPI implements API {
                     SessionData data = new ShaSecurityProvider().secure(sessionData);
                     String json = mapper.writeValueAsString(data);
                     return new Http2Response(
-                            Http2Response.okJsonHeader(json.length()),
+                            Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
@@ -397,7 +397,7 @@ public class Http2AuthAPI implements API {
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
                     return new Http2Response(
-                            Http2Response.okJsonHeader(json.length()),
+                            Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 }
@@ -450,7 +450,7 @@ public class Http2AuthAPI implements API {
                     data = new ShaSecurityProvider().secure(data);
                     String json = mapper.writeValueAsString(data);
                     return new Http2Response(
-                            Http2Response.okJsonHeader(json.length()),
+                            Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                             Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                     );
                 } else {
@@ -495,7 +495,7 @@ public class Http2AuthAPI implements API {
             );
             String json = mapper.writeValueAsString(data);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -517,7 +517,7 @@ public class Http2AuthAPI implements API {
         try {
             String json = mapper.writeValueAsString(data);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -538,7 +538,7 @@ public class Http2AuthAPI implements API {
         try {
             String json = mapper.writeValueAsString(Boolean.TRUE);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {

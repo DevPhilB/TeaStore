@@ -17,12 +17,15 @@ import image.rest.api.Http3ImageAPI;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.incubator.codec.http3.*;
 import io.netty.incubator.codec.quic.QuicStreamChannel;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utilities.rest.api.Http3Response;
+
+import static io.netty.handler.codec.http.HttpMethod.POST;
 
 /**
  * HTTP/3 server handler for image service
@@ -55,7 +58,7 @@ public class Http3ImageServiceHandler extends Http3RequestStreamInboundHandler {
     protected void channelRead(ChannelHandlerContext context, Http3HeadersFrame headersFrame, boolean isLast) {
         headers = headersFrame.headers();
         ReferenceCountUtil.release(headersFrame);
-        if (isLast) {
+        if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH) && isLast) {
             handleRequest(context);
         }
     }

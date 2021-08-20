@@ -302,7 +302,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(category);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -332,7 +332,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(categories);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -361,7 +361,7 @@ public class Http2PersistenceAPI implements API {
             String json = mapper.writeValueAsString(newCategory);
             if (newCategory != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -390,7 +390,7 @@ public class Http2PersistenceAPI implements API {
             if (CategoryRepository.REPOSITORY.updateEntity(category.id(), category)) {
                 String json = mapper.writeValueAsString(category);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -455,7 +455,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(finished);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -494,7 +494,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(isMaintenanceMode);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -518,7 +518,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(order);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -555,7 +555,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(orders);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -584,7 +584,7 @@ public class Http2PersistenceAPI implements API {
             String json = mapper.writeValueAsString(newOrder);
             if (newOrder != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -613,7 +613,7 @@ public class Http2PersistenceAPI implements API {
             if (OrderRepository.REPOSITORY.updateEntity(order.id(), order)) {
                 String json = mapper.writeValueAsString(order);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -655,7 +655,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(orderItem);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -699,7 +699,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(orderItems);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -728,7 +728,7 @@ public class Http2PersistenceAPI implements API {
             String json = mapper.writeValueAsString(newOrderItem);
             if (newOrderItem != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -757,7 +757,7 @@ public class Http2PersistenceAPI implements API {
             if (OrderItemRepository.REPOSITORY.updateEntity(orderItem.id(), orderItem)) {
                 String json = mapper.writeValueAsString(orderItem);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -799,7 +799,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(product);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -839,7 +839,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(products);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -860,7 +860,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(productCount);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -889,7 +889,7 @@ public class Http2PersistenceAPI implements API {
             String json = mapper.writeValueAsString(newProduct);
             if (newProduct != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -918,7 +918,7 @@ public class Http2PersistenceAPI implements API {
             if (ProductRepository.REPOSITORY.updateEntity(product.id(), product)) {
                 String json = mapper.writeValueAsString(product);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -960,7 +960,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(user);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -984,7 +984,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(user);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -1014,7 +1014,7 @@ public class Http2PersistenceAPI implements API {
         try {
             String json = mapper.writeValueAsString(users);
             return new Http2Response(
-                    Http2Response.okJsonHeader(json.length()),
+                    Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -1043,7 +1043,7 @@ public class Http2PersistenceAPI implements API {
             String json = mapper.writeValueAsString(newUser);
             if (newUser != null) {
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1072,7 +1072,7 @@ public class Http2PersistenceAPI implements API {
             if (UserRepository.REPOSITORY.updateEntity(user.id(), user)) {
                 String json = mapper.writeValueAsString(user);
                 return new Http2Response(
-                        Http2Response.okJsonHeader(json.length()),
+                        Http2Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }

@@ -350,7 +350,7 @@ public class Http3WebAPI implements API {
             SessionData newSessionData = checkLogin(authEndpoint, sessionData);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -359,7 +359,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -664,7 +664,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -673,7 +673,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -799,7 +799,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -808,7 +808,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -881,7 +881,7 @@ public class Http3WebAPI implements API {
             );
             String json = mapper.writeValueAsString(view);
             return new Http3Response(
-                    Http3Response.okJsonHeader(json.length()),
+                    Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                     Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
             );
         } catch (Exception e) {
@@ -922,7 +922,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -931,7 +931,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -979,7 +979,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -988,7 +988,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1093,7 +1093,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -1102,7 +1102,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1153,7 +1153,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -1162,7 +1162,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1317,7 +1317,7 @@ public class Http3WebAPI implements API {
             String json = mapper.writeValueAsString(view);
             if (newSessionData != null) {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
@@ -1326,7 +1326,7 @@ public class Http3WebAPI implements API {
                 );
             } else {
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length()),
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length),
                         Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
                 );
             }
@@ -1430,7 +1430,7 @@ public class Http3WebAPI implements API {
                 );
                 String json = mapper.writeValueAsString(view);
                 return new Http3Response(
-                        Http3Response.okJsonHeader(json.length())
+                        Http3Response.okJsonHeader(json.getBytes(CharsetUtil.UTF_8).length)
                                 .setObject(
                                         HttpHeaderNames.SET_COOKIE,
                                         CookieUtil.encodeSessionData(newSessionData, gatewayHost)
