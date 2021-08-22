@@ -61,7 +61,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/about");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -85,7 +85,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/cart");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -109,7 +109,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/database");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -117,7 +117,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/error");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -125,7 +125,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/index");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -134,7 +134,7 @@ class WebAPITest {
         header.setUri(WEB_ENDPOINT + "/logioaction");
         body = Unpooled.buffer();
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -142,7 +142,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/login");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -150,7 +150,7 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/order");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 
     @Test
@@ -166,6 +166,6 @@ class WebAPITest {
         header.setMethod(HttpMethod.GET);
         header.setUri(WEB_ENDPOINT + "/profile");
         response = api.handle(header, body, null);
-        assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(HttpResponseStatus.OK, response.status());
     }
 }
