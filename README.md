@@ -81,7 +81,7 @@ Waiting for the database is already included.
 - [Image](https://hub.docker.com/r/tvsjsdock/teastore-image)
 - [Recommender](https://hub.docker.com/r/tvsjsdock/teastore-recommender)
 ### Tools
-- [curl-http3](https://hub.docker.com/repository/docker/tvsjsdock/curl-http3)
+- [curl-http3](https://hub.docker.com/r/tvsjsdock/curl-http3)
 - [h2load-http3](https://hub.docker.com/r/tvsjsdock/h2load-http3)
 
 ## Microservice Architecture
