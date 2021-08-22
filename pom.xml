@@ -18,16 +18,12 @@
 	<version>2.0</version>
 	
 	<modules>
-		<module>utilities/api</module>
+		<module>utilities</module>
 		<module>services/auth</module>
 		<module>services/image</module>
 		<module>services/persistence</module>
 		<module>services/recommender</module>
 		<module>services/web</module>
-		<!--
-			<module>utilities/tools.descartes.teastore.kieker.probes</module>
-			<module>utilities/tools.descartes.teastore.kieker.rabbitmq</module>
-		-->
 	</modules>
 
 	<build>

@@ -25,8 +25,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utilities.rest.api.Http3Response;
 
-import static io.netty.handler.codec.http.HttpMethod.POST;
-
 /**
  * HTTP/3 server handler for image service
  * @author Philipp Backes

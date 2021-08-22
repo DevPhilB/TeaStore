@@ -5,7 +5,7 @@ TeaStore v2 is a rework of the original
 and part of my master thesis.  
 The original version was developed by the Descartes Research Group (University of Würzburg).  
 TeaStore emulates a basic web store for automatically generated, tea and tea supplies.   
-For more details visit the base [repository](https://github.com/DescartesResearch/TeaStore).
+For more details visit the [base repository](https://github.com/DescartesResearch/TeaStore).
 
 ## Changes
 - Registry replaced with [Traefik](https://github.com/traefik/traefik),
@@ -72,6 +72,7 @@ Waiting for the database is already included.
  ```
 
 ## DockerHub Images
+### API Gateway & Services
 - [Traefik](https://hub.docker.com/_/traefik)
 - [Database](https://hub.docker.com/r/tvsjsdock/teastore-db)
 - [Persistence](https://hub.docker.com/r/tvsjsdock/teastore-persistence)
@@ -79,6 +80,8 @@ Waiting for the database is already included.
 - [Web](https://hub.docker.com/r/tvsjsdock/teastore-web)
 - [Image](https://hub.docker.com/r/tvsjsdock/teastore-image)
 - [Recommender](https://hub.docker.com/r/tvsjsdock/teastore-recommender)
+### Tools
+- [curl-http3](https://hub.docker.com/repository/docker/tvsjsdock/curl-http3)
 - [h2load-http3](https://hub.docker.com/r/tvsjsdock/h2load-http3)
 
 ## Microservice Architecture
@@ -87,14 +90,20 @@ Waiting for the database is already included.
 ### API Documentation 
 Available as [OpenAPI v3 YAML](api/TeaStore_v2.yaml).
 
-## Benchmarking
-### h2load
-[h2load](https://github.com/nghttp2/nghttp2/tree/quic#running-h2load-against-http3-server)
-is currently (08/21) the only HTTP benchmarking tool which supports HTTP/1.1, HTTP/2 and HTTP/3.  
-You can use the existing [benchmark script](examples/h2load_benchmark.sh) or create your own scripts.  
+## Evaluation (Benchmarking)
+### Tools
+#### curl
+The popular command-line tool supports all HTTP versions.  
+You can use the DockerHub image if you don't want to compile it on your system.  
+Since it was not designed for HTTP benchmarks,
+you could use [liburl](https://curl.se/libcurl/) to write your own benchmarking tool.
 
-## Application Performance Monitoring (APM)
-[Kieker](http://kieker-monitoring.net) and [RabbitMQ](https://www.rabbitmq.com/) may be removed.
+#### h2load
+[h2load](https://github.com/nghttp2/nghttp2/tree/quic#running-h2load-against-http3-server)
+is currently (08/21) the only HTTP benchmarking tool which supports HTTP/1.1,
+HTTP/2 and HTTP/3.
+You can use the existing [benchmark script](examples/h2load_benchmark.sh) or
+create your own scripts.
 
 ## License
 Distributed under the Apache-2.0 License. See `LICENSE` for more information.  
