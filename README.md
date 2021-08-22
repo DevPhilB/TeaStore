@@ -11,7 +11,7 @@ For more details visit the [base repository](https://github.com/DescartesResearc
 - Registry replaced with [Traefik](https://github.com/traefik/traefik),
   a HTTP reverse proxy and load balancer
 - Netty HTTP servers (and client) instead of Jetty servlets
-- Support for HTTP/1.1, HTTP/2 and HTTP/3 (HTTP/3 on UNIX only)
+- Support for HTTP/1.1, HTTP/2 and HTTP/3
 - Full JSON-API instead of JSPs
 - Optimized API paths
 - The database setup includes the data population
@@ -95,13 +95,14 @@ Available as [OpenAPI v3 YAML](api/TeaStore_v2.yaml).
 #### curl
 The popular command-line tool supports all HTTP versions.  
 You can use the DockerHub image if you don't want to compile it on your system.  
+[Workload script](examples/curl_workload.sh) as example.  
 Since it was not designed for HTTP benchmarks,
-you could use [liburl](https://curl.se/libcurl/) to write your own benchmarking tool.
+you could use [liburl](https://curl.se/libcurl/) to write your own benchmarking tool.  
 
 #### h2load
 [h2load](https://github.com/nghttp2/nghttp2/tree/quic#running-h2load-against-http3-server)
 is currently (08/21) the only HTTP benchmarking tool which supports HTTP/1.1,
-HTTP/2 and HTTP/3.
+HTTP/2 and HTTP/3.  
 You can use the existing [benchmark script](examples/h2load_benchmark.sh) or
 create your own scripts.
 
