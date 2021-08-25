@@ -10,6 +10,8 @@ services:
       - "--providers.docker=true"
       - "--serversTransport.insecureSkipVerify=true"
       - "--entryPoints.http2.address=:443"
+    networks:
+      - proxy
     ports:
       # The HTTPS port
       - "443:443"
@@ -19,12 +21,15 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
-      mode: global
+      mode: replicated
+      replicas: 1
       placement:
         constraints:
           - "node.role==manager"
   db:
     image: tvsjsdock/teastore-db:v2
+    networks:
+      - proxy
     ports:
       - "3306:3306"
     deploy:
@@ -32,12 +37,16 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.enable=false"
   persistence:
     image: tvsjsdock/teastore-persistence:v2
     depends_on:
       - db
+    networks:
+      - proxy
     expose:
       - "443"
     environment:
@@ -52,6 +61,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
         - "traefik.http.routers.persistence.entrypoints=http2"
@@ -63,6 +74,8 @@ services:
     image: tvsjsdock/teastore-auth:v2
     depends_on:
       - persistence
+    networks:
+      - proxy
     expose:
       - "443"
     environment:
@@ -75,6 +88,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
         - "traefik.http.routers.auth.entrypoints=http2"
@@ -86,6 +101,8 @@ services:
     image: tvsjsdock/teastore-web:v2
     depends_on:
       - auth
+    networks:
+      - proxy
     expose:
       - "443"
     environment:
@@ -98,6 +115,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
         - "traefik.http.routers.web.entrypoints=http2"
@@ -109,6 +128,8 @@ services:
     image: tvsjsdock/teastore-image:v2
     depends_on:
       - persistence
+    networks:
+      - proxy
     expose:
       - "443"
     environment:
@@ -121,6 +142,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
         - "traefik.http.routers.image.entrypoints=http2"
@@ -132,6 +155,8 @@ services:
     image: tvsjsdock/teastore-recommender:v2
     depends_on:
       - persistence
+    networks:
+      - proxy
     expose:
       - "443"
     environment:
@@ -144,6 +169,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
         - "traefik.http.routers.recommender.entrypoints=http2"
@@ -151,3 +178,8 @@ services:
         - "traefik.http.routers.recommender.service=recommender"
         - "traefik.http.services.recommender.loadbalancer.server.port=443"
         - "traefik.http.services.recommender.loadbalancer.server.scheme=https"
+        
+networks:
+  proxy:
+    driver: overlay
+    name: proxy

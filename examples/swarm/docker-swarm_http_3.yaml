@@ -14,6 +14,8 @@ services:
       - "--entryPoints.h3-web.address=:4433/udp"
       - "--entryPoints.h3-image.address=:4434/udp"
       - "--entryPoints.h3-recommender.address=:4435/udp"
+    networks:
+      - proxy
     ports:
       # The HTTP/3 ports
       - "4431:4431/udp"
@@ -27,12 +29,15 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
-      mode: global
+      mode: replicated
+      replicas: 1
       placement:
         constraints:
           - "node.role==manager"
   db:
     image: tvsjsdock/teastore-db:v2
+    networks:
+      - proxy
     ports:
       - "3306:3306"
     deploy:
@@ -40,12 +45,16 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.enable=false"
   persistence:
     image: tvsjsdock/teastore-persistence:v2
     depends_on:
       - db
+    networks:
+      - proxy
     expose:
       - "4431/udp"
     environment:
@@ -60,6 +69,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.udp.routers.persistence.entrypoints=h3-persistence"
         - "traefik.udp.routers.persistence.service=persistence"
@@ -68,6 +79,8 @@ services:
     image: tvsjsdock/teastore-auth:v2
     depends_on:
       - persistence
+    networks:
+      - proxy
     expose:
       - "4432/udp"
     environment:
@@ -81,6 +94,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.udp.routers.auth.entrypoints=h3-auth"
         - "traefik.udp.routers.auth.service=auth"
@@ -89,6 +104,8 @@ services:
     image: tvsjsdock/teastore-web:v2
     depends_on:
       - auth
+    networks:
+      - proxy
     expose:
       - "4433/udp"
     environment:
@@ -105,6 +122,8 @@ services:
       replicas: 1
       placement:
         max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
       labels:
         - "traefik.udp.routers.web.entrypoints=h3-web"
         - "traefik.udp.routers.web.service=web"
@@ -113,6 +132,8 @@ services:
     image: tvsjsdock/teastore-image:v2
     depends_on:
       - persistence
+    networks:
+      - proxy
     expose:
       - "4434/udp"
     environment:
@@ -121,14 +142,23 @@ services:
       GATEWAY_HOST: "gateway"
       PERSISTENCE_PORT: "4431"
       IMAGE_PORT: "4434"
-    labels:
-      - "traefik.udp.routers.image.entrypoints=h3-image"
-      - "traefik.udp.routers.image.service=image"
-      - "traefik.udp.services.image.loadbalancer.server.port=4434"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
+      labels:
+        - "traefik.udp.routers.image.entrypoints=h3-image"
+        - "traefik.udp.routers.image.service=image"
+        - "traefik.udp.services.image.loadbalancer.server.port=4434"
   recommender:
     image: tvsjsdock/teastore-recommender:v2
     depends_on:
       - persistence
+    networks:
+      - proxy
     expose:
       - "4435/udp"
     environment:
@@ -137,7 +167,19 @@ services:
       GATEWAY_HOST: "gateway"
       PERSISTENCE_PORT: "4431"
       RECOMMENDER_PORT: "4435"
-    labels:
-      - "traefik.udp.routers.recommender.entrypoints=h3-recommender"
-      - "traefik.udp.routers.recommender.service=recommender"
-      - "traefik.udp.services.recommender.loadbalancer.server.port=4435"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - "node.role==worker"
+      labels:
+        - "traefik.udp.routers.recommender.entrypoints=h3-recommender"
+        - "traefik.udp.routers.recommender.service=recommender"
+        - "traefik.udp.services.recommender.loadbalancer.server.port=4435"
+
+networks:
+  proxy:
+    driver: overlay
+    name: proxy
