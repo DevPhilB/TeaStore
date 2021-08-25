@@ -1,0 +1,174 @@
+version: '3.9'
+
+services:
+  gateway:
+    # Traefik v2.5
+    image: traefik:v2.5.1
+    # Configuration
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.domain=traefik"
+      - "--providers.docker.network=proxy"
+      - "--entryPoints.http1.address=:80"
+    networks:
+      - proxy
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - "node.role==manager"
+  db:
+    image: tvsjsdock/teastore-db:v2
+    ports:
+      - "3306:3306"
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.enable=false"
+  persistence:
+    image: tvsjsdock/teastore-persistence:v2
+    depends_on:
+      - db
+    expose:
+      - "80"
+    environment:
+      HTTP_VERSION: "HTTP/1.1"
+      HOST_NAME: "persistence"
+      GATEWAY_HOST: "gateway"
+      PERSISTENCE_PORT: "80"
+      DB_HOST: "db"
+      DB_PORT: "3306"
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.http.routers.persistence.rule=Host(`gateway`) && PathPrefix(`/api/persistence`)"
+        - "traefik.http.routers.persistence.entrypoints=http1"
+        - "traefik.http.routers.persistence.tls=false"
+        - "traefik.http.routers.persistence.service=persistence"
+        - "traefik.http.services.persistence.loadbalancer.server.port=80"
+        - "traefik.http.services.persistence.loadbalancer.server.scheme=http"
+  auth:
+    image: tvsjsdock/teastore-auth:v2
+    depends_on:
+      - persistence
+    expose:
+      - "80"
+    environment:
+      HTTP_VERSION: "HTTP/1.1"
+      HOST_NAME: "auth"
+      GATEWAY_HOST: "gateway"
+      AUTH_PORT: "80"
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
+        - "traefik.http.routers.auth.entrypoints=http1"
+        - "traefik.http.routers.auth.tls=false"
+        - "traefik.http.routers.auth.service=auth"
+        - "traefik.http.services.auth.loadbalancer.server.port=80"
+        - "traefik.http.services.auth.loadbalancer.server.scheme=http"
+  web:
+    image: tvsjsdock/teastore-web:v2
+    depends_on:
+      - auth
+    expose:
+      - "80"
+    environment:
+      HTTP_VERSION: "HTTP/1.1"
+      HOST_NAME: "web"
+      GATEWAY_HOST: "gateway"
+      WEB_PORT: "80"
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+        - "traefik.http.routers.web.entrypoints=http1"
+        - "traefik.http.routers.web.tls=false"
+        - "traefik.http.routers.web.service=web"
+        - "traefik.http.services.web.loadbalancer.server.port=80"
+        - "traefik.http.services.web.loadbalancer.server.scheme=http"
+  image:
+    image: tvsjsdock/teastore-image:v2
+    depends_on:
+      - persistence
+    expose:
+      - "80"
+    environment:
+      HTTP_VERSION: "HTTP/1.1"
+      HOST_NAME: "image"
+      GATEWAY_HOST: "gateway"
+      IMAGE_PORT: "80"
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.http.routers.image.rule=Host(`gateway`) && PathPrefix(`/api/image`)"
+        - "traefik.http.routers.image.entrypoints=http1"
+        - "traefik.http.routers.image.tls=false"
+        - "traefik.http.routers.image.service=image"
+        - "traefik.http.services.image.loadbalancer.server.port=80"
+        - "traefik.http.services.image.loadbalancer.server.scheme=http"
+  recommender:
+    image: tvsjsdock/teastore-recommender:v2
+    depends_on:
+      - persistence
+    expose:
+      - "80"
+    environment:
+      HTTP_VERSION: "HTTP/1.1"
+      HOST_NAME: "recommender"
+      GATEWAY_HOST: "gateway"
+      RECOMMENDER_PORT: "80"
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.http.routers.recommender.rule=Host(`gateway`) && PathPrefix(`/api/recommender`)"
+        - "traefik.http.routers.recommender.entrypoints=http1"
+        - "traefik.http.routers.recommender.tls=false"
+        - "traefik.http.routers.recommender.service=recommender"
+        - "traefik.http.services.recommender.loadbalancer.server.port=80"
+        - "traefik.http.services.recommender.loadbalancer.server.scheme=http"
+
+networks:
+  proxy:
+    driver: overlay
+    name: proxy

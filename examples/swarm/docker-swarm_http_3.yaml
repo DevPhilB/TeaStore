@@ -26,12 +26,22 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - "node.role==manager"
   db:
     image: tvsjsdock/teastore-db:v2
     ports:
       - "3306:3306"
-    labels:
-      - "traefik.enable=false"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.enable=false"
   persistence:
     image: tvsjsdock/teastore-persistence:v2
     depends_on:
@@ -45,10 +55,15 @@ services:
       PERSISTENCE_PORT: "4431"
       DB_HOST: "db"
       DB_PORT: "3306"
-    labels:
-      - "traefik.udp.routers.persistence.entrypoints=h3-persistence"
-      - "traefik.udp.routers.persistence.service=persistence"
-      - "traefik.udp.services.persistence.loadbalancer.server.port=4431"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.udp.routers.persistence.entrypoints=h3-persistence"
+        - "traefik.udp.routers.persistence.service=persistence"
+        - "traefik.udp.services.persistence.loadbalancer.server.port=4431"
   auth:
     image: tvsjsdock/teastore-auth:v2
     depends_on:
@@ -61,10 +76,15 @@ services:
       GATEWAY_HOST: "gateway"
       PERSISTENCE_PORT: "4431"
       AUTH_PORT: "4432"
-    labels:
-      - "traefik.udp.routers.auth.entrypoints=h3-auth"
-      - "traefik.udp.routers.auth.service=auth"
-      - "traefik.udp.services.auth.loadbalancer.server.port=4432"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.udp.routers.auth.entrypoints=h3-auth"
+        - "traefik.udp.routers.auth.service=auth"
+        - "traefik.udp.services.auth.loadbalancer.server.port=4432"
   web:
     image: tvsjsdock/teastore-web:v2
     depends_on:
@@ -80,10 +100,15 @@ services:
       WEB_PORT: "4433"
       IMAGE_PORT: "4434"
       RECOMMENDER_PORT: "4435"
-    labels:
-      - "traefik.udp.routers.web.entrypoints=h3-web"
-      - "traefik.udp.routers.web.service=web"
-      - "traefik.udp.services.web.loadbalancer.server.port=4433"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+      labels:
+        - "traefik.udp.routers.web.entrypoints=h3-web"
+        - "traefik.udp.routers.web.service=web"
+        - "traefik.udp.services.web.loadbalancer.server.port=4433"
   image:
     image: tvsjsdock/teastore-image:v2
     depends_on:

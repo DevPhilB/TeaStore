@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # curl configuration
 # HTTP/1.1 is the default configuration
-HTTP_VERSION="HTTP/2"
+HTTP_VERSION="HTTP/1.1"
 WEB_SERVICE=localhost
-WEB_PORT=443
+WEB_PORT=80
 # Remove 'docker run --rm -it --network=host tvsjsdock/curl-http3' if you have curl with HTTP/3 support
 # Run curl against the microservice architecture
 # 1. GET /api/web/index

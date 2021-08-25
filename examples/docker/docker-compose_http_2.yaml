@@ -3,7 +3,7 @@ version: '3.9'
 services:
   gateway:
     # Traefik v2.5
-    image: traefik:v2.5.0-rc5
+    image: traefik:v2.5.1
     # Configuration
     command:
       - "--api.insecure=true"
