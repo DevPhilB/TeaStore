@@ -8,8 +8,8 @@ services:
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://127.0.0.1:2377"
       - "--providers.docker.swarmMode=true"
-      - "--providers.docker.domain=traefik"
       - "--providers.docker.network=proxy"
       - "--entryPoints.http1.address=:80"
     networks:
