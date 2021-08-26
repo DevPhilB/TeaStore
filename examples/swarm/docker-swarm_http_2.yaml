@@ -8,7 +8,6 @@ services:
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--providers.docker.endpoint=tcp://127.0.0.1:2377"
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.network=proxy"
       - "--serversTransport.insecureSkipVerify=true"
