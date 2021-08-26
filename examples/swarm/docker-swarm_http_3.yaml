@@ -21,13 +21,31 @@ services:
       - proxy
     ports:
       # The HTTP/3 ports
-      - "4431:4431/udp"
-      - "4432:4432/udp"
-      - "4433:4433/udp"
-      - "4434:4434/udp"
-      - "4435:4435/udp"
-      # The Web UI (enabled by --api.insecure=true)
-      - "8080:8080"
+      - target: 4431
+        published: 4431
+        protocol: udp
+        mode: host
+      - target: 4432
+        published: 4432
+        protocol: udp
+        mode: host
+      - target: 4433
+        published: 4433
+        protocol: udp
+        mode: host
+      - target: 4434
+        published: 4434
+        protocol: udp
+        mode: host
+      - target: 4435
+        published: 4435
+        protocol: udp
+        mode: host
+      # Traefik dashboard
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
