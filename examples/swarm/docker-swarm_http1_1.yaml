@@ -23,7 +23,7 @@ services:
       - target: 8080
         published: 8080
         protocol: tcp
-        mode: host
+        mode: ingress
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
@@ -33,6 +33,8 @@ services:
       placement:
         constraints:
           - "node.role==manager"
+      labels:
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
   db:
     image: tvsjsdock/teastore-db:v2
     ports:
