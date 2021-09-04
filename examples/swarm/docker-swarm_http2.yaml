@@ -35,6 +35,9 @@ services:
       placement:
         constraints:
           - "node.role==manager"
+      # Required but not used
+      labels:
+        - "traefik.http.services.gateway.loadbalancer.server.port=9999"
   db:
     image: tvsjsdock/teastore-db:wrk2
     networks:
