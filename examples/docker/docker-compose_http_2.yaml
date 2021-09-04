@@ -22,13 +22,13 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
   db:
-    image: tvsjsdock/teastore-db:v2
+    image: tvsjsdock/teastore-db:wrk2
     ports:
       - "3306:3306"
     labels:
       - "traefik.enable=false"
   persistence:
-    image: tvsjsdock/teastore-persistence:v2
+    image: tvsjsdock/teastore-persistence:wrk2
     depends_on:
       - db
     expose:
@@ -48,7 +48,7 @@ services:
       - "traefik.http.services.persistence.loadbalancer.server.port=443"
       - "traefik.http.services.persistence.loadbalancer.server.scheme=https"
   auth:
-    image: tvsjsdock/teastore-auth:v2
+    image: tvsjsdock/teastore-auth:wrk2
     depends_on:
       - persistence
     expose:
@@ -66,7 +66,7 @@ services:
       - "traefik.http.services.auth.loadbalancer.server.port=443"
       - "traefik.http.services.auth.loadbalancer.server.scheme=https"
   web:
-    image: tvsjsdock/teastore-web:v2
+    image: tvsjsdock/teastore-web:wrk2
     depends_on:
       - auth
     expose:
@@ -84,7 +84,7 @@ services:
       - "traefik.http.services.web.loadbalancer.server.port=80"
       - "traefik.http.services.web.loadbalancer.server.scheme=http"
   image:
-    image: tvsjsdock/teastore-image:v2
+    image: tvsjsdock/teastore-image:wrk2
     depends_on:
       - persistence
     expose:
@@ -102,7 +102,7 @@ services:
       - "traefik.http.services.image.loadbalancer.server.port=443"
       - "traefik.http.services.image.loadbalancer.server.scheme=https"
   recommender:
-    image: tvsjsdock/teastore-recommender:v2
+    image: tvsjsdock/teastore-recommender:wrk2
     depends_on:
       - persistence
     expose:
