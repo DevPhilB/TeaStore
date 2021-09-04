@@ -3,12 +3,12 @@ version: '3.9'
 services:
   gateway:
     # Traefik v2.5
-    image: traefik:v2.5.1
+    image: traefik:v2.5.2
     # Configuration
     command:
-      - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
+      - "--providers.docker.useBindPortIP=true"
       - "--providers.docker.network=proxy"
       - "--serversTransport.insecureSkipVerify=true"
       - "--entryPoints.h3-persistence.address=:4431/udp"
@@ -40,11 +40,6 @@ services:
         published: 4435
         protocol: udp
         mode: host
-      # Traefik dashboard
-      - target: 8080
-        published: 8080
-        protocol: tcp
-        mode: ingress
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
@@ -54,8 +49,6 @@ services:
       placement:
         constraints:
           - "node.role==manager"
-      labels:
-        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
   db:
     image: tvsjsdock/teastore-db:v2
     networks:
@@ -77,8 +70,6 @@ services:
       - db
     networks:
       - proxy
-    expose:
-      - "4431/udp"
     environment:
       HTTP_VERSION: "HTTP/3"
       HOST_NAME: "persistence"
@@ -103,8 +94,6 @@ services:
       - persistence
     networks:
       - proxy
-    expose:
-      - "4432/udp"
     environment:
       HTTP_VERSION: "HTTP/3"
       HOST_NAME: "auth"
@@ -128,8 +117,6 @@ services:
       - auth
     networks:
       - proxy
-    expose:
-      - "4433/udp"
     environment:
       HTTP_VERSION: "HTTP/3"
       HOST_NAME: "web"
@@ -156,8 +143,6 @@ services:
       - persistence
     networks:
       - proxy
-    expose:
-      - "4434/udp"
     environment:
       HTTP_VERSION: "HTTP/3"
       HOST_NAME: "image"
@@ -181,8 +166,6 @@ services:
       - persistence
     networks:
       - proxy
-    expose:
-      - "4435/udp"
     environment:
       HTTP_VERSION: "HTTP/3"
       HOST_NAME: "recommender"

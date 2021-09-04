@@ -3,12 +3,12 @@ version: '3.9'
 services:
   gateway:
     # Traefik v2.5
-    image: traefik:v2.5.1
+    image: traefik:v2.5.2
     # Configuration
     command:
-      - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
+      - "--providers.docker.useBindPortIP=true"
       - "--providers.docker.network=proxy"
       - "--serversTransport.insecureSkipVerify=true"
       - "--entryPoints.http2.address=:443"
@@ -20,11 +20,6 @@ services:
         published: 443
         protocol: tcp
         mode: host
-      # Traefik dashboard
-      - target: 8080
-        published: 8080
-        protocol: tcp
-        mode: ingress
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
@@ -34,8 +29,6 @@ services:
       placement:
         constraints:
           - "node.role==manager"
-      labels:
-        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
   db:
     image: tvsjsdock/teastore-db:v2
     networks:
@@ -57,8 +50,6 @@ services:
       - db
     networks:
       - proxy
-    expose:
-      - "443"
     environment:
       HTTP_VERSION: "HTTP/2"
       HOST_NAME: "persistence"
@@ -86,8 +77,6 @@ services:
       - persistence
     networks:
       - proxy
-    expose:
-      - "443"
     environment:
       HTTP_VERSION: "HTTP/2"
       HOST_NAME: "auth"
@@ -113,8 +102,6 @@ services:
       - auth
     networks:
       - proxy
-    expose:
-      - "443"
     environment:
       HTTP_VERSION: "HTTP/2"
       HOST_NAME: "web"
@@ -140,8 +127,6 @@ services:
       - persistence
     networks:
       - proxy
-    expose:
-      - "443"
     environment:
       HTTP_VERSION: "HTTP/2"
       HOST_NAME: "image"
@@ -167,8 +152,6 @@ services:
       - persistence
     networks:
       - proxy
-    expose:
-      - "443"
     environment:
       HTTP_VERSION: "HTTP/2"
       HOST_NAME: "recommender"

@@ -21,31 +21,45 @@ For more details visit the [base repository](https://github.com/DescartesResearc
 ### Launch without installation
 ### Docker Compose
 #### HTTP/1.1
- ```sh
- docker-compose up -f ./examples/docker/docker-compose_http1_1.yaml up
- ```
+```sh
+docker-compose up -f ./examples/docker/docker-compose_http1_1.yaml up
+```
 #### HTTP/2
- ```sh
- docker-compose up -f ./examples/docker/docker-compose_http2.yaml up
- ```
+```sh
+docker-compose up -f ./examples/docker/docker-compose_http2.yaml up
+```
 #### HTTP/3
- ```sh
+```sh
 docker-compose -f ./examples/docker/docker-compose_http3.yaml up
- ```
+```
+
+### Docker Swarm
+#### HTTP/1.1
+```sh
+docker stack deploy --compose-file ./examples/swarm/docker-swarm_http1_1.yaml teastore
+```
+#### HTTP/2
+```sh
+docker stack deploy --compose-file ./examples/swarm/docker-swarm_http2.yaml teastore
+```
+#### HTTP/3
+```sh
+docker stack deploy --compose-file ./examples/swarm/docker-swarm_http3.yaml teastore
+```
 
 ### Launch locally with installation
 #### Prerequisites
 Install dependencies (second command can be ignored for docker-compose run).
- ```sh
+```sh
 mvn clean install
 docker build -t teastore-db:v2 database
- ```
+```
 
 #### Only database as Docker container
 You have to start the database first.
- ```sh
+```sh
 docker run -p 3306:3306 teastore-db:v2
- ```
+```
 Run services in order:
 - HttpPersistenceServer
 - HttpAuthServer
@@ -59,17 +73,17 @@ Wait until database is ready before starting the next services.
 #### Docker Compose
 Waiting for the database is already included.
 #### HTTP/1.1
- ```sh
- docker-compose up --build
- ```
+```sh
+docker-compose up -f ./docker-compose_h1.yaml --build
+```
 #### HTTP/2
- ```sh
- docker-compose up -f ./docker-compose_h2.yaml up --build
- ```
+```sh
+docker-compose up -f ./docker-compose_h2.yaml up --build
+```
 #### HTTP/3
- ```sh
- docker-compose up -f ./docker-compose_h3.yaml up --build
- ```
+```sh
+docker-compose up -f ./docker-compose_h3.yaml up --build
+```
 
 ## DockerHub Images
 ### API Gateway & Services
@@ -91,20 +105,23 @@ Waiting for the database is already included.
 Available as [OpenAPI v3 YAML](api/TeaStore_v2.yaml).
 
 ## Evaluation (Benchmarking)
-### Tools
+Check out [TeaStore-Benchmark](hhttps://github.com/DevPhilB/TeaStore-Benchmark) for custom benchmarking tools.  
+
+### Other tools
 #### curl
-The popular command-line tool supports all HTTP versions.  
+The popular command-line tool supports all HTTP versions (if configured).  
 You can use the DockerHub image if you don't want to compile it on your system.  
-[Workload script](examples/curl_workload.sh) as example.  
-Since it was not designed for HTTP benchmarks,
-you could use [liburl](https://curl.se/libcurl/) to write your own benchmarking tool.  
+[Workload script](examples/curl_workload.sh) shows some example commands.  
 
 #### h2load
 [h2load](https://github.com/nghttp2/nghttp2/tree/quic#running-h2load-against-http3-server)
-is currently (08/21) the only HTTP benchmarking tool which supports HTTP/1.1,
+is currently (09/21) the only HTTP benchmarking tool which supports HTTP/1.1,
 HTTP/2 and HTTP/3.  
-You can use the existing [benchmark script](examples/h2load_benchmark.sh) or
-create your own scripts.
+You can use the existing [benchmark script](examples/h2load_benchmark.sh) or create your own scripts.
+##### Important
+There is a [bug](https://github.com/netty/netty-incubator-codec-http3/issues/159) in the HTTP/3 library of Netty,
+which causes freezes for some requests with h2load.  
+Please keep that in mind for the HTTP/3 version.
 
 ## License
 Distributed under the Apache-2.0 License. See `LICENSE` for more information.  
