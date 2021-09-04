@@ -105,9 +105,9 @@ docker-compose up -f ./docker-compose_h3.yaml up --build
 Available as [OpenAPI v3 YAML](api/TeaStore_v2.yaml).
 
 ## Evaluation (Benchmarking)
-Check out [TeaStore-Benchmark](hhttps://github.com/DevPhilB/TeaStore-Benchmark) for custom benchmarking tools.  
+Check out [TeaStore-Benchmark](https://github.com/DevPhilB/TeaStore-Benchmark) for custom benchmarking tools.  
 
-### Other tools
+### More tools
 #### curl
 The popular command-line tool supports all HTTP versions (if configured).  
 You can use the DockerHub image if you don't want to compile it on your system.  
