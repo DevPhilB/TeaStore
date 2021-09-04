@@ -64,10 +64,10 @@ public class HttpWebServer {
         String httpVersion = args.length > 0 ? args[0] != null ? args[0] : "HTTP/1.1" : "HTTP/1.1";
         String gatewayHost = args.length > 1 ? args[1] != null ? args[1] : "" : "";
         Integer webPort = args.length > 2 ? args[2] != null ? Integer.parseInt(args[2]) : 80 : 80;
-        Integer persistencePort = args.length > 3 ? args[3] != null ? Integer.parseInt(args[3]) : 80 : 80;
-        Integer authPort = args.length > 4 ? args[4] != null ? Integer.parseInt(args[4]) : 80 : 80;
-        Integer imagePort = args.length > 5 ? args[5] != null ? Integer.parseInt(args[5]) : 80 : 80;
-        Integer recommenderPort = args.length > 6 ? args[6] != null ? Integer.parseInt(args[6]) : 80 : 80;
+        Integer persistencePort = args.length > 3 ? args[3] != null ? Integer.parseInt(args[3]) : webPort : webPort;
+        Integer authPort = args.length > 4 ? args[4] != null ? Integer.parseInt(args[4]) : webPort : webPort;
+        Integer imagePort = args.length > 5 ? args[5] != null ? Integer.parseInt(args[5]) : webPort : webPort;
+        Integer recommenderPort = args.length > 6 ? args[6] != null ? Integer.parseInt(args[6]) : webPort : webPort;
         new HttpWebServer(
                 httpVersion,
                 gatewayHost,

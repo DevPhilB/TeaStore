@@ -51,11 +51,11 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  */
 public class HttpWebAPI implements API {
     private Http1Client http1Client;
+    private Http1ClientHandler http1Handler;
     private Http2Client http2Client;
     private Http2ClientStreamFrameHandler http2FrameHandler;
     private Http3Client http3Client;
     private Http3ClientStreamInboundHandler http3FrameHandler;
-    private Http1ClientHandler handler;
     private final ObjectMapper mapper;
     private final String httpVersion;
     private final String gatewayHost;
@@ -225,25 +225,72 @@ public class HttpWebAPI implements API {
     ) throws IOException {
         Map<String, String> imageWebDataMap = new HashMap<>();
         String json = mapper.writeValueAsString(imageSizeMap);
-        // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
-        FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                HTTP_1_1,
-                POST,
-                imageEndpoint,
-                postBody
-        );
-        postRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, postBody.readableBytes());
-        postRequest.headers().setAll(http1Request.headers());
-        // Create client and send http1Request
-        http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
-            imageWebDataMap = mapper.readValue(
-                    handler.jsonContent,
-                    new TypeReference<Map<String, String>>(){}
-            );
+        switch (httpVersion) {
+            case "HTTP/1.1" -> {
+                FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                        HTTP_1_1,
+                        POST,
+                        imageEndpoint,
+                        postBody
+                );
+                postRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, postBody.readableBytes());
+                postRequest.headers().setAll(http1Request.headers());
+                // Create client and send http1Request
+                http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
+                http1Handler = new Http1ClientHandler();
+                http1Client.sendRequest(http1Handler);
+                if (!http1Handler.jsonContent.isEmpty()) {
+                    imageWebDataMap = mapper.readValue(
+                            http1Handler.jsonContent,
+                            new TypeReference<Map<String, String>>() {
+                            }
+                    );
+                }
+            }
+            case "HTTP/2" -> {
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                        Http2Response.postContentHeader(
+                                gatewayHost + ":" + imagePort,
+                                imageEndpoint,
+                                String.valueOf(postBody.readableBytes())
+                        ),
+                        false
+                );
+                http2DataFrame = new DefaultHttp2DataFrame(postBody, true);
+                // Create client and send request
+                http2Client = new Http2Client(gatewayHost, imagePort, http2HeadersFrame, http2DataFrame);
+                http2FrameHandler = new Http2ClientStreamFrameHandler();
+                http2Client.sendRequest(http2FrameHandler);
+                if (!http2FrameHandler.jsonContent.isEmpty()) {
+                    imageWebDataMap = mapper.readValue(
+                            http2FrameHandler.jsonContent,
+                            new TypeReference<Map<String, String>>() {
+                            }
+                    );
+                }
+            }
+            case "HTTP/3" -> {
+                http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                        Http3Response.postContentHeader(
+                                gatewayHost + ":" + imagePort,
+                                imageEndpoint,
+                                String.valueOf(postBody.readableBytes())
+                        )
+                );
+                http3DataFrame = new DefaultHttp3DataFrame(postBody);
+                // Create client and send request
+                http3Client = new Http3Client(gatewayHost, imagePort, http3HeadersFrame, http3DataFrame);
+                http3FrameHandler = new Http3ClientStreamInboundHandler();
+                http3Client.sendRequest(http3FrameHandler);
+                if (!http3FrameHandler.jsonContent.isEmpty()) {
+                    imageWebDataMap = mapper.readValue(
+                            http3FrameHandler.jsonContent,
+                            new TypeReference<Map<String, String>>() {
+                            }
+                    );
+                }
+            }
         }
         return imageWebDataMap;
     }
@@ -254,58 +301,175 @@ public class HttpWebAPI implements API {
     ) throws IOException {
         Map<Long, String> imageProductDataMap = new HashMap<>();
         String json = mapper.writeValueAsString(imageSizeMap);
-        // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
         ByteBuf postBody = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
-        FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                HTTP_1_1,
-                POST,
-                imageEndpoint,
-                Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
-        );
-        postRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, postBody.readableBytes());
-        postRequest.headers().setAll(http1Request.headers());
-        // Create client and send http1Request
-        http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
-            imageProductDataMap = mapper.readValue(
-                    handler.jsonContent,
-                    new TypeReference<Map<Long, String>>(){}
-            );
+        switch (httpVersion) {
+            case "HTTP/1.1" -> {
+                FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                        HTTP_1_1,
+                        POST,
+                        imageEndpoint,
+                        Unpooled.copiedBuffer(json, CharsetUtil.UTF_8)
+                );
+                postRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, postBody.readableBytes());
+                postRequest.headers().setAll(http1Request.headers());
+                // Create client and send http1Request
+                http1Client = new Http1Client(gatewayHost, imagePort, postRequest);
+                http1Handler = new Http1ClientHandler();
+                http1Client.sendRequest(http1Handler);
+                if (!http1Handler.jsonContent.isEmpty()) {
+                    imageProductDataMap = mapper.readValue(
+                            http1Handler.jsonContent,
+                            new TypeReference<Map<Long, String>>() {
+                            }
+                    );
+                }
+            }
+            case "HTTP/2" -> {
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                        Http2Response.postContentHeader(
+                                gatewayHost + ":" + imagePort,
+                                imageEndpoint,
+                                String.valueOf(postBody.readableBytes())
+                        ),
+                        false
+                );
+                http2DataFrame = new DefaultHttp2DataFrame(postBody, true);
+                // Create client and send request
+                http2Client = new Http2Client(gatewayHost, imagePort, http2HeadersFrame, http2DataFrame);
+                http2FrameHandler = new Http2ClientStreamFrameHandler();
+                http2Client.sendRequest(http2FrameHandler);
+                if (!http2FrameHandler.jsonContent.isEmpty()) {
+                    imageProductDataMap = mapper.readValue(
+                            http2FrameHandler.jsonContent,
+                            new TypeReference<Map<Long, String>>() {
+                            }
+                    );
+                }
+            }
+            case "HTTP/3" -> {
+                http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                        Http3Response.postContentHeader(
+                                gatewayHost + ":" + imagePort,
+                                imageEndpoint,
+                                String.valueOf(postBody.readableBytes())
+                        )
+                );
+                http3DataFrame = new DefaultHttp3DataFrame(postBody);
+                // Create client and send request
+                http3Client = new Http3Client(gatewayHost, imagePort, http3HeadersFrame, http3DataFrame);
+                http3FrameHandler = new Http3ClientStreamInboundHandler();
+                http3Client.sendRequest(http3FrameHandler);
+                if (!http3FrameHandler.jsonContent.isEmpty()) {
+                    imageProductDataMap = mapper.readValue(
+                            http3FrameHandler.jsonContent,
+                            new TypeReference<Map<Long, String>>() {
+                            }
+                    );
+                }
+            }
         }
         return imageProductDataMap;
     }
 
     private List<Category> getCategories(String persistenceEndpointCategories) throws IOException {
         List<Category> categories = new ArrayList<>();
-        // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-        http1Request.setUri(persistenceEndpointCategories);
-        http1Request.setMethod(GET);
-        // Create client and send http1Request
-        http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
-            categories = mapper.readValue(
-                    handler.jsonContent,
-                    new TypeReference<List<Category>>(){}
-            );
+        switch (httpVersion) {
+            case "HTTP/1.1" -> {
+                http1Request.setUri(persistenceEndpointCategories);
+                http1Request.setMethod(GET);
+                // Create client and send http1Request
+                http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                http1Handler = new Http1ClientHandler();
+                http1Client.sendRequest(http1Handler);
+                if (!http1Handler.jsonContent.isEmpty()) {
+                    categories = mapper.readValue(
+                            http1Handler.jsonContent,
+                            new TypeReference<List<Category>>() {
+                            }
+                    );
+                }
+            }
+            case "HTTP/2" -> {
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                        Http2Response.getHeader(
+                                gatewayHost + ":" + persistencePort,
+                                persistenceEndpointCategories
+                        ),
+                        true
+                );
+                // Create client and send request
+                http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                http2FrameHandler = new Http2ClientStreamFrameHandler();
+                http2Client.sendRequest(http2FrameHandler);
+                if (!http2FrameHandler.jsonContent.isEmpty()) {
+                    categories = mapper.readValue(
+                            http2FrameHandler.jsonContent,
+                            new TypeReference<List<Category>>() {
+                            }
+                    );
+                }
+            }
+            case "HTTP/3" -> {
+                http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                http3FrameHandler = new Http3ClientStreamInboundHandler();
+                http3Client.sendRequest(http3FrameHandler);
+                if (!http3FrameHandler.jsonContent.isEmpty()) {
+                    categories = mapper.readValue(
+                            http3FrameHandler.jsonContent,
+                            new TypeReference<List<Category>>() {
+                            }
+                    );
+                }
+            }
         }
         return categories;
     }
 
     private SessionData checkLogin(String authEndpoint, SessionData sessionData) throws IOException {
         SessionData newSessionData = null;
-        // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-        http1Request.setUri(authEndpoint);
-        http1Request.setMethod(POST);
-        http1Request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-        http1Client = new Http1Client(gatewayHost, authPort, http1Request);
-        handler = new Http1ClientHandler();
-        http1Client.sendRequest(handler);
-        if (!handler.jsonContent.isEmpty()) {
-            newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+        switch (httpVersion) {
+            case "HTTP/1.1" -> {
+                http1Request.setUri(authEndpoint);
+                http1Request.setMethod(POST);
+                http1Request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+                http1Client = new Http1Client(gatewayHost, authPort, http1Request);
+                http1Handler = new Http1ClientHandler();
+                http1Client.sendRequest(http1Handler);
+                if (!http1Handler.jsonContent.isEmpty()) {
+                    newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                }
+            }
+            case "HTTP/2" -> {
+                http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                        Http2Response.postHeader(
+                                gatewayHost + ":" + authPort,
+                                authEndpoint
+                        ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                        true
+                );
+                // Create client and send request
+                http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
+                http2FrameHandler = new Http2ClientStreamFrameHandler();
+                http2Client.sendRequest(http2FrameHandler);
+                if (!http2FrameHandler.jsonContent.isEmpty()) {
+                    newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                }
+            }
+            case "HTTP/3" -> {
+                http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                        Http3Response.postHeader(
+                                gatewayHost + ":" + authPort,
+                                authEndpoint
+                        ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                );
+                // Create client and send request
+                http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
+                http3FrameHandler = new Http3ClientStreamInboundHandler();
+                http3Client.sendRequest(http3FrameHandler);
+                if (!http3FrameHandler.jsonContent.isEmpty()) {
+                    newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                }
+            }
         }
         return newSessionData;
     }
@@ -403,49 +567,170 @@ public class HttpWebAPI implements API {
             switch (name) {
                 case "addtocart":
                     // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                    http1Request.setMethod(POST);
-                    http1Request.setUri(authEndpointAdd);
-                    // Create client and send http1Request
-                    http1Client = new Http1Client(gatewayHost, authPort, http1Request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                        response = cartView(newSessionData);
-                        break;
-                    } else {
-                        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                    switch (httpVersion) {
+                        case "HTTP/1.1" -> {
+                            http1Request.setMethod(POST);
+                            http1Request.setUri(authEndpointAdd);
+                            // Create client and send request
+                            http1Client = new Http1Client(gatewayHost, authPort, http1Request);
+                            http1Handler = new Http1ClientHandler();
+                            http1Client.sendRequest(http1Handler);
+                            if (!http1Handler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        case "HTTP/2" -> {
+                            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                    Http2Response.postHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointAdd
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                                    true
+                            );
+                            // Create client and send request
+                            http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
+                            http2FrameHandler = new Http2ClientStreamFrameHandler();
+                            http2Client.sendRequest(http2FrameHandler);
+                            if (!http2FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        case "HTTP/3" -> {
+                            http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                    Http3Response.postHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointAdd
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                            );
+                            // Create client and send request
+                            http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
+                            http3FrameHandler = new Http3ClientStreamInboundHandler();
+                            http3Client.sendRequest(http3FrameHandler);
+                            if (!http3FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
                     }
+                    break;
                 case "removeproduct":
-                    // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                    http1Request.setMethod(POST);
-                    http1Request.setUri(authEndpointRemove);
-                    // Create client and send http1Request
-                    http1Client = new Http1Client(gatewayHost, authPort, http1Request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                        response = cartView(newSessionData);
-                        break;
-                    } else {
-                        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                    switch (httpVersion) {
+                        case "HTTP/1.1" -> {
+                            http1Request.setMethod(POST);
+                            http1Request.setUri(authEndpointRemove);
+                            // Create client and send http1Request
+                            http1Client = new Http1Client(gatewayHost, authPort, http1Request);
+                            http1Handler = new Http1ClientHandler();
+                            http1Client.sendRequest(http1Handler);
+                            if (!http1Handler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        case "HTTP/2" -> {
+                            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                    Http2Response.postHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointRemove
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                                    true
+                            );
+                            // Create client and send request
+                            http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
+                            http2FrameHandler = new Http2ClientStreamFrameHandler();
+                            http2Client.sendRequest(http2FrameHandler);
+                            if (!http2FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        case "HTTP/3" -> {
+                            http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                    Http3Response.postHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointRemove
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                            );
+                            // Create client and send request
+                            http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
+                            http3FrameHandler = new Http3ClientStreamInboundHandler();
+                            http3Client.sendRequest(http3FrameHandler);
+                            if (!http3FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
                     }
+                    break;
                 case "updatecartquantities":
-                    // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                    http1Request.setMethod(PUT);
-                    http1Request.setUri(authEndpointUpdate);
-                    // Create client and send http1Request
-                    http1Client = new Http1Client(gatewayHost, authPort, http1Request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                        response = cartView(newSessionData);
-                        break;
-                    } else {
-                        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                    switch (httpVersion) {
+                        case "HTTP/1.1" -> {
+                            http1Request.setMethod(PUT);
+                            http1Request.setUri(authEndpointUpdate);
+                            // Create client and send http1Request
+                            http1Client = new Http1Client(gatewayHost, authPort, http1Request);
+                            http1Handler = new Http1ClientHandler();
+                            http1Client.sendRequest(http1Handler);
+                            if (!http1Handler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        case "HTTP/2" -> {
+                            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                    Http2Response.putHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointUpdate
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                                    true
+                            );
+                            // Create client and send request
+                            http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
+                            http2FrameHandler = new Http2ClientStreamFrameHandler();
+                            http2Client.sendRequest(http2FrameHandler);
+                            if (!http2FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        case "HTTP/3" -> {
+                            http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                    Http3Response.putHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointUpdate
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                            );
+                            // Create client and send request
+                            http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
+                            http3FrameHandler = new Http3ClientStreamInboundHandler();
+                            http3Client.sendRequest(http3FrameHandler);
+                            if (!http3FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                                response = cartView(newSessionData);
+                            } else {
+                                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                            }
+                        }
                     }
+                    break;
                 case "proceedtocheckout":
                     newSessionData = checkLogin(authEndpointCheck, sessionData);
                     if (newSessionData != null) {
@@ -474,27 +759,75 @@ public class HttpWebAPI implements API {
         // POST /api/auth/useractions/placeorder
         String authEndpointPlaceOrder = AUTH_ENDPOINT + "/useractions/placeorder";
         try {
-            // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-            // Create client and send http1Request
-            FullHttpRequest postRequest = new DefaultFullHttpRequest(
-                    HTTP_1_1,
-                    POST,
-                    authEndpointPlaceOrder,
-                    body
-            );
-            postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
-            postRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, body.readableBytes());
-            postRequest.headers().setAll(http1Request.headers());
-            http1Client = new Http1Client(gatewayHost, authPort, postRequest);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                SessionData newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
-                FullHttpResponse response = profileView(newSessionData);
-                response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
-                return response;
-            } else {
-                return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+            switch (httpVersion) {
+                case "HTTP/1.1" -> {
+                    // Create client and send request
+                    FullHttpRequest postRequest = new DefaultFullHttpRequest(
+                            HTTP_1_1,
+                            POST,
+                            authEndpointPlaceOrder,
+                            body
+                    );
+                    postRequest.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
+                    postRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, body.readableBytes());
+                    postRequest.headers().setAll(http1Request.headers());
+                    http1Client = new Http1Client(gatewayHost, authPort, postRequest);
+                    http1Handler = new Http1ClientHandler();
+                    http1Client.sendRequest(http1Handler);
+                    if (!http1Handler.jsonContent.isEmpty()) {
+                        SessionData newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                        FullHttpResponse response = profileView(newSessionData);
+                        response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+                        return response;
+                    } else {
+                        return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                    }
+                }
+                case "HTTP/2" -> {
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.postContentHeader(
+                                    gatewayHost + ":" + authPort,
+                                    authEndpointPlaceOrder,
+                                    String.valueOf(body.readableBytes())
+                            ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                            false
+                    );
+                    http2DataFrame = new DefaultHttp2DataFrame(body, true);
+                    // Create client and send request
+                    http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, http2DataFrame);
+                    http2FrameHandler = new Http2ClientStreamFrameHandler();
+                    http2Client.sendRequest(http2FrameHandler);
+                    if (!http2FrameHandler.jsonContent.isEmpty()) {
+                        SessionData newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                        FullHttpResponse response = profileView(newSessionData);
+                        response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+                        return response;
+                    } else {
+                        return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                    }
+                }
+                case "HTTP/3" -> {
+                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                            Http3Response.postContentHeader(
+                                    gatewayHost + ":" + authPort,
+                                    authEndpointPlaceOrder,
+                                    String.valueOf(body.readableBytes())
+                            ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                    );
+                    http3DataFrame = new DefaultHttp3DataFrame(body);
+                    // Create client and send request
+                    http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, http3DataFrame);
+                    http3FrameHandler = new Http3ClientStreamInboundHandler();
+                    http3Client.sendRequest(http3FrameHandler);
+                    if (!http3FrameHandler.jsonContent.isEmpty()) {
+                        SessionData newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                        FullHttpResponse response = profileView(newSessionData);
+                        response.headers().set(HttpHeaderNames.SET_COOKIE, CookieUtil.encodeSessionData(newSessionData, gatewayHost));
+                        return response;
+                    } else {
+                        return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+                    }
+                }
             }
         } catch (Exception e) {
             LOG.error(e.getMessage());
@@ -534,16 +867,52 @@ public class HttpWebAPI implements API {
             }
             HashMap<Long, Product> products = new HashMap<>();
             for (Long id : ids) {
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                http1Request.setUri(persistenceEndpointProducts + "?id=" + id);
-                http1Request.setMethod(GET);
-                // Create client and send http1Request
-                http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    Product product = mapper.readValue(handler.jsonContent, Product.class);
-                    products.put(product.id(), product);
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        http1Request.setUri(persistenceEndpointProducts + "?id=" + id);
+                        http1Request.setMethod(GET);
+                        // Create client and send http1Request
+                        http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            Product product = mapper.readValue(http1Handler.jsonContent, Product.class);
+                            products.put(product.id(), product);
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.getHeader(
+                                        gatewayHost,
+                                        persistenceEndpointProducts + "?id=" + id
+                                ),
+                                true
+                        );
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            Product product = mapper.readValue(http2FrameHandler.jsonContent, Product.class);
+                            products.put(product.id(), product);
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.getHeader(
+                                        gatewayHost + ":" + persistencePort,
+                                        persistenceEndpointProducts + "?id=" + id
+                                )
+                        );
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            Product product = mapper.readValue(http3FrameHandler.jsonContent, Product.class);
+                            products.put(product.id(), product);
+                        }
+                    }
                 }
             }
             // Get store icon
@@ -574,23 +943,71 @@ public class HttpWebAPI implements API {
             // Recommendations works only with user id
             if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
-                        HTTP_1_1,
-                        POST,
-                        recommenderEndpoint + "?userid=" + sessionData.userId(),
-                        Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
-                );
-                postOrderItemsRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, orderItemsJson.getBytes().length);
-                postOrderItemsRequest.headers().setAll(http1Request.headers());
-                http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    productIds = mapper.readValue(
-                            handler.jsonContent,
-                            new TypeReference<List<Long>>(){}
-                    );
+                ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
+                                HTTP_1_1,
+                                POST,
+                                recommenderEndpoint + "?userid=" + sessionData.userId(),
+                                postOrderItemsBody
+                        );
+                        postOrderItemsRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, orderItemsJson.getBytes().length);
+                        postOrderItemsRequest.headers().setAll(http1Request.headers());
+                        http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            productIds = mapper.readValue(
+                                    http1Handler.jsonContent,
+                                    new TypeReference<List<Long>>() {
+                                    }
+                            );
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.postContentHeader(
+                                        gatewayHost + ":" + recommenderPort,
+                                        recommenderEndpoint + "?userid=" + sessionData.userId(),
+                                        String.valueOf(postOrderItemsBody.readableBytes())
+                                ),
+                                false
+                        );
+                        http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody, true);
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, recommenderPort, http2HeadersFrame, http2DataFrame);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            productIds = mapper.readValue(
+                                    http2FrameHandler.jsonContent,
+                                    new TypeReference<List<Long>>() {
+                                    }
+                            );
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.postContentHeader(
+                                        gatewayHost + ":" + recommenderPort,
+                                        recommenderEndpoint + "?userid=" + sessionData.userId(),
+                                        String.valueOf(postOrderItemsBody.readableBytes())
+                                )
+                        );
+                        http3DataFrame = new DefaultHttp3DataFrame(postOrderItemsBody);
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, recommenderPort, http3HeadersFrame, http3DataFrame);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            productIds = mapper.readValue(
+                                    http3FrameHandler.jsonContent,
+                                    new TypeReference<List<Long>>() {
+                                    }
+                            );
+                        }
+                    }
                 }
             }
             // Get product images
@@ -600,14 +1017,48 @@ public class HttpWebAPI implements API {
             for (Long productId : productIds) {
                 productImageSizeMap.put(productId, imageProductPreviewSize);
                 //
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                http1Request.setUri(persistenceEndpointProducts + "?id=" + productId);
-                // Create client and send http1Request
-                http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        http1Request.setUri(persistenceEndpointProducts + "?id=" + productId);
+                        // Create client and send http1Request
+                        http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            recommendedProducts.add(mapper.readValue(http1Handler.jsonContent, Product.class));
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.getHeader(
+                                        gatewayHost,
+                                        persistenceEndpointProducts + "?id=" + productId
+                                ),
+                                true
+                        );
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            recommendedProducts.add(mapper.readValue(http2FrameHandler.jsonContent, Product.class));
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.getHeader(
+                                        gatewayHost + ":" + persistencePort,
+                                        persistenceEndpointProducts + "?id=" + productId
+                                )
+                        );
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            recommendedProducts.add(mapper.readValue(http3FrameHandler.jsonContent, Product.class));
+                        }
+                    }
                 }
             }
             Map<Long, String> productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -689,18 +1140,61 @@ public class HttpWebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Get number of all products
             int products = 0;
-            // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-            http1Request.setUri(persistenceEndpointProducts);
-            http1Request.setMethod(GET);
-            // Create client and send http1Request
-            http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                products = mapper.readValue(
-                        handler.jsonContent,
-                        new TypeReference<List<Product>>(){}
-                ).size();
+            switch (httpVersion) {
+                case "HTTP/1.1" -> {
+                    http1Request.setUri(persistenceEndpointProducts);
+                    http1Request.setMethod(GET);
+                    // Create client and send http1Request
+                    http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                    http1Handler = new Http1ClientHandler();
+                    http1Client.sendRequest(http1Handler);
+                    if (!http1Handler.jsonContent.isEmpty()) {
+                        products = mapper.readValue(
+                                http1Handler.jsonContent,
+                                new TypeReference<List<Product>>() {
+                                }
+                        ).size();
+                    }
+                }
+                case "HTTP/2" -> {
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.getHeader(
+                                    gatewayHost,
+                                    persistenceEndpointProducts
+                            ),
+                            true
+                    );
+                    // Create client and send request
+                    http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                    http2FrameHandler = new Http2ClientStreamFrameHandler();
+                    http2Client.sendRequest(http2FrameHandler);
+                    if (!http2FrameHandler.jsonContent.isEmpty()) {
+                        products = mapper.readValue(
+                                http2FrameHandler.jsonContent,
+                                new TypeReference<List<Product>>() {
+                                }
+                        ).size();
+                    }
+                }
+                case "HTTP/3" -> {
+                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                            Http3Response.getHeader(
+                                    gatewayHost + ":" + persistencePort,
+                                    persistenceEndpointProducts
+                            )
+                    );
+                    // Create client and send request
+                    http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                    http3FrameHandler = new Http3ClientStreamInboundHandler();
+                    http3Client.sendRequest(http3FrameHandler);
+                    if (!http3FrameHandler.jsonContent.isEmpty()) {
+                        products = mapper.readValue(
+                                http3FrameHandler.jsonContent,
+                                new TypeReference<List<Product>>() {
+                                }
+                        ).size();
+                    }
+                }
             }
             // Check page number
             int maxPages = (int) Math.ceil(((double) products) / productQuantity);
@@ -711,18 +1205,61 @@ public class HttpWebAPI implements API {
             persistenceEndpointCategoryProducts += "&start=" +
                     (page - 1) * productQuantity + "&max=" + productQuantity;
             List<Product> productList = new ArrayList<>();
-            // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-            http1Request.setUri(persistenceEndpointCategoryProducts);
-            http1Request.setMethod(GET);
-            // Create client and send http1Request
-            http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                productList = mapper.readValue(
-                        handler.jsonContent,
-                        new TypeReference<List<Product>>(){}
-                );
+            switch (httpVersion) {
+                case "HTTP/1.1" -> {
+                    http1Request.setUri(persistenceEndpointCategoryProducts);
+                    http1Request.setMethod(GET);
+                    // Create client and send http1Request
+                    http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                    http1Handler = new Http1ClientHandler();
+                    http1Client.sendRequest(http1Handler);
+                    if (!http1Handler.jsonContent.isEmpty()) {
+                        productList = mapper.readValue(
+                                http1Handler.jsonContent,
+                                new TypeReference<List<Product>>() {
+                                }
+                        );
+                    }
+                }
+                case "HTTP/2" -> {
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.getHeader(
+                                    gatewayHost,
+                                    persistenceEndpointCategoryProducts
+                            ),
+                            true
+                    );
+                    // Create client and send request
+                    http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                    http2FrameHandler = new Http2ClientStreamFrameHandler();
+                    http2Client.sendRequest(http2FrameHandler);
+                    if (!http2FrameHandler.jsonContent.isEmpty()) {
+                        productList = mapper.readValue(
+                                http2FrameHandler.jsonContent,
+                                new TypeReference<List<Product>>() {
+                                }
+                        );
+                    }
+                }
+                case "HTTP/3" -> {
+                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                            Http3Response.getHeader(
+                                    gatewayHost + ":" + persistencePort,
+                                    persistenceEndpointCategoryProducts
+                            )
+                    );
+                    // Create client and send request
+                    http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                    http3FrameHandler = new Http3ClientStreamInboundHandler();
+                    http3Client.sendRequest(http3FrameHandler);
+                    if (!http3FrameHandler.jsonContent.isEmpty()) {
+                        productList = mapper.readValue(
+                                http3FrameHandler.jsonContent,
+                                new TypeReference<List<Product>>() {
+                                }
+                        );
+                    }
+                }
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -782,23 +1319,69 @@ public class HttpWebAPI implements API {
      *
      * @return Index page view as JSON
      */
-    private FullHttpResponse databaseAction(SessionData sessionData, Integer categories, Integer products, Integer users, Integer orders) {
+    private FullHttpResponse databaseAction(
+            SessionData sessionData,
+            Integer categories,
+            Integer products,
+            Integer users,
+            Integer orders
+    ) {
         // GET api/persistence/generatedb
         String persistenceEndpoint = PERSISTENCE_ENDPOINT + "/generatedb" +
                 "?categories=" + categories + "&products=" + products +
                 "&users=" + users + "&orders=" + orders;
         try {
-            // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-            http1Request.setUri(persistenceEndpoint);
-            // Create client and send http1Request
-            http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                // And return to index view
-                return indexView(sessionData);
-            } else {
-                return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+            switch (httpVersion) {
+                case "HTTP/1.1" -> {
+                    http1Request.setUri(persistenceEndpoint);
+                    // Create client and send http1Request
+                    http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                    http1Handler = new Http1ClientHandler();
+                    http1Client.sendRequest(http1Handler);
+                    if (!http1Handler.jsonContent.isEmpty()) {
+                        // And return to index view
+                        return indexView(sessionData);
+                    } else {
+                        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                    }
+                }
+                case "HTTP/2" -> {
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.getHeader(
+                                    gatewayHost,
+                                    persistenceEndpoint
+                            ),
+                            true
+                    );
+                    // Create client and send request
+                    http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                    http2FrameHandler = new Http2ClientStreamFrameHandler();
+                    http2Client.sendRequest(http2FrameHandler);
+                    if (!http2FrameHandler.jsonContent.isEmpty()) {
+                        // And return to index view
+                        return indexView(sessionData);
+                    } else {
+                        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                    }
+                }
+                case "HTTP/3" -> {
+                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                            Http3Response.getHeader(
+                                    gatewayHost + ":" + persistencePort,
+                                    persistenceEndpoint
+                            )
+                    );
+                    // Create client and send request
+                    http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                    http3FrameHandler = new Http3ClientStreamInboundHandler();
+                    http3Client.sendRequest(http3FrameHandler);
+                    if (!http3FrameHandler.jsonContent.isEmpty()) {
+                        // And return to index view
+                        return indexView(sessionData);
+                    } else {
+                        return new DefaultFullHttpResponse(HTTP_1_1, INTERNAL_SERVER_ERROR);
+                    }
+                }
             }
         } catch (Exception e) {
             LOG.error(e.getMessage());
@@ -953,33 +1536,102 @@ public class HttpWebAPI implements API {
         String authEndpointLogout = AUTH_ENDPOINT + "/useractions/logout";
         try {
             SessionData newSessionData = null;
-            // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
             http1Request.setMethod(POST);
             http1Request.headers().set(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost));
             switch (action) {
-                case "login":
+                case "login" -> {
                     authEndpointLogin += username + "&password=" + password;
-                    // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                    http1Request.setUri(authEndpointLogin);
-                    // Create client and send http1Request
-                    http1Client = new Http1Client(gatewayHost, authPort, http1Request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                    switch (httpVersion) {
+                        case "HTTP/1.1" -> {
+                            http1Request.setUri(authEndpointLogin);
+                            // Create client and send http1Request
+                            http1Client = new Http1Client(gatewayHost, authPort, http1Request);
+                            http1Handler = new Http1ClientHandler();
+                            http1Client.sendRequest(http1Handler);
+                            if (!http1Handler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                            }
+                        }
+                        case "HTTP/2" -> {
+                            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                    Http2Response.postHeader(
+                                            gatewayHost,
+                                            authEndpointLogin
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                                    true
+                            );
+                            // Create client and send request
+                            http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
+                            http2FrameHandler = new Http2ClientStreamFrameHandler();
+                            http2Client.sendRequest(http2FrameHandler);
+                            if (!http2FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                            }
+                        }
+                        case "HTTP/3" -> {
+                            http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                    Http3Response.postHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointLogin
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                            );
+                            // Create client and send request
+                            http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
+                            http3FrameHandler = new Http3ClientStreamInboundHandler();
+                            http3Client.sendRequest(http3FrameHandler);
+                            if (!http3FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                            }
+                        }
                     }
                     return profileView(newSessionData);
-                case "logout":
-                    // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                    http1Request.setUri(authEndpointLogout);
-                    // Create client and send http1Request
-                    http1Client = new Http1Client(gatewayHost, authPort, http1Request);
-                    handler = new Http1ClientHandler();
-                    http1Client.sendRequest(handler);
-                    if (!handler.jsonContent.isEmpty()) {
-                        newSessionData = mapper.readValue(handler.jsonContent, SessionData.class);
+                }
+                case "logout" -> {
+                    switch (httpVersion) {
+                        case "HTTP/1.1" -> {
+                            http1Request.setUri(authEndpointLogout);
+                            // Create client and send http1Request
+                            http1Client = new Http1Client(gatewayHost, authPort, http1Request);
+                            http1Handler = new Http1ClientHandler();
+                            http1Client.sendRequest(http1Handler);
+                            if (!http1Handler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http1Handler.jsonContent, SessionData.class);
+                            }
+                        }
+                        case "HTTP/2" -> {
+                            http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                    Http2Response.postHeader(
+                                            gatewayHost,
+                                            authEndpointLogout
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                                    true
+                            );
+                            // Create client and send request
+                            http2Client = new Http2Client(gatewayHost, authPort, http2HeadersFrame, null);
+                            http2FrameHandler = new Http2ClientStreamFrameHandler();
+                            http2Client.sendRequest(http2FrameHandler);
+                            if (!http2FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http2FrameHandler.jsonContent, SessionData.class);
+                            }
+                        }
+                        case "HTTP/3" -> {
+                            http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                    Http3Response.postHeader(
+                                            gatewayHost + ":" + authPort,
+                                            authEndpointLogout
+                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost))
+                            );
+                            // Create client and send request
+                            http3Client = new Http3Client(gatewayHost, authPort, http3HeadersFrame, null);
+                            http3FrameHandler = new Http3ClientStreamInboundHandler();
+                            http3Client.sendRequest(http3FrameHandler);
+                            if (!http3FrameHandler.jsonContent.isEmpty()) {
+                                newSessionData = mapper.readValue(http3FrameHandler.jsonContent, SessionData.class);
+                            }
+                        }
                     }
                     return indexView(newSessionData);
+                }
             }
             return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
         } catch (Exception e) {
@@ -1122,15 +1774,49 @@ public class HttpWebAPI implements API {
             List<Category> categories = getCategories(persistenceEndpointCategories);
             // Get product
             Product product = null;
-            // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-            http1Request.setUri(persistenceEndpointProducts + "?id=" + productId);
-            http1Request.setMethod(GET);
-            // Create client and send http1Request
-            http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-            handler = new Http1ClientHandler();
-            http1Client.sendRequest(handler);
-            if (!handler.jsonContent.isEmpty()) {
-                product = mapper.readValue(handler.jsonContent, Product.class);
+            switch (httpVersion) {
+                case "HTTP/1.1" -> {
+                    http1Request.setUri(persistenceEndpointProducts + "?id=" + productId);
+                    http1Request.setMethod(GET);
+                    // Create client and send http1Request
+                    http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                    http1Handler = new Http1ClientHandler();
+                    http1Client.sendRequest(http1Handler);
+                    if (!http1Handler.jsonContent.isEmpty()) {
+                        product = mapper.readValue(http1Handler.jsonContent, Product.class);
+                    }
+                }
+                case "HTTP/2" -> {
+                    http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                            Http2Response.getHeader(
+                                    gatewayHost,
+                                    persistenceEndpointProducts + "?id=" + productId
+                            ),
+                            true
+                    );
+                    // Create client and send request
+                    http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                    http2FrameHandler = new Http2ClientStreamFrameHandler();
+                    http2Client.sendRequest(http2FrameHandler);
+                    if (!http2FrameHandler.jsonContent.isEmpty()) {
+                        product = mapper.readValue(http2FrameHandler.jsonContent, Product.class);
+                    }
+                }
+                case "HTTP/3" -> {
+                    http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                            Http3Response.getHeader(
+                                    gatewayHost + ":" + persistencePort,
+                                    persistenceEndpointProducts + "?id=" + productId
+                            )
+                    );
+                    // Create client and send request
+                    http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                    http3FrameHandler = new Http3ClientStreamInboundHandler();
+                    http3Client.sendRequest(http3FrameHandler);
+                    if (!http3FrameHandler.jsonContent.isEmpty()) {
+                        product = mapper.readValue(http3FrameHandler.jsonContent, Product.class);
+                    }
+                }
             }
             // Get product images
             Map<Long, String> productImageSizeMap = new HashMap<>();
@@ -1156,24 +1842,73 @@ public class HttpWebAPI implements API {
             // Recommendations works only with user id
             if (sessionData.userId() != null) {
                 String orderItemsJson = mapper.writeValueAsString(orderItems);
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
-                        HTTP_1_1,
-                        POST,
-                        recommenderEndpoint + "?userid=" + sessionData.userId(),
-                        Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8)
-                );
-                postOrderItemsRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, orderItemsJson.getBytes().length);
-                postOrderItemsRequest.headers().setAll(http1Request.headers());
-                http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    productIds = mapper.readValue(
-                            handler.jsonContent,
-                            new TypeReference<List<Long>>(){}
-                    );
+                ByteBuf postOrderItemsBody = Unpooled.copiedBuffer(orderItemsJson, CharsetUtil.UTF_8);
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        FullHttpRequest postOrderItemsRequest = new DefaultFullHttpRequest(
+                                HTTP_1_1,
+                                POST,
+                                recommenderEndpoint + "?userid=" + sessionData.userId(),
+                                postOrderItemsBody
+                        );
+                        postOrderItemsRequest.headers().set(HttpHeaderNames.CONTENT_LENGTH, orderItemsJson.getBytes().length);
+                        postOrderItemsRequest.headers().setAll(http1Request.headers());
+                        http1Client = new Http1Client(gatewayHost, recommenderPort, postOrderItemsRequest);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            productIds = mapper.readValue(
+                                    http1Handler.jsonContent,
+                                    new TypeReference<List<Long>>() {
+                                    }
+                            );
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.postContentHeader(
+                                        gatewayHost + ":" + recommenderPort,
+                                        recommenderEndpoint + "?userid=" + sessionData.userId(),
+                                        String.valueOf(postOrderItemsBody.readableBytes())
+                                ),
+                                false
+                        );
+                        http2DataFrame = new DefaultHttp2DataFrame(postOrderItemsBody, true);
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, recommenderPort, http2HeadersFrame, http2DataFrame);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            productIds = mapper.readValue(
+                                    http2FrameHandler.jsonContent,
+                                    new TypeReference<List<Long>>() {
+                                    }
+                            );
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.postContentHeader(
+                                        gatewayHost + ":" + recommenderPort,
+                                        recommenderEndpoint + "?userid=" + sessionData.userId(),
+                                        String.valueOf(postOrderItemsBody.readableBytes())
+                                )
+                        );
+                        http3DataFrame = new DefaultHttp3DataFrame(postOrderItemsBody);
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, recommenderPort, http3HeadersFrame, http3DataFrame);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            productIds = mapper.readValue(
+                                    http3FrameHandler.jsonContent,
+                                    new TypeReference<List<Long>>() {
+                                    }
+                            );
+                        }
+                    }
                 }
+
             }
             // Get product images
             productImageSizeMap = new HashMap<>();
@@ -1182,14 +1917,48 @@ public class HttpWebAPI implements API {
             for (Long id : productIds) {
                 productImageSizeMap.put(id, imageProductPreviewSize);
                 //
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                http1Request.setUri(persistenceEndpointProducts + "?id=" + id);
-                // Create client and send http1Request
-                http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    recommendedProducts.add(mapper.readValue(handler.jsonContent, Product.class));
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        http1Request.setUri(persistenceEndpointProducts + "?id=" + id);
+                        // Create client and send http1Request
+                        http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            recommendedProducts.add(mapper.readValue(http1Handler.jsonContent, Product.class));
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.getHeader(
+                                        gatewayHost,
+                                        persistenceEndpointProducts + "?id=" + id
+                                ),
+                                true
+                        );
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            recommendedProducts.add(mapper.readValue(http2FrameHandler.jsonContent, Product.class));
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.getHeader(
+                                        gatewayHost + ":" + persistencePort,
+                                        persistenceEndpointProducts + "?id=" + id
+                                )
+                        );
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            recommendedProducts.add(mapper.readValue(http3FrameHandler.jsonContent, Product.class));
+                        }
+                    }
                 }
             }
             productImageDataMap = getProductImages(imageEndpointProduct, productImageSizeMap);
@@ -1268,29 +2037,106 @@ public class HttpWebAPI implements API {
                 // Get user
                 User user = null;
                 Long userId = newSessionData.userId();
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                http1Request.setUri(persistenceEndpointUsers + userId);
-                http1Request.setMethod(GET);
-                // Create client and send http1Request
-                http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    user = mapper.readValue(handler.jsonContent, User.class);
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        http1Request.setUri(persistenceEndpointUsers + userId);
+                        http1Request.setMethod(GET);
+                        // Create client and send http1Request
+                        http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            user = mapper.readValue(http1Handler.jsonContent, User.class);
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.getHeader(
+                                        gatewayHost,
+                                        persistenceEndpointUsers + userId
+                                ),
+                                true
+                        );
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            user = mapper.readValue(http2FrameHandler.jsonContent, User.class);
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.getHeader(
+                                        gatewayHost + ":" + persistencePort,
+                                        persistenceEndpointUsers + userId
+                                )
+                        );
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            user = mapper.readValue(http3FrameHandler.jsonContent, User.class);
+                        }
+                    }
                 }
                 // Get user orders
                 List<Order> orders = new ArrayList<>();
-                // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
-                http1Request.setUri(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
-                http1Request.setMethod(GET);
-                http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
-                handler = new Http1ClientHandler();
-                http1Client.sendRequest(handler);
-                if (!handler.jsonContent.isEmpty()) {
-                    orders = mapper.readValue(
-                            handler.jsonContent,
-                            new TypeReference<List<Order>>(){}
-                    );
+                switch (httpVersion) {
+                    case "HTTP/1.1" -> {
+                        http1Request.setUri(persistenceEndpointUserOrders + userId + "&start=-1&max=-1");
+                        http1Request.setMethod(GET);
+                        http1Client = new Http1Client(gatewayHost, persistencePort, http1Request);
+                        http1Handler = new Http1ClientHandler();
+                        http1Client.sendRequest(http1Handler);
+                        if (!http1Handler.jsonContent.isEmpty()) {
+                            orders = mapper.readValue(
+                                    http1Handler.jsonContent,
+                                    new TypeReference<List<Order>>() {
+                                    }
+                            );
+                        }
+                    }
+                    case "HTTP/2" -> {
+                        http2HeadersFrame = new DefaultHttp2HeadersFrame(
+                                Http2Response.getHeader(
+                                        gatewayHost,
+                                        persistenceEndpointUserOrders + userId + "&start=-1&max=-1"
+                                ),
+                                true
+                        );
+                        // Create client and send request
+                        http2Client = new Http2Client(gatewayHost, persistencePort, http2HeadersFrame, null);
+                        http2FrameHandler = new Http2ClientStreamFrameHandler();
+                        http2Client.sendRequest(http2FrameHandler);
+                        if (!http2FrameHandler.jsonContent.isEmpty()) {
+                            orders = mapper.readValue(
+                                    http2FrameHandler.jsonContent,
+                                    new TypeReference<List<Order>>() {
+                                    }
+                            );
+                        }
+                    }
+                    case "HTTP/3" -> {
+                        http3HeadersFrame = new DefaultHttp3HeadersFrame(
+                                Http3Response.getHeader(
+                                        gatewayHost + ":" + persistencePort,
+                                        persistenceEndpointUserOrders + userId + "&start=-1&max=-1"
+                                )
+                        );
+                        // Create client and send request
+                        http3Client = new Http3Client(gatewayHost, persistencePort, http3HeadersFrame, null);
+                        http3FrameHandler = new Http3ClientStreamInboundHandler();
+                        http3Client.sendRequest(http3FrameHandler);
+                        if (!http3FrameHandler.jsonContent.isEmpty()) {
+                            orders = mapper.readValue(
+                                    http3FrameHandler.jsonContent,
+                                    new TypeReference<List<Order>>() {
+                                    }
+                            );
+                        }
+                    }
                 }
                 // Create previous orders
                 List<PreviousOrder> previousOrders = new ArrayList<>();
