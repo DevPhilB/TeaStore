@@ -54,7 +54,6 @@ services:
       HTTP_VERSION: "HTTP/1.1"
       HOST_NAME: "auth"
       GATEWAY_HOST: "gateway"
-      AUTH_PORT: "80"
     labels:
       - "traefik.http.routers.auth.rule=Host(`gateway`) && PathPrefix(`/api/auth`)"
       - "traefik.http.routers.auth.entrypoints=http1"

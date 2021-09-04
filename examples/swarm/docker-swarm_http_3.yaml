@@ -10,6 +10,7 @@ services:
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.useBindPortIP=true"
       - "--providers.docker.network=proxy"
+      - "--entryPoints.http1.address=:80"
       - "--serversTransport.insecureSkipVerify=true"
       - "--entryPoints.h3-persistence.address=:4431/udp"
       - "--entryPoints.h3-auth.address=:4432/udp"
@@ -19,6 +20,11 @@ services:
     networks:
       - proxy
     ports:
+      # The HTTP port
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
       # The HTTP/3 ports
       - target: 4431
         published: 4431
@@ -123,7 +129,7 @@ services:
       GATEWAY_HOST: "gateway"
       PERSISTENCE_PORT: "4431"
       AUTH_PORT: "4432"
-      WEB_PORT: "4433"
+      WEB_PORT: "80"
       IMAGE_PORT: "4434"
       RECOMMENDER_PORT: "4435"
     deploy:
@@ -134,9 +140,12 @@ services:
         constraints:
           - "node.role==worker"
       labels:
-        - "traefik.udp.routers.web.entrypoints=h3-web"
-        - "traefik.udp.routers.web.service=web"
-        - "traefik.udp.services.web.loadbalancer.server.port=4433"
+        - "traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/api/web`)"
+        - "traefik.http.routers.web.entrypoints=http1"
+        - "traefik.http.routers.web.tls=false"
+        - "traefik.http.routers.web.service=web"
+        - "traefik.http.services.web.loadbalancer.server.port=80"
+        - "traefik.http.services.web.loadbalancer.server.scheme=http"
   image:
     image: tvsjsdock/teastore-image:v2
     depends_on:
