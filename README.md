@@ -11,7 +11,7 @@ For more details visit the [base repository](https://github.com/DescartesResearc
 - Registry replaced with [Traefik](https://github.com/traefik/traefik),
   a HTTP reverse proxy and load balancer
 - Netty HTTP servers (and client) instead of Jetty servlets
-- Support for HTTP/1.1, HTTP/2 and HTTP/3
+- Support for HTTP/1.1, HTTP/2 and HTTP/3 (Web service is set to HTTP/1.1 but uses HTTP/2 and HTTP/3 clients)
 - Full JSON-API instead of JSPs
 - Optimized API paths
 - The database setup includes the data population
@@ -22,11 +22,11 @@ For more details visit the [base repository](https://github.com/DescartesResearc
 ### Docker Compose
 #### HTTP/1.1
 ```sh
-docker-compose up -f ./examples/docker/docker-compose_http1_1.yaml up
+docker-compose -f ./examples/docker/docker-compose_http1_1.yaml up
 ```
 #### HTTP/2
 ```sh
-docker-compose up -f ./examples/docker/docker-compose_http2.yaml up
+docker-compose -f ./examples/docker/docker-compose_http2.yaml up
 ```
 #### HTTP/3
 ```sh
@@ -74,15 +74,15 @@ Wait until database is ready before starting the next services.
 Waiting for the database is already included.
 #### HTTP/1.1
 ```sh
-docker-compose up -f ./docker-compose_h1.yaml --build
+docker-compose -f ./docker-compose_h1.yaml up --build
 ```
 #### HTTP/2
 ```sh
-docker-compose up -f ./docker-compose_h2.yaml up --build
+docker-compose -f ./docker-compose_h2.yaml up --build
 ```
 #### HTTP/3
 ```sh
-docker-compose up -f ./docker-compose_h3.yaml up --build
+docker-compose -f ./docker-compose_h3.yaml up --build
 ```
 
 ## DockerHub Images
@@ -94,7 +94,7 @@ docker-compose up -f ./docker-compose_h3.yaml up --build
 - [Web](https://hub.docker.com/r/tvsjsdock/teastore-web)
 - [Image](https://hub.docker.com/r/tvsjsdock/teastore-image)
 - [Recommender](https://hub.docker.com/r/tvsjsdock/teastore-recommender)
-### Tools
+### HTTP/3 Tools
 - [curl-http3](https://hub.docker.com/r/tvsjsdock/curl-http3)
 - [h2load-http3](https://hub.docker.com/r/tvsjsdock/h2load-http3)
 
@@ -110,7 +110,6 @@ Check out [TeaStore-Benchmark](https://github.com/DevPhilB/TeaStore-Benchmark) f
 ### More tools
 #### curl
 The popular command-line tool supports all HTTP versions (if configured).  
-You can use the DockerHub image if you don't want to compile it on your system.  
 [Workload script](examples/workload/curl_workload.sh) shows some example commands.  
 
 #### h2load
@@ -120,8 +119,7 @@ HTTP/2 and HTTP/3.
 You can use the existing [benchmark script](examples/workload/h2load_benchmark.sh) or create your own scripts.
 ##### Important
 There is a [bug](https://github.com/netty/netty-incubator-codec-http3/issues/159) in the HTTP/3 library of Netty,
-which causes freezes for some requests with h2load.  
-Please keep that in mind for the HTTP/3 version.
+which may causes freezes for HTTP/3 requests with h2load.
 
 ## License
 Distributed under the Apache-2.0 License. See `LICENSE` for more information.  
