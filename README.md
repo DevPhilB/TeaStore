@@ -111,13 +111,13 @@ Check out [TeaStore-Benchmark](https://github.com/DevPhilB/TeaStore-Benchmark) f
 #### curl
 The popular command-line tool supports all HTTP versions (if configured).  
 You can use the DockerHub image if you don't want to compile it on your system.  
-[Workload script](examples/curl_workload.sh) shows some example commands.  
+[Workload script](examples/workload/curl_workload.sh) shows some example commands.  
 
 #### h2load
 [h2load](https://github.com/nghttp2/nghttp2/tree/quic#running-h2load-against-http3-server)
 is currently (09/21) the only HTTP benchmarking tool which supports HTTP/1.1,
 HTTP/2 and HTTP/3.  
-You can use the existing [benchmark script](examples/h2load_benchmark.sh) or create your own scripts.
+You can use the existing [benchmark script](examples/workload/h2load_benchmark.sh) or create your own scripts.
 ##### Important
 There is a [bug](https://github.com/netty/netty-incubator-codec-http3/issues/159) in the HTTP/3 library of Netty,
 which causes freezes for some requests with h2load.  
