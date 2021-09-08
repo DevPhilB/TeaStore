@@ -50,7 +50,6 @@ public class HttpRecommenderServer {
     private final String httpVersion;
     private final String gatewayHost;
     private final Integer recommenderPort;
-    private final Integer persistencePort;
     private static final Logger LOG = LogManager.getLogger(HttpRecommenderServer.class);
 
     public HttpRecommenderServer(
@@ -58,7 +57,6 @@ public class HttpRecommenderServer {
         this.httpVersion = httpVersion;
         this.gatewayHost = gatewayHost;
         this.recommenderPort = recommenderPort;
-        this.persistencePort = persistencePort;
         // Setup and start training
         TrainingSynchronizer.getInstance().setupHttpClient(
                 httpVersion,

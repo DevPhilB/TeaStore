@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Sleep for 10 seconds so that database is ready
-sleep 10
+# Sleep for 30 seconds so that database is ready
+sleep 30
 # Run jar depending on configured HTTP version
 # HTTP/1.1 is the fallback configuration
 #   JAR HTTP_VERSION GATEWAY_HOST IMAGE_PORT (PERSISTENCE_PORT | for HTTP/3 only)

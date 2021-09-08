@@ -566,7 +566,6 @@ public class HttpWebAPI implements API {
             FullHttpResponse response = null;
             switch (name) {
                 case "addtocart":
-                    // TODO Switch between HTTP/1.1, HTTP/2 and HTTP/3
                     switch (httpVersion) {
                         case "HTTP/1.1" -> {
                             http1Request.setMethod(POST);
@@ -697,7 +696,10 @@ public class HttpWebAPI implements API {
                                     Http2Response.putHeader(
                                             gatewayHost + ":" + authPort,
                                             authEndpointUpdate
-                                    ).setObject(HttpHeaderNames.COOKIE, CookieUtil.encodeSessionData(sessionData, gatewayHost)),
+                                    ).setObject(
+                                            HttpHeaderNames.COOKIE,
+                                            CookieUtil.encodeSessionData(sessionData, gatewayHost)
+                                    ),
                                     true
                             );
                             // Create client and send request
