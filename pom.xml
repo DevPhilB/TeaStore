@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<properties>
@@ -16,7 +16,7 @@
 	<artifactId>parent</artifactId>
 	<packaging>pom</packaging>
 	<version>2.0</version>
-	
+
 	<modules>
 		<module>utilities</module>
 		<module>services/auth</module>
@@ -33,8 +33,8 @@
 				<artifactId>maven-checkstyle-plugin</artifactId>
 				<version>3.1.2</version>
 				<configuration>
-          			<configLocation>limbo_checkstyle.xml</configLocation>
-        		</configuration>
+					<configLocation>limbo_checkstyle.xml</configLocation>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
